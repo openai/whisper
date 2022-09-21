@@ -4,7 +4,7 @@
 [[Paper]](https://cdn.openai.com/papers/whisper.pdf)
 [[Model card]](model-card.md)
 [[Colab example]](https://colab.research.google.com/github/openai/whisper/blob/master/notebooks/LibriSpeech.ipynb)
-[[Colab example]](https://colab.research.google.com/github/openai/whisper/blob/master/notebooks/LibriSpeech.ipynb)
+[[Colab with Gradio example]](https://github.com/AK391/whisper/blob/main/notebooks/whisper_gradio_colab.ipynb)
 [[Hugging Face Demo]](https://huggingface.co/spaces/akhaliq/whisper)
 
 
