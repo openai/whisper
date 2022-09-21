@@ -37,7 +37,7 @@ choco install ffmpeg
 
 ## Command-line usage
 
-The following command will transcribe speech in audio files, using the `medium` model:
+There are five model sizes, four with English-only versions, offering speed and accuracy tradeoffs. The following command will transcribe speech in audio files, using the `medium` model:
 
     whisper audio.flac audio.mp3 audio.wav --model medium
 
@@ -49,7 +49,7 @@ Adding `--task translate` will translate the speech into English:
 
     whisper japanese.wav --language Japanese --task translate
 
-Run the following to view all available transcription options:
+Run the following to view all available options:
 
     whisper --help
 
