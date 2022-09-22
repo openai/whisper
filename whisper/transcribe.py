@@ -287,11 +287,11 @@ def cli():
         )
 
         # save TXT
-        with open(os.path.join(output_dir, audio_path + ".txt"), "w") as txt:
+        with open(os.path.join(output_dir, audio_path + ".txt"), "w", encoding="utf-8") as txt:
             print(result["text"], file=txt)
 
         # save VTT
-        with open(os.path.join(output_dir, audio_path + ".vtt"), "w") as vtt:
+        with open(os.path.join(output_dir, audio_path + ".vtt"), "w", encoding="utf-8") as vtt:
             write_vtt(result["segments"], file=vtt)
 
 
