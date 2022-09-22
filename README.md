@@ -119,4 +119,4 @@ print(result.text)
 
 ## License
 
-The code and the model weights of Whisper are released under the MIT License. See `LICENSE` for further details.
+The code and the model weights of Whisper are released under the MIT License. See [LICENSE](LICENSE) for further details.
