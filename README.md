@@ -21,17 +21,19 @@ We used Python 3.9.9 and [PyTorch](https://pytorch.org/) 1.10.1 to train and tes
 
     pip install git+https://github.com/openai/whisper.git 
 
-It also requires the command-line tool [`ffmpeg`](https://ffmpeg.org/) to be installed on your system, which is available from most package managers:
+It also requires the command-line tool [`ffmpeg`](https://ffmpeg.org/) and [`rust`](http://rust-lang.org) to be installed on your system, which are available from most package managers:
 
 ```bash
 # on Ubuntu or Debian
 sudo apt update && sudo apt install ffmpeg
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 
 # on MacOS using Homebrew (https://brew.sh/)
-brew install ffmpeg                         
+brew install ffmpeg rust                         
 
 # on Windows using Chocolatey (https://chocolatey.org/)
 choco install ffmpeg
+choco install rust
 ```
 
 
