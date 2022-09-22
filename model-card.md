@@ -2,7 +2,7 @@
 
 This is the official codebase for running the automatic speech recognition (ASR) models (Whisper models) trained and released by OpenAI.
 
-Following [Model Cards for Model Reporting (Mitchell et al.)](https://arxiv.org/abs/1810.03993), we're providing some information about the automatic speech recognition model. More information on how these models were trained and evaluated can be found [in the paper](TBA).
+Following [Model Cards for Model Reporting (Mitchell et al.)](https://arxiv.org/abs/1810.03993), we're providing some information about the automatic speech recognition model. More information on how these models were trained and evaluated can be found [in the paper](https://cdn.openai.com/papers/whisper.pdf).
 
 
 ## Model Details
