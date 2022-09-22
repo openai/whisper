@@ -77,16 +77,8 @@ class MultiHeadAttentionCross(nn.Module):
         self.key = Linear(n_state, n_state, bias=False)
         self.value = Linear(n_state, n_state)
         self.out = Linear(n_state, n_state)
-
-        # self.query.forward = torchdynamo.optimize("inductor")(self.query.forward)
-        # self.key.forward = torchdynamo.optimize("inductor")(self.key.forward)
-        # self.value.forward = torchdynamo.optimize("inductor")(self.value.forward)
-        # self.out.forward = torchdynamo.optimize("inductor")(self.out.forward)
-        # self.qkv_attention = torchdynamo.optimize("inductor")(qkv_attention)
         self.qkv_attention = qkv_attention
-        # self.forward = torchdynamo.optimize("inductor")(self.forward)
         
-
     def forward(
         self,
         x: Tensor,
@@ -96,15 +88,8 @@ class MultiHeadAttentionCross(nn.Module):
     ):
         q = self.query(x)
 
-        # if kv_cache is None or xa is None:
-            # hooks, if installed (i.e. kv_cache is not None), will prepend the cached kv tensors;
-            # otherwise, perform key/value projections for self- or cross-attention as usual.
         k = self.key(x if xa is None else xa)
         v = self.value(x if xa is None else xa)
-        # else:
-            # # for cross-attention, calculate keys and values once and reuse in subsequent calls.
-            # k = kv_cache.get(self.key, self.key(xa))
-            # v = kv_cache.get(self.value, self.value(xa))
 
         wv = self.qkv_attention(self.n_head, q, k, v, mask)
         return self.out(wv)
@@ -118,15 +103,7 @@ class MultiHeadAttention(nn.Module):
         self.key = Linear(n_state, n_state, bias=False)
         self.value = Linear(n_state, n_state)
         self.out = Linear(n_state, n_state)
-
-        # self.query.forward = torchdynamo.optimize("inductor")(self.query.forward)
-        # self.key.forward = torchdynamo.optimize("inductor")(self.key.forward)
-        # self.value.forward = torchdynamo.optimize("inductor")(self.value.forward)
-        # self.out.forward = torchdynamo.optimize("inductor")(self.out.forward)
-        # self.qkv_attention = torchdynamo.optimize("inductor")(qkv_attention)
-        self.qkv_attention = qkv_attention
-        # self.forward = torchdynamo.optimize("inductor")(self.forward)
-        
+        self.qkv_attention = qkv_attention        
 
     def forward(
         self,
@@ -136,17 +113,8 @@ class MultiHeadAttention(nn.Module):
         kv_cache: Optional[dict] = None,
     ):
         q = self.query(x)
-
-        # if kv_cache is None or xa is None:
-            # hooks, if installed (i.e. kv_cache is not None), will prepend the cached kv tensors;
-            # otherwise, perform key/value projections for self- or cross-attention as usual.
         k = self.key(x if xa is None else xa)
         v = self.value(x if xa is None else xa)
-        # else:
-            # # for cross-attention, calculate keys and values once and reuse in subsequent calls.
-            # k = kv_cache.get(self.key, self.key(xa))
-            # v = kv_cache.get(self.value, self.value(xa))
-
         wv = self.qkv_attention(self.n_head, q, k, v, mask)
         return self.out(wv)
 
@@ -180,9 +148,7 @@ class ResidualAttentionBlockCrossEntropy(nn.Module):
         super().__init__()
 
         self.attn = MultiHeadAttention(n_state, n_head)
-        # self.attn.forward = torchdynamo.optimize("inductor")(self.attn.forward)
         self.attn_ln = LayerNorm(n_state)
-        # self.attn_ln.forward = torchdynamo.optimize("inductor")(self.attn_ln.forward)
 
         self.cross_attn = MultiHeadAttentionCross(n_state, n_head)
         self.cross_attn.forward = torchdynamo.optimize("inductor")(self.cross_attn.forward)
@@ -225,7 +191,6 @@ class AudioEncoder(nn.Module):
             block.forward = torchdynamo.optimize("inductor")(block.forward)
         self.ln_post = LayerNorm(n_state)
         self.ln_post.forward = torchdynamo.optimize("inductor")(self.ln_post.forward)
-        # self.sub_forward = torchdynamo.optimize("inductor")(self.sub_forward)
 
     # Forward without permute
     def sub_forward(self, x:Tensor):
@@ -261,11 +226,6 @@ class TextDecoder(nn.Module):
         self.blocks: Iterable[ResidualAttentionBlock] = nn.ModuleList(
             [ResidualAttentionBlockCrossEntropy(n_state, n_head) for _ in range(n_layer)]
         )
-        # print("Layers:", n_layer)
-        # for i in range(0, 1):
-        #     # block = self.blocks[i]
-        #     self.blocks[i].forward = torchdynamo.optimize("inductor")(self.blocks[i].forward)
-
         self.ln = LayerNorm(n_state)
         self.ln.forward = torchdynamo.optimize("inductor")(self.ln.forward)
 
@@ -303,8 +263,6 @@ class Whisper(nn.Module):
             self.dims.n_audio_head,
             self.dims.n_audio_layer,
         )
-        # Cannot enable - PermuteView with a bool bug
-        # self.encoder.forward = torchdynamo.optimize("inductor")(self.encoder.forward)
         self.decoder = TextDecoder(
             self.dims.n_vocab,
             self.dims.n_text_ctx,
@@ -312,7 +270,6 @@ class Whisper(nn.Module):
             self.dims.n_text_head,
             self.dims.n_text_layer,
         )
-        # self.decoder.forward = torchdynamo.optimize("inductor")(self.decoder.forward)
 
     def embed_audio(self, mel: torch.Tensor):
         return self.encoder.forward(mel)
