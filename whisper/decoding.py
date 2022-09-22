@@ -475,6 +475,8 @@ class DecodingTask:
         else:
             self.decoder = GreedyDecoder(options.temperature, tokenizer.eot)
 
+        # print("Decoder is", self.decoder)
+
         # logit filters: applies various rules to suppress or penalize certain tokens
         self.logit_filters = []
         if self.options.suppress_blank:
