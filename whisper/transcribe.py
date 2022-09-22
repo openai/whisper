@@ -286,12 +286,14 @@ def cli():
             **args,
         )
 
+        audio_basename = os.path.basename(audio_path)
+
         # save TXT
-        with open(os.path.join(output_dir, audio_path + ".txt"), "w") as txt:
+        with open(os.path.join(output_dir, audio_basename + ".txt"), "w") as txt:
             print(result["text"], file=txt)
 
         # save VTT
-        with open(os.path.join(output_dir, audio_path + ".vtt"), "w") as vtt:
+        with open(os.path.join(output_dir, audio_basename + ".vtt"), "w") as vtt:
             write_vtt(result["segments"], file=vtt)
 
 
