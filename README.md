@@ -28,7 +28,7 @@ It also requires the command-line tool [`ffmpeg`](https://ffmpeg.org/) to be ins
 sudo apt update && sudo apt install ffmpeg
 
 # on MacOS using Homebrew (https://brew.sh/)
-brew install ffmpeg                         
+brew install ffmpeg
 
 # on Windows using Chocolatey (https://chocolatey.org/)
 choco install ffmpeg
@@ -36,6 +36,8 @@ choco install ffmpeg
 # on Windows using Scoop (https://scoop.sh/)
 scoop install ffmpeg
 ```
+
+You may need [`rust`](http://rust-lang.org) installed as well, in case [tokenizers](https://pypi.org/project/tokenizers/) does not provide a pre-built wheel for your platform. If you see installation errors during the `pip install` command above, please follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install Rust development environment.
 
 
 ## Available models and languages
