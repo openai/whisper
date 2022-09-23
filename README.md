@@ -122,6 +122,10 @@ result = whisper.decode(model, mel, options)
 print(result.text)
 ```
 
+### Microphone Demo
+
+You can use the model with a microphone using the ```mic.py``` program.  Use ```-h``` to see flag options.
+
 ## License
 
 The code and the model weights of Whisper are released under the MIT License. See [LICENSE](LICENSE) for further details.
