@@ -26,14 +26,12 @@ _MODELS = {
     "large": "https://openaipublic.azureedge.net/main/whisper/models/e4b87e7e0bf463eb8e6956e646f1e277e901512310def2c24bf0e11bd3c28e9a/large.pt",
 }
 
-def _model_path(url: str, root: str) -> str:
-    return os.path.join(root, os.path.basename(url))
 
-def _download(url: str, root: str, in_memory: bool) -> bytes:
+def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
     os.makedirs(root, exist_ok=True)
 
     expected_sha256 = url.split("/")[-2]
-    download_target = _model_path(url, root)
+    download_target = os.path.join(root, os.path.basename(url))
 
     if os.path.exists(download_target) and not os.path.isfile(download_target):
         raise RuntimeError(f"{download_target} exists and is not a regular file")
