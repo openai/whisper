@@ -178,8 +178,8 @@ class Tokenizer:
 
     @property
     @lru_cache()
-    def no_captions(self) -> int:
-        return self._get_single_token_id("<|nocaptions|>")
+    def no_speech(self) -> int:
+        return self._get_single_token_id("<|nospeech|>")
 
     @property
     @lru_cache()
@@ -283,7 +283,7 @@ def build_tokenizer(name: str = "gpt2"):
         "<|transcribe|>",
         "<|startoflm|>",
         "<|startofprev|>",
-        "<|nocaptions|>",
+        "<|nospeech|>",
         "<|notimestamps|>",
     ]
 
