@@ -44,7 +44,7 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
             .run(cmd="ffmpeg", capture_stdout=True, capture_stderr=True)
         )
     except ffmpeg.Error as e:
-        raise RuntimeError(f"Failed to load audio: {e.stderr.decode()}")
+        raise RuntimeError(f"Failed to load audio: {e.stderr.decode()}") from e
 
     return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
 
