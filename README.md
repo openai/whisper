@@ -126,6 +126,13 @@ print(result.text)
 
 You can use the model with a microphone using the ```mic.py``` program.  Use ```-h``` to see flag options.
 
+#### Troubleshooting
+
+If you are having issues with the ```mic.py``` not running try the following:
+```
+sudo apt install portaudio19-dev python3-pyaudio
+```
+
 ## License
 
 The code and the model weights of Whisper are released under the MIT License. See [LICENSE](LICENSE) for further details.
