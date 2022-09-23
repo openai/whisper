@@ -39,6 +39,12 @@ scoop install ffmpeg
 
 You may need [`rust`](http://rust-lang.org) installed as well, in case [tokenizers](https://pypi.org/project/tokenizers/) does not provide a pre-built wheel for your platform. If you see installation errors during the `pip install` command above, please follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install Rust development environment.
 
+### GPU setup
+
+For Nvidia GPU suppport run the following after following previous steps:
+```
+pip install -r requirements_gpu.txt
+```
 
 ## Available models and languages
 
