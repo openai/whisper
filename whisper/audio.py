@@ -40,7 +40,7 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
     # fps: ar
     # nchannels=1: ac=1
     # nbytes=2: format=s16le & acodec=pcm_s16le
-    reader = FFMPEG_AudioReader(file, fps=sr, nbytes=2, buffersize=2000000, nchannels=1)
+    reader = FFMPEG_AudioReader(file, fps=sr, nbytes=2, buffersize=float('inf'), nchannels=1)
 
     if reader.buffer.shape[0] == 0:
         raise RuntimeError(f"Failed to load audio: {file}")
