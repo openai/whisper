@@ -122,6 +122,15 @@ result = whisper.decode(model, mel, options)
 print(result.text)
 ```
 
+
+## Extensions and integrations
+
+A list of community-contributed extended functionality and integrations with whisper.
+
+[Whisper mic](https://openai.com/blog/whisper/) Allows to use use a microphone continuously
+
+
+
 ## License
 
 The code and the model weights of Whisper are released under the MIT License. See [LICENSE](LICENSE) for further details.
