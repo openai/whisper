@@ -17,25 +17,9 @@ A Transformer sequence-to-sequence model is trained on various speech processing
 
 ## Setup
 
-We used Python 3.9.9 and [PyTorch](https://pytorch.org/) 1.10.1 to train and test our models, but the codebase is expected to be compatible with Python 3.7 or later and recent PyTorch versions. The codebase also depends on a few Python packages, most notably [HuggingFace Transformers](https://huggingface.co/docs/transformers/index) for their fast tokenizer implementation and [ffmpeg-python](https://github.com/kkroening/ffmpeg-python) for reading audio files. The following command will pull and install the latest commit from this repository, along with its Python dependencies 
+We used Python 3.9.9 and [PyTorch](https://pytorch.org/) 1.10.1 to train and test our models, but the codebase is expected to be compatible with Python 3.7 or later and recent PyTorch versions. The codebase also depends on a few Python packages, most notably [HuggingFace Transformers](https://huggingface.co/docs/transformers/index) for their fast tokenizer implementation and [moviepy](https://github.com/Zulko/moviepy) for reading audio files. The following command will pull and install the latest commit from this repository, along with its Python dependencies 
 
     pip install git+https://github.com/openai/whisper.git 
-
-It also requires the command-line tool [`ffmpeg`](https://ffmpeg.org/) to be installed on your system, which is available from most package managers:
-
-```bash
-# on Ubuntu or Debian
-sudo apt update && sudo apt install ffmpeg
-
-# on MacOS using Homebrew (https://brew.sh/)
-brew install ffmpeg
-
-# on Windows using Chocolatey (https://chocolatey.org/)
-choco install ffmpeg
-
-# on Windows using Scoop (https://scoop.sh/)
-scoop install ffmpeg
-```
 
 You may need [`rust`](http://rust-lang.org) installed as well, in case [tokenizers](https://pypi.org/project/tokenizers/) does not provide a pre-built wheel for your platform. If you see installation errors during the `pip install` command above, please follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install Rust development environment.
 
