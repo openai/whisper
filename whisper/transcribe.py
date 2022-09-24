@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple, Union, TYPE_CHECKING
 
 import numpy as np
 import torch
+import tqdm
 
 from .audio import SAMPLE_RATE, N_FRAMES, HOP_LENGTH, pad_or_trim, log_mel_spectrogram
 from .decoding import DecodingOptions, DecodingResult
@@ -154,7 +155,12 @@ def transcribe(
         if verbose:
             print(f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}")
 
-    while seek < mel.shape[-1]:
+    # init progress bar
+    num_samples = mel.shape[-1]
+    pbar = tqdm.tqdm(total=num_samples, desc='Transcribing', unit='samples')
+    previous_seek_value = seek
+
+    while seek < num_samples:
         timestamp_offset = float(seek * HOP_LENGTH / SAMPLE_RATE)
         segment = pad_or_trim(mel[:, :, seek:], N_FRAMES).to(model.device).to(dtype)
         segment_duration = segment.shape[-1] * HOP_LENGTH / SAMPLE_RATE
@@ -220,6 +226,10 @@ def transcribe(
         if result.temperature > 0.5:
             # do not feed the prompt tokens if a high temperature was used
             prompt_reset_since = len(all_tokens)
+
+        # update progress bar
+        pbar.update(min(num_samples, seek) - previous_seek_value)
+        previous_seek_value = seek
 
     return dict(text=tokenizer.decode(all_tokens), segments=all_segments, language=language)
 
