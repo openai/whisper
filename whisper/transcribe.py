@@ -1,5 +1,6 @@
 import argparse
 import os
+import logging
 import warnings
 from typing import List, Optional, Tuple, Union, TYPE_CHECKING
 
@@ -83,11 +84,11 @@ def transcribe(
 
     if decode_options.get("language", None) is None:
         if verbose:
-            print("Detecting language using up to the first 30 seconds. Use `--language` to specify the language")
+            logging.debug("Detecting language using up to the first 30 seconds. Use `--language` to specify the language")
         segment = pad_or_trim(mel, N_FRAMES).to(model.device).to(dtype)
         _, probs = model.detect_language(segment)
         decode_options["language"] = max(probs, key=probs.get)
-        print(f"Detected language: {LANGUAGES[decode_options['language']]}")
+        logging.info(f"Detected language: {LANGUAGES[decode_options['language']]}")
 
     mel = mel.unsqueeze(0)
     language = decode_options["language"]
@@ -158,7 +159,7 @@ def transcribe(
             }
         )
         if verbose:
-            print(f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}")
+            logging.debug(f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}")
 
     while seek < mel.shape[-1]:
         timestamp_offset = float(seek * HOP_LENGTH / SAMPLE_RATE)
@@ -285,7 +286,7 @@ def cli():
 
         # save TXT
         with open(os.path.join(output_dir, audio_basename + ".txt"), "w", encoding="utf-8") as txt:
-            print(result["text"], file=txt)
+            logging.info(result["text"], file=txt)
 
         # save VTT
         with open(os.path.join(output_dir, audio_basename + ".vtt"), "w", encoding="utf-8") as vtt:
