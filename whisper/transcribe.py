@@ -6,7 +6,7 @@ from typing import List, Optional, Tuple, Union, TYPE_CHECKING
 import numpy as np
 import torch
 
-from .audio import SAMPLE_RATE, N_FRAMES, HOP_LENGTH, pad_or_trim, log_mel_spectrogram
+from .audio import SAMPLE_RATE, N_FRAMES, HOP_LENGTH, pad_or_trim, log_mel_spectrogram, load_audio
 from .decoding import DecodingOptions, DecodingResult
 from .tokenizer import LANGUAGES, TO_LANGUAGE_CODE, get_tokenizer
 from .utils import exact_div, format_timestamp, optional_int, optional_float, str2bool, write_vtt
@@ -279,9 +279,10 @@ def cli():
     model = load_model(model_name, device=device)
 
     for audio_path in args.pop("audio"):
-        result = transcribe(model, audio_path, temperature=temperature, **args)
+        audio = load_audio("pipe:") if audio_path == "-" else audio_path
+        result = transcribe(model, audio, temperature=temperature, **args)
 
-        audio_basename = os.path.basename(audio_path)
+        audio_basename = "stdin" if audio_path == "-" else os.path.basename(audio_path)
 
         # save TXT
         with open(os.path.join(output_dir, audio_basename + ".txt"), "w", encoding="utf-8") as txt:
