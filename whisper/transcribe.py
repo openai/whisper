@@ -257,7 +257,7 @@ def cli():
     device: str = args.pop("device")
     os.makedirs(output_dir, exist_ok=True)
 
-    if model_name.endswith(".en") and args["language"] != "en":
+    if model_name.endswith(".en") and args["language"] not in {"en", "English"}:
         warnings.warn(f"{model_name} is an English-only model but receipted '{args['language']}'; using English instead.")
         args["language"] = "en"
 
