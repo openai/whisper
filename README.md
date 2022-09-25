@@ -122,6 +122,14 @@ result = whisper.decode(model, mel, options)
 print(result.text)
 ```
 
+## Extensions and integrations
+
+A list of community-contributed extended functionality and integrations with whisper.
+
++ [Whisper mic](https://github.com/mallorbc/whisper_mic/) Allows to use use a microphone continuously.
++ [Whispering](https://github.com/shirayu/whispering/) Streaming transcriber. Enables acess through webserver.
+
+
 ## License
 
 The code and the model weights of Whisper are released under the MIT License. See [LICENSE](LICENSE) for further details.
