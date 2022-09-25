@@ -7,7 +7,7 @@ for i in range(1, 9):
     path = f"david-copperfield-002-chapter-1-i-am-born.2935_silence_0{i}.mp3"
     paths.append(path)
 
-model = whisper.load_model("base")
+model = whisper.load_model("base", dynamo=torchdynamo.optimize("inductor"))
 
 audios = []
 mels = []
