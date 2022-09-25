@@ -24,6 +24,7 @@ def transcribe(
     compression_ratio_threshold: Optional[float] = 2.4,
     logprob_threshold: Optional[float] = -1.0,
     no_speech_threshold: Optional[float] = 0.6,
+    condition_on_previous_text: bool = True,
     **decode_options,
 ):
     """
@@ -53,6 +54,11 @@ def transcribe(
     no_speech_threshold: float
         If the no_speech probability is higher than this value AND the average log probability
         over sampled tokens is below `logprob_threshold`, consider the segment as silent
+
+    condition_on_previous_text: bool
+        if True, the previous output of the model is provided as a prompt for the next window;
+        disabling may make the text inconsistent across windows, but the model becomes less prone to
+        getting stuck in a failure loop, such as repetition looping or timestamps going out of sync.
 
     decode_options: dict
         Keyword arguments to construct `DecodingOptions` instances
@@ -217,7 +223,7 @@ def transcribe(
             seek += segment.shape[-1]
             all_tokens.extend(tokens.tolist())
 
-        if result.temperature > 0.5:
+        if not condition_on_previous_text or result.temperature > 0.5:
             # do not feed the prompt tokens if a high temperature was used
             prompt_reset_since = len(all_tokens)
 
@@ -232,7 +238,7 @@ def cli():
     parser.add_argument("--model", default="small", choices=available_models(), help="name of the Whisper model to use")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu", help="device to use for PyTorch inference")
     parser.add_argument("--output_dir", "-o", type=str, default=".", help="directory to save the outputs")
-    parser.add_argument("--verbose", type=str2bool, default=True, help="Whether to print out the progress and debug messages")
+    parser.add_argument("--verbose", type=str2bool, default=True, help="whether to print out the progress and debug messages")
 
     parser.add_argument("--task", type=str, default="transcribe", choices=["transcribe", "translate"], help="whether to perform X->X speech recognition ('transcribe') or X->English translation ('translate')")
     parser.add_argument("--language", type=str, default=None, choices=sorted(LANGUAGES.keys()) + sorted([k.title() for k in TO_LANGUAGE_CODE.keys()]), help="language spoken in the audio, specify None to perform language detection")
@@ -244,6 +250,7 @@ def cli():
     parser.add_argument("--length_penalty", type=float, default=None, help="optional token length penalty coefficient (alpha) as in https://arxiv.org/abs/1609.08144, uses simple lengt normalization by default")
 
     parser.add_argument("--suppress_tokens", type=str, default="-1", help="comma-separated list of token ids to suppress during sampling; '-1' will suppress most special characters except common punctuations")
+    parser.add_argument("--condition_on_previous_text", type=str2bool, default=True, help="if True, provide the previous output of the model as a prompt for the next window; disabling may make the text inconsistent across windows, but the model becomes less prone to getting stuck in a failure loop")
     parser.add_argument("--fp16", type=str2bool, default=True, help="whether to perform inference in fp16; True by default")
 
     parser.add_argument("--temperature_increment_on_fallback", type=optional_float, default=0.2, help="temperature to increase when falling back when the decoding fails to meet either of the thresholds below")
