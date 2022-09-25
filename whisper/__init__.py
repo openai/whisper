@@ -3,7 +3,7 @@ import io
 import os
 import urllib
 import warnings
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Callable
 
 import torch
 from tqdm import tqdm
@@ -65,7 +65,7 @@ def available_models() -> List[str]:
     return list(_MODELS.keys())
 
 
-def load_model(name: str, device: Optional[Union[str, torch.device]] = None, download_root: str = None, in_memory: bool = False) -> Whisper:
+def load_model(name: str, device: Optional[Union[str, torch.device]] = None, download_root: str = None, in_memory: bool = False, dynamo:Callable = None) -> Whisper:
     """
     Load a Whisper ASR model
 
@@ -104,7 +104,7 @@ def load_model(name: str, device: Optional[Union[str, torch.device]] = None, dow
     del checkpoint_file
 
     dims = ModelDimensions(**checkpoint["dims"])
-    model = Whisper(dims)
+    model = Whisper(dims, dynamo=dynamo)
     model.load_state_dict(checkpoint["model_state_dict"])
 
     return model.to(device)
