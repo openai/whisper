@@ -7,7 +7,6 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor
 from torch import nn
-import torchdynamo
 
 from .transcribe import transcribe as transcribe_function
 from .decoding import detect_language as detect_language_function, decode as decode_function
@@ -89,7 +88,7 @@ class MultiHeadAttention(nn.Module):
         kv_cache: Optional[dict] = None,
     ):
         q = self.query(x)
-        if self.dynamo:
+        if self.dynamo is not None:
             k = self.key(x if xa is None else xa)
             v = self.value(x if xa is None else xa)
         else:
@@ -109,10 +108,10 @@ class MultiHeadAttention(nn.Module):
 
 
 class ResidualAttentionBlock(nn.Module):
-    def __init__(self, n_state: int, n_head: int,  kv_cache: Optional[dict] = None):
+    def __init__(self, n_state: int, n_head: int,  kv_cache: Optional[dict] = None, dynamo=None):
         super().__init__()
 
-        self.attn = MultiHeadAttention(n_state, n_head)
+        self.attn = MultiHeadAttention(n_state, n_head, dynamo=dynamo)
         self.attn_ln = LayerNorm(n_state)
 
         n_mlp = n_state * 4
@@ -135,10 +134,10 @@ class ResidualAttentionBlockCrossEntropy(nn.Module):
     def __init__(self, n_state: int, n_head: int, dynamo=None):
         super().__init__()
 
-        self.attn = MultiHeadAttention(n_state, n_head)
+        self.attn = MultiHeadAttention(n_state, n_head, dynamo=dynamo)
         self.attn_ln = LayerNorm(n_state)
 
-        self.cross_attn = MultiHeadAttention(n_state, n_head)        
+        self.cross_attn = MultiHeadAttention(n_state, n_head, dynamo=dynamo)        
         self.cross_attn_ln = LayerNorm(n_state)
     
         n_mlp = n_state * 4
@@ -173,7 +172,7 @@ class AudioEncoder(nn.Module):
         self.register_buffer("positional_embedding", sinusoids(n_ctx, n_state))
 
         self.blocks: Iterable[ResidualAttentionBlock] = nn.ModuleList(
-            [ResidualAttentionBlock(n_state, n_head) for _ in range(n_layer)]
+            [ResidualAttentionBlock(n_state, n_head, dynamo=dynamo) for _ in range(n_layer)]
         )
         self.ln_post = LayerNorm(n_state)
         if dynamo is not None:
