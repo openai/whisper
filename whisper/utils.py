@@ -44,6 +44,11 @@ def format_timestamp(seconds: float, always_include_hours: bool = False):
     return f"{hours_marker}{minutes:02d}:{seconds:02d}.{milliseconds:03d}"
 
 
+def write_txt(transcript: Iterator[dict], file: TextIO):
+    for segment in transcript:
+        print(segment['text'].strip(), file=file, flush=True)
+
+
 def write_vtt(transcript: Iterator[dict], file: TextIO):
     print("WEBVTT\n", file=file)
     for segment in transcript:
