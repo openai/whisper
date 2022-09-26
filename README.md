@@ -124,6 +124,14 @@ result = whisper.decode(model, mel, options)
 # print the recognized text
 print(result.text)
 ```
+## Similar Work
+
+### I. Whisper based ASR Webapp
+
+[A Streamlit based Webapp to perform automatic speech recognition using OpenAI's Whisper](https://github.com/prateekralhan/OpenAI_Whisper_ASR)
+
+![192354340-7a242d6a-8d71-4b91-ae29-c35fbafe3ad4](https://user-images.githubusercontent.com/29462447/192356274-828be139-f237-4dd4-8e83-764feb07db35.gif)
+
 
 ## License
 
