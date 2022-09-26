@@ -27,6 +27,9 @@ It also requires the command-line tool [`ffmpeg`](https://ffmpeg.org/) to be ins
 # on Ubuntu or Debian
 sudo apt update && sudo apt install ffmpeg
 
+# on Arch Linux
+sudo pacman -S ffmpeg
+
 # on MacOS using Homebrew (https://brew.sh/)
 brew install ffmpeg
 

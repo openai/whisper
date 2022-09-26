@@ -537,8 +537,7 @@ class DecodingTask:
         elif suppress_tokens is None or len(suppress_tokens) == 0:
             suppress_tokens = []  # interpret empty string as an empty list
         else:
-            assert isinstance(self.options.suppress_tokens, list), "suppress_tokens must be a list"
-            suppress_tokens = self.options.suppress_tokens
+            assert isinstance(suppress_tokens, list), "suppress_tokens must be a list"
 
         suppress_tokens.extend(
             [self.tokenizer.sot, self.tokenizer.sot_prev, self.tokenizer.sot_lm]
