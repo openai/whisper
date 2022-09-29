@@ -1,0 +1,15 @@
+build:
+  gpu: true
+  cuda: "11.3"
+  python_version: "3.8"
+  system_packages:
+    - "ffmpeg"
+  python_packages:
+    - "tqdm==4.64.0"
+    - "numpy==1.22.3"
+    - "transformers==4.19.2"
+    - "ffmpeg-python==0.2.0"
+    - "more_itertools==8.14.0"
+  run:
+  - pip install torch==1.10.0+cu113 torchaudio==0.10.0+cu113 -f https://download.pytorch.org/whl/cu113/torch_stable.html
+predict: "predict.py:Predictor"
