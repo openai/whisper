@@ -136,7 +136,9 @@ class PyTorchInference(Inference):
 
     def logits(self, tokens: Tensor, audio_features: Tensor) -> Tensor:
         if not self.kv_cache:
-            self.kv_cache, self.hooks = self.model.install_kv_cache_hooks()
+            for i in range(4, 12, 2):
+                self.kv_cache[f"MultiHeadAttention_key_{i}"] = torch.zeros([5, 0, 384])
+                self.kv_cache[f"MultiHeadAttention_value_{i}"] = torch.zeros([5, 0, 384])
 
         if tokens.shape[-1] > self.initial_token_length:
             # only need to use the last token except in the first forward pass
@@ -152,9 +154,9 @@ class PyTorchInference(Inference):
         self.hooks = []
 
     def rearrange_kv_cache(self, source_indices):
-        for module, tensor in self.kv_cache.items():
+        for cache_label, tensor in self.kv_cache.items():
             # update the key/value cache to contain the selected sequences
-            self.kv_cache[module] = tensor[source_indices].detach()
+            self.kv_cache[cache_label] = tensor[source_indices].detach()
 
 
 class SequenceRanker:

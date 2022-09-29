@@ -55,13 +55,20 @@ def sinusoids(length, channels, max_timescale=10000):
 
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, n_state: int, n_head: int):
+    layer_count = 0
+
+    def __init__(self, n_ctx: int, n_state: int, n_head: int):
         super().__init__()
         self.n_head = n_head
         self.query = Linear(n_state, n_state)
         self.key = Linear(n_state, n_state, bias=False)
         self.value = Linear(n_state, n_state)
         self.out = Linear(n_state, n_state)
+
+        self.key.cache_label = f"MultiHeadAttention_key_{MultiHeadAttention.layer_count}"
+        self.value.cache_label = f"MultiHeadAttention_value_{MultiHeadAttention.layer_count}"
+        MultiHeadAttention.layer_count += 1
+        self.n_ctx = n_ctx
 
     def forward(
         self,
@@ -72,15 +79,21 @@ class MultiHeadAttention(nn.Module):
     ):
         q = self.query(x)
 
-        if kv_cache is None or xa is None:
-            # hooks, if installed (i.e. kv_cache is not None), will prepend the cached kv tensors;
-            # otherwise, perform key/value projections for self- or cross-attention as usual.
+        if kv_cache is None:
             k = self.key(x if xa is None else xa)
             v = self.value(x if xa is None else xa)
         else:
-            # for cross-attention, calculate keys and values once and reuse in subsequent calls.
-            k = kv_cache.get(self.key, self.key(xa))
-            v = kv_cache.get(self.value, self.value(xa))
+            new_k = self.key(x if xa is None else xa)
+            new_v = self.value(x if xa is None else xa)
+
+            if new_k.shape[1] > self.n_ctx:
+                k = new_k
+                v = new_v
+            else:
+                k = torch.cat([kv_cache[self.key.cache_label], new_k], dim=1)
+                v = torch.cat([kv_cache[self.value.cache_label], new_v], dim=1)
+            kv_cache[self.key.cache_label] = k.detach()
+            kv_cache[self.value.cache_label] = v.detach()
 
         wv = self.qkv_attention(q, k, v, mask)
         return self.out(wv)
@@ -101,13 +114,13 @@ class MultiHeadAttention(nn.Module):
 
 
 class ResidualAttentionBlock(nn.Module):
-    def __init__(self, n_state: int, n_head: int, cross_attention: bool = False):
+    def __init__(self, n_ctx: int, n_state: int, n_head: int, cross_attention: bool = False):
         super().__init__()
 
-        self.attn = MultiHeadAttention(n_state, n_head)
+        self.attn = MultiHeadAttention(n_ctx, n_state, n_head)
         self.attn_ln = LayerNorm(n_state)
 
-        self.cross_attn = MultiHeadAttention(n_state, n_head) if cross_attention else None
+        self.cross_attn = MultiHeadAttention(n_ctx, n_state, n_head) if cross_attention else None
         self.cross_attn_ln = LayerNorm(n_state) if cross_attention else None
 
         n_mlp = n_state * 4
@@ -136,7 +149,7 @@ class AudioEncoder(nn.Module):
         self.register_buffer("positional_embedding", sinusoids(n_ctx, n_state))
 
         self.blocks: Iterable[ResidualAttentionBlock] = nn.ModuleList(
-            [ResidualAttentionBlock(n_state, n_head) for _ in range(n_layer)]
+            [ResidualAttentionBlock(n_ctx, n_state, n_head) for _ in range(n_layer)]
         )
         self.ln_post = LayerNorm(n_state)
 
@@ -167,7 +180,7 @@ class TextDecoder(nn.Module):
         self.positional_embedding = nn.Parameter(torch.empty(n_ctx, n_state))
 
         self.blocks: Iterable[ResidualAttentionBlock] = nn.ModuleList(
-            [ResidualAttentionBlock(n_state, n_head, cross_attention=True) for _ in range(n_layer)]
+            [ResidualAttentionBlock(n_ctx, n_state, n_head, cross_attention=True) for _ in range(n_layer)]
         )
         self.ln = LayerNorm(n_state)
 
@@ -248,11 +261,14 @@ class Whisper(nn.Module):
         hooks = []
 
         def save_to_cache(module, _, output):
-            if module not in cache or output.shape[1] > self.decoder.positional_embedding.shape[0]:
-                cache[module] = output  # save as-is, for the first token or cross attention
+            cache_label = module.cache_label
+            if cache_label not in cache:
+                cache[cache_label] = output  # save as-is, for the first token or cross attention
+            elif output.shape[1] > self.decoder.positional_embedding.shape[0]:
+                cache[cache_label] = output  # save as-is, for the first token or cross attention
             else:
-                cache[module] = torch.cat([cache[module], output], dim=1).detach()
-            return cache[module]
+                cache[cache_label] = torch.cat([cache[cache_label], output], dim=1).detach()
+            return cache[cache_label]
 
         def install_hooks(layer: nn.Module):
             if isinstance(layer, MultiHeadAttention):
