@@ -65,8 +65,7 @@ class MultiHeadAttention(nn.Module):
         self.value = Linear(n_state, n_state)
         self.out = Linear(n_state, n_state)
 
-        self.key.cache_label = f"MultiHeadAttention_key_{MultiHeadAttention.layer_count}"
-        self.value.cache_label = f"MultiHeadAttention_value_{MultiHeadAttention.layer_count}"
+        self.layer_id = MultiHeadAttention.layer_count
         MultiHeadAttention.layer_count += 1
         self.n_ctx = n_ctx
 
@@ -79,21 +78,16 @@ class MultiHeadAttention(nn.Module):
     ):
         q = self.query(x)
 
-        if kv_cache is None:
-            k = self.key(x if xa is None else xa)
-            v = self.value(x if xa is None else xa)
-        else:
-            new_k = self.key(x if xa is None else xa)
-            new_v = self.value(x if xa is None else xa)
-
-            if new_k.shape[1] > self.n_ctx:
-                k = new_k
-                v = new_v
-            else:
-                k = torch.cat([kv_cache[self.key.cache_label], new_k], dim=1)
-                v = torch.cat([kv_cache[self.value.cache_label], new_v], dim=1)
-            kv_cache[self.key.cache_label] = k.detach()
-            kv_cache[self.value.cache_label] = v.detach()
+        k = self.key(x if xa is None else xa)
+        v = self.value(x if xa is None else xa)
+        if kv_cache is not None and k.shape[1] <= self.n_ctx:
+            key_id = self.layer_id - 4
+            value_id = key_id + 1
+            size = k.shape[1]
+            kv_cache[key_id, :, -size:, :] = k
+            kv_cache[value_id, :, -size:, :] = v
+            k = kv_cache[key_id]
+            v = kv_cache[value_id]
 
         wv = self.qkv_attention(q, k, v, mask)
         return self.out(wv)
@@ -194,7 +188,8 @@ class TextDecoder(nn.Module):
         xa : torch.Tensor, shape = (batch_size, n_mels, n_audio_ctx)
             the encoded audio features to be attended on
         """
-        offset = next(iter(kv_cache.values())).shape[1] if kv_cache else 0
+        # minus one because we pre allocate kv_cache
+        offset = kv_cache.shape[2] - 1 if kv_cache is not None else 0
         x = self.token_embedding(x) + self.positional_embedding[offset : offset + x.shape[-1]]
         x = x.to(xa.dtype)
 

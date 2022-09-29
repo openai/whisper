@@ -131,14 +131,17 @@ class PyTorchInference(Inference):
     def __init__(self, model: "Whisper", initial_token_length: int):
         self.model: "Whisper" = model
         self.initial_token_length = initial_token_length
-        self.kv_cache = {}
-        self.hooks = []
+        self.kv_cache = None
 
     def logits(self, tokens: Tensor, audio_features: Tensor) -> Tensor:
-        if not self.kv_cache:
-            for i in range(4, 12, 2):
-                self.kv_cache[f"MultiHeadAttention_key_{i}"] = torch.zeros([5, 0, 384])
-                self.kv_cache[f"MultiHeadAttention_value_{i}"] = torch.zeros([5, 0, 384])
+        if self.kv_cache is None:
+            # hard code for decoder layer 4, 6, 8, 10
+            self.kv_cache = torch.zeros([8, 5, self.initial_token_length, 384])
+        else:
+            length = self.kv_cache.shape[2]
+            new_kv_cache = torch.zeros([8, 5, length + 1, 384])
+            new_kv_cache[:, :, :-1, :] = self.kv_cache
+            self.kv_cache = new_kv_cache
 
         if tokens.shape[-1] > self.initial_token_length:
             # only need to use the last token except in the first forward pass
@@ -147,16 +150,10 @@ class PyTorchInference(Inference):
         return self.model.decoder(tokens, audio_features, kv_cache=self.kv_cache)
 
     def cleanup_caching(self):
-        for hook in self.hooks:
-            hook.remove()
-
-        self.kv_cache = {}
-        self.hooks = []
+        self.kv_cache = None
 
     def rearrange_kv_cache(self, source_indices):
-        for cache_label, tensor in self.kv_cache.items():
-            # update the key/value cache to contain the selected sequences
-            self.kv_cache[cache_label] = tensor[source_indices].detach()
+        self.kv_cache = self.kv_cache[:, source_indices].detach()
 
 
 class SequenceRanker:
