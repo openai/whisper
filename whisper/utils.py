@@ -27,7 +27,7 @@ def compression_ratio(text) -> float:
     return len(text) / len(zlib.compress(text.encode("utf-8")))
 
 
-def format_timestamp(seconds: float, always_include_hours: bool = False):
+def format_timestamp(seconds: float, always_include_hours: bool = False, decimal_marker: str = '.'):
     assert seconds >= 0, "non-negative timestamp expected"
     milliseconds = round(seconds * 1000.0)
 
@@ -41,7 +41,7 @@ def format_timestamp(seconds: float, always_include_hours: bool = False):
     milliseconds -= seconds * 1_000
 
     hours_marker = f"{hours}:" if always_include_hours or hours > 0 else ""
-    return f"{hours_marker}{minutes:02d}:{seconds:02d}.{milliseconds:03d}"
+    return f"{hours_marker}{minutes:02d}:{seconds:02d}{decimal_marker}{milliseconds:03d}"
 
 
 def write_txt(transcript: Iterator[dict], file: TextIO):
@@ -79,8 +79,8 @@ def write_srt(transcript: Iterator[dict], file: TextIO):
         # write srt lines
         print(
             f"{i}\n"
-            f"{format_timestamp(segment['start'], always_include_hours=True)} --> "
-            f"{format_timestamp(segment['end'], always_include_hours=True)}\n"
+            f"{format_timestamp(segment['start'], always_include_hours=True, decimal_marker=',')} --> "
+            f"{format_timestamp(segment['end'], always_include_hours=True, decimal_marker=',')}\n"
             f"{segment['text'].strip().replace('-->', '->')}\n",
             file=file,
             flush=True,
