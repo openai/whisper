@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch import nn
 
+from huggingface_hub import hf_hub_download
 from openvino.runtime import Core
 
 from .transcribe import transcribe as transcribe_function
@@ -204,11 +205,14 @@ class TextDecoder(nn.Module):
 
 
 class OpenVinoAudioEncoder(nn.Module):
-    def __init__(self, n_mels: int, n_ctx: int, n_state: int, n_head: int, n_layer: int):
+    def __init__(self, model: str):
         super().__init__()
 
         self.core = Core()
-        self._model = self.core.read_model("encoder.xml", "encoder.bin")
+        self._model = self.core.read_model(
+            hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="encoder.xml"),
+            hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="encoder.bin"),
+        )
         self.model = self.core.compile_model(self._model, "CPU")
 
     def forward(self, x: Tensor):
@@ -217,11 +221,14 @@ class OpenVinoAudioEncoder(nn.Module):
 
 
 class OpenVinoTextDecoder(nn.Module):
-    def __init__(self, n_vocab: int, n_ctx: int, n_state: int, n_head: int, n_layer: int):
+    def __init__(self, model: str):
         super().__init__()
 
         self.core = Core()
-        self._model = self.core.read_model("decoder.xml", "decoder.bin")
+        self._model = self.core.read_model(
+            hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="decoder.xml"),
+            hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="decoder.bin"),
+        )
         self.model = self.core.compile_model(self._model, "CPU")
 
     def forward(self, x: Tensor, xa: Tensor, kv_cache: Tensor, offset: int):
@@ -237,7 +244,7 @@ class OpenVinoTextDecoder(nn.Module):
 
 
 class Whisper(nn.Module):
-    def __init__(self, dims: ModelDimensions):
+    def __init__(self, dims: ModelDimensions, model: str):
         super().__init__()
         self.dims = dims
         # self.encoder = AudioEncoder(
@@ -254,20 +261,8 @@ class Whisper(nn.Module):
         #     self.dims.n_text_head,
         #     self.dims.n_text_layer,
         # )
-        self.encoder = OpenVinoAudioEncoder(
-            self.dims.n_mels,
-            self.dims.n_audio_ctx,
-            self.dims.n_audio_state,
-            self.dims.n_audio_head,
-            self.dims.n_audio_layer,
-        )
-        self.decoder = OpenVinoTextDecoder(
-            self.dims.n_vocab,
-            self.dims.n_text_ctx,
-            self.dims.n_text_state,
-            self.dims.n_text_head,
-            self.dims.n_text_layer,
-        )
+        self.encoder = OpenVinoAudioEncoder(model=model)
+        self.decoder = OpenVinoTextDecoder(model=model)
 
     def embed_audio(self, mel: torch.Tensor):
         return self.encoder.forward(mel)
@@ -285,41 +280,6 @@ class Whisper(nn.Module):
     @property
     def is_multilingual(self):
         return self.dims.n_vocab == 51865
-
-    def install_kv_cache_hooks(self, cache: Optional[dict] = None):
-        """
-        The `MultiHeadAttention` module optionally accepts `kv_cache` which stores the key and value
-        tensors calculated for the previous positions. This method returns a dictionary that stores
-        all caches, and the necessary hooks for the key and value projection modules that save the
-        intermediate tensors to be reused during later calculations.
-
-        Returns
-        -------
-        cache : Dict[nn.Module, torch.Tensor]
-            A dictionary object mapping the key/value projection modules to its cache
-        hooks : List[RemovableHandle]
-            List of PyTorch RemovableHandle objects to stop the hooks to be called
-        """
-        cache = {**cache} if cache is not None else {}
-        hooks = []
-
-        def save_to_cache(module, _, output):
-            cache_label = module.cache_label
-            if cache_label not in cache:
-                cache[cache_label] = output  # save as-is, for the first token or cross attention
-            elif output.shape[1] > self.decoder.positional_embedding.shape[0]:
-                cache[cache_label] = output  # save as-is, for the first token or cross attention
-            else:
-                cache[cache_label] = torch.cat([cache[cache_label], output], dim=1).detach()
-            return cache[cache_label]
-
-        def install_hooks(layer: nn.Module):
-            if isinstance(layer, MultiHeadAttention):
-                hooks.append(layer.key.register_forward_hook(save_to_cache))
-                hooks.append(layer.value.register_forward_hook(save_to_cache))
-
-        self.decoder.apply(install_hooks)
-        return cache, hooks
 
     detect_language = detect_language_function
     transcribe = transcribe_function
