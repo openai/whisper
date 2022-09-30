@@ -183,7 +183,7 @@ class TextDecoder(nn.Module):
         mask = torch.empty(n_ctx, n_ctx).fill_(-np.inf).triu_(1)
         self.register_buffer("mask", mask, persistent=False)
 
-    def forward(self, x: Tensor, xa: Tensor, kv_cache: Optional[dict] = None):
+    def forward(self, x: Tensor, xa: Tensor, kv_cache: Tensor, offset: Tensor):
         """
         x : torch.LongTensor, shape = (batch_size, <= n_ctx)
             the text tokens
@@ -191,7 +191,6 @@ class TextDecoder(nn.Module):
             the encoded audio features to be attended on
         """
         # minus one because we pre allocate kv_cache
-        offset = kv_cache.shape[2] - 1 if kv_cache is not None else 0
         x = self.token_embedding(x) + self.positional_embedding[offset : offset + x.shape[-1]]
         x = x.to(xa.dtype)
 
@@ -204,10 +203,6 @@ class TextDecoder(nn.Module):
         return logits, kv_cache
 
 
-# from stable_diffusion.openvino
-def result(var):
-    return next(iter(var.values()))
-
 class OpenVinoTextDecoder(nn.Module):
     def __init__(self, n_vocab: int, n_ctx: int, n_state: int, n_head: int, n_layer: int):
         super().__init__()
@@ -216,12 +211,13 @@ class OpenVinoTextDecoder(nn.Module):
         self._model = self.core.read_model("decoder.xml", "decoder.bin")
         self.model = self.core.compile_model(self._model, "CPU")
 
-    def forward(self, x: Tensor, xa: Tensor, kv_cache: Optional[dict] = None):
+    def forward(self, x: Tensor, xa: Tensor, kv_cache: Tensor, offset: int):
         output, kv_cache = self.model.infer_new_request(
             {
                 "tokens": x.numpy(),
                 "audio_features": xa.numpy(),
                 "kv_cache": kv_cache,
+                "offset": np.array(offset, dtype=int),
             }
         ).values()
         return torch.from_numpy(output), kv_cache
@@ -238,20 +234,20 @@ class Whisper(nn.Module):
             self.dims.n_audio_head,
             self.dims.n_audio_layer,
         )
-        # self.decoder = OpenVinoTextDecoder(
-        #     self.dims.n_vocab,
-        #     self.dims.n_text_ctx,
-        #     self.dims.n_text_state,
-        #     self.dims.n_text_head,
-        #     self.dims.n_text_layer,
-        # )
-        self.decoder = TextDecoder(
+        self.decoder = OpenVinoTextDecoder(
             self.dims.n_vocab,
             self.dims.n_text_ctx,
             self.dims.n_text_state,
             self.dims.n_text_head,
             self.dims.n_text_layer,
         )
+        # self.decoder = TextDecoder(
+        #     self.dims.n_vocab,
+        #     self.dims.n_text_ctx,
+        #     self.dims.n_text_state,
+        #     self.dims.n_text_head,
+        #     self.dims.n_text_layer,
+        # )
 
     def embed_audio(self, mel: torch.Tensor):
         return self.encoder.forward(mel)

@@ -139,9 +139,10 @@ class PyTorchInference(Inference):
         if self.kv_cache is None:
             # hard code for decoder layer 4, 6, 8, 10
             self.kv_cache = np.zeros([8, 5, self.initial_token_length, 384], dtype=np.float32)
+            offset = 0
         else:
-            length = self.kv_cache.shape[2]
-            new_kv_cache = np.zeros([8, 5, length + 1, 384], dtype=np.float32)
+            offset = self.kv_cache.shape[2]
+            new_kv_cache = np.zeros([8, 5, offset + 1, 384], dtype=np.float32)
             new_kv_cache[:, :, :-1, :] = self.kv_cache
             self.kv_cache = new_kv_cache
 
@@ -149,14 +150,14 @@ class PyTorchInference(Inference):
             # only need to use the last token except in the first forward pass
             tokens = tokens[:, -1:]
 
-        if self.export_onnx and self.kv_cache.numel() > 0:
+        if self.export_onnx and self.kv_cache.shape[2] > self.initial_token_length:
             torch.onnx.export(
                 self.model.decoder,
-                (tokens, audio_features, self.kv_cache),
+                (tokens, audio_features, torch.from_numpy(self.kv_cache), torch.tensor(offset)),
                 "decoder.onnx",
                 verbose=True,
                 opset_version=13,
-                input_names=["tokens", "audio_features", "kv_cache"],
+                input_names=["tokens", "audio_features", "kv_cache", "offset"],
                 output_names=["logits", "output_kv_cache"],
                 dynamic_axes={
                     "tokens": [1],
@@ -165,8 +166,8 @@ class PyTorchInference(Inference):
                 }
             )
             exit()
-        # output, self.kv_cache = self.model.decoder(tokens, audio_features, kv_cache=self.kv_cache)
-        output, self.kv_cache = self.model.decoder(tokens, audio_features, kv_cache=torch.from_numpy(self.kv_cache))
+        output, self.kv_cache = self.model.decoder(tokens, audio_features, kv_cache=self.kv_cache, offset=offset)
+        # output, self.kv_cache = self.model.decoder(tokens, audio_features, kv_cache=torch.from_numpy(self.kv_cache), offset=torch.tensor(offset))
         return output
 
     def cleanup_caching(self):
