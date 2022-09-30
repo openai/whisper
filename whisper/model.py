@@ -85,11 +85,12 @@ class MultiHeadAttention(nn.Module):
         v = self.value(x if xa is None else xa)
         if kv_cache is not None and k.shape[1] <= self.n_ctx:
             # here is hard coded
-            # tiny.en: 4
-            # base.en: 6
-            # small.en: 12
-            # medium.en: 24
-            key_id = self.layer_id - 24
+            # tiny: 4
+            # base: 6
+            # small: 12
+            # medium: 24
+            # large: 32
+            key_id = self.layer_id - 4
             value_id = key_id + 1
             size = k.shape[1]
             kv_cache[key_id, :, -size:, :] = k
@@ -215,10 +216,8 @@ class OpenVinoAudioEncoder(nn.Module):
 
         self.core = Core()
         self._model = self.core.read_model(
-            # hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="encoder.xml"),
-            # hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="encoder.bin"),
-            "encoder.xml",
-            "encoder.bin",
+            hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="encoder.xml"),
+            hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="encoder.bin"),
         )
         self.model = self.core.compile_model(self._model, "CPU")
 
@@ -233,10 +232,8 @@ class OpenVinoTextDecoder(nn.Module):
 
         self.core = Core()
         self._model = self.core.read_model(
-            # hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="decoder.xml"),
-            # hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="decoder.bin"),
-            "decoder.xml",
-            "decoder.bin",
+            hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="decoder.xml"),
+            hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="decoder.bin"),
         )
         self.model = self.core.compile_model(self._model, "CPU")
 
@@ -278,10 +275,16 @@ class Whisper(nn.Module):
         return self.encoder.forward(mel)
 
     def logits(self, tokens: torch.Tensor, audio_features: torch.Tensor):
-        return self.decoder.forward(tokens, audio_features)
+        kv_cache = self.new_kv_cache(tokens.shape[0], tokens.shape[-1])
+        output, _ = self.decoder.forward(tokens, audio_features, kv_cache=torch.from_numpy(kv_cache), offset=0)
+        # output, _ = self.decoder.forward(tokens, audio_features, kv_cache=kv_cache, offset=0)
+        return output
 
     def forward(self, mel: torch.Tensor, tokens: torch.Tensor) -> Dict[str, torch.Tensor]:
-        return self.decoder(tokens, self.encoder(mel))
+        kv_cache = self.new_kv_cache(tokens.shape[0], tokens.shape[-1])
+        output, _ = self.decoder(tokens, self.encoder(mel), kv_cache=torch.from_numpy(kv_cache), offset=0)
+        # output, _ = self.decoder(tokens, self.encoder(mel), kv_cache=kv_cache, offset=0)
+        return output
 
     @property
     def device(self):
@@ -290,6 +293,21 @@ class Whisper(nn.Module):
     @property
     def is_multilingual(self):
         return self.dims.n_vocab == 51865
+
+    def new_kv_cache(self, n_group: int, length: int):
+        if self.type == "tiny.en" or self.type == "tiny":
+            size = [8, n_group, length, 384]
+        elif self.type == "base.en" or self.type == "base":
+            size = [12, n_group, length, 512]
+        elif self.type == "small.en" or self.type == "small":
+            size = [24, n_group, length, 768]
+        elif self.type == "medium.en" or self.type == "medium":
+            size = [48, n_group, length, 1024]
+        elif self.type == "large":
+            size = [64, n_group, length, 1280]
+        else:
+            raise ValueError(f"Unsupported model type: {self.type}")
+        return np.zeros(size, dtype=np.float32)
 
     detect_language = detect_language_function
     transcribe = transcribe_function

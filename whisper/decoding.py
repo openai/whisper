@@ -133,26 +133,15 @@ class PyTorchInference(Inference):
         self.model: "Whisper" = model
         self.initial_token_length = initial_token_length
         self.kv_cache = None
-        if model.type == "tiny.en":
-            self.kv_cache_size = lambda x, y: [8, x, y, 384]
-        elif model.type == "base.en":
-            self.kv_cache_size = lambda x, y: [12, x, y, 512]
-        elif model.type == "small.en":
-            self.kv_cache_size = lambda x, y: [24, x, y, 768]
-        elif model.type == "medium.en":
-            self.kv_cache_size = lambda x, y: [48, x, y, 1024]
-        else:
-            raise ValueError(f"Unsupported model type: {model.type}")
 
     def logits(self, tokens: Tensor, audio_features: Tensor) -> Tensor:
         n_group = tokens.shape[0]
         if self.kv_cache is None:
-            self.kv_cache = np.zeros(
-                self.kv_cache_size(n_group, self.initial_token_length), dtype=np.float32)
+            self.kv_cache = self.model.new_kv_cache(n_group, self.initial_token_length)
             offset = 0
         else:
             offset = self.kv_cache.shape[2]
-            new_kv_cache = np.zeros(self.kv_cache_size(n_group, offset + 1), dtype=np.float32)
+            new_kv_cache = self.model.new_kv_cache(n_group, offset + 1)
             new_kv_cache[:, :, :-1, :] = self.kv_cache
             self.kv_cache = new_kv_cache
 
@@ -161,7 +150,7 @@ class PyTorchInference(Inference):
             tokens = tokens[:, -1:]
 
         # export decoder as onnx
-        if False and self.kv_cache.shape[2] > self.initial_token_length:
+        if True and self.kv_cache.shape[2] > self.initial_token_length:
             print(f"tokens: {tokens.shape}")
             print(f"audio_features: {audio_features.shape}")
             print(f"kv_cache: {self.kv_cache.shape}")
@@ -631,7 +620,7 @@ class DecodingTask:
         try:
             for i in range(self.sample_len):
                 logits = self.inference.logits(tokens, audio_features)
-                print(f"step: {i}, logits: {logits}", flush=True)
+                print(f"step: {i}", flush=True)
 
                 if i == 0 and self.tokenizer.no_speech is not None:  # save no_speech_probs
                     probs_at_sot = logits[:, self.sot_index].float().softmax(dim=-1)
