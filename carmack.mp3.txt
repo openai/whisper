@@ -1,0 +1,954 @@
+Hello everybody
+We have a good crowd for John's second talk
+It's very exciting. This is the first year that John will be talking twice
+a couple things to know. John will talk for about an hour or so
+and then we'll have 30 minutes for questions. The mic is right there. That's actually just right there.
+And so just line up when we get to the questions.
+Try to keep your questions on what John talked about. If you get up and ask when Doom
+4 is coming out, I'm going to kick you in the knee. So right there.
+So I will not waste any more time but you guys in the back because John's going to
+write in the board and we have plenty empty seats here. You can file in.
+It's you know don't worry that there's reserve seats there. Just go ahead and sit in them.
+All right, I will give you guys Mr. Carmack.
+Okay, so I guess this is sort of going to be like a school room session. I diluted myself for a little
+while that this would be the first talk where I ever actually made slides to present but it
+didn't actually come to pass so it's going to be notes and talking and some scribbling on the board
+again. So almost all of what we do in game development is really more about artistry.
+It's about trying to appeal to people but there's the small section of the small section
+of what goes into the games that's drawing the pictures on the screen that you can at least
+make some ties to the you know the hardest of hard sciences and while you know it's great that
+people are researching the psychology in the different ways that people think about
+compulsion loops and some of these other game design topics. The raw physics that goes into rendering
+just kind of goes through the heart of physics where you know it goes through the kind of the
+all-star list of physics with Newton's optics and Maxwell's equations and Einstein's relativity
+and it's kind of neat to think that this is sort of brought to bear in the the techniques that
+go into sort of making the games that we play. So at the start at the start you think well okay we
+see light so what actually is light and we've got a definition now that lights the sliver of
+the electromagnetic spectrum that we can actually perceive but that has a really long and complicated
+history for how we sort of reach that conclusion and how it's not really as clear cut as most
+people would like you know would like it to be. Optical research started kind of all the way back
+with a lot of the Greek philosophers but Newton did a whole lot of work with breaking light up with
+prisms seeing how white light was actually composed of all the different colors of the spectrum
+and they add together to make what we perceive as light and then for there was a centuries long
+debate about whether light was a particle like this little tiny billiard ball these photons that
+you shoot out or a wave effect like all the things that you see in waves in water and waves in matter
+so on and finally we reached the conclusion that well it's a wave particle duality of that quantum
+mechanics talks about and this is very unsatisfying when you begin looking at this
+I but it's really pretty much irrefutable these straightforward experiments that can be done to
+show that you look at it one way it's a wave you look at it another way it's a light or it's a
+particle so luckily for computer graphics we hardly care at all about that only when you start
+looking at some aspects of surface reflectance models do you start caring at all about some of
+these quantum mechanical properties of light for the most part we can look at light as
+zillions and zillions of little billiard balls shot out from lights and bouncing off of things
+and eventually reaching our eyes so that we can perceive them I and there's a lot of simplifications
+that well that have to happen when you when you talk about simulating this the there's a lot of
+engineering disciplines like thermal management radio engineering that do simulations of the
+electromagnetic spectrum just other parts of it how they they bounce around interact with things
+and this is done all the time and it works it really is science so you can say rendering an
+image or deciding how much light reaches a particular area is about as basic of a science as it
+comes there's not a any artistic measure in here there are tons of other aspects when
+you get into perception that do become questions about well maybe there is artistry that goes
+into producing something when you've got an impression that you want but when you're talking about
+simulating an environment which most of what we do in sort of the hardcore FPS type games is we
+are pretending that we've got this virtual world and we're running a camera through it and we're
+trying to simulate what's happening in various ways and nowadays we know what we would have to do
+to make that almost perfect we just have nowhere near the the computing capacity to do really
+really high level simulations but we can trace it's useful even if you're not going to do the
+right thing to at least understand what the right thing is and then understand which trade off
+your making and make them with sort of a clear head rather than accidentally backing into trade
+offs that may or may not be really the best way to to go about things so so many that it took a
+long time for people to realize that these other phenomena things like radio waves and there's a
+lot of confusion in 19th and 20th century physics about like which things were particles and which
+things were raised and we still have kind of mixed up terminology when you talk about cosmic
+rays that are actually particles and you talk about you know alpha radiation and beta radiation
+and these things that are particle based rather than being raised from the electromagnetic spectrum
+but we use this stuff all the time for radio waves I you know your Wi-Fi as two gigahertz
+I expect frequencies you know the the visible light rays are up in the you know the terahertz
+rains many terahertz I am but they're basically the same thing they just differ in how they
+interact with matter they're produced in somewhat similar ways but the different things change
+they behave differently when they interact with other things based on their wavelength which is why
+x-rays can shoot through things radio waves can go through some things that the visible light
+pretty much bounces off of so another important critical thing really is that photons they have
+the little bundles of light that we talk about they are absolutely quantized it's again part of
+the quantum weirdness that you can't send off this arbitrarily divisible amount but there is a
+an almost unbelievably large number of them you know given light that's throwing out is you know
+I can just say zillions with a straight face because it's a very large scientific notation number
+it's not trillions it's not quadrillion it's even more than that that are coming out in terms of
+these bundled little quantum energy I am now they do have characteristics to them if we treat
+them as a little billiard balls in computer graphics we are generally looking at only a few
+different spectrums of a few different wavelengths in the spectrum of light and that has to do
+with an aspect of the human visual system while there are this incredibly divisible spectrum of
+light that goes out we're only susceptible to three sort of styles of light and they're not
+even individual frequencies that's why we can get by with red green and blue for for our
+monitors and missive spectrums because we only have three types of color receptors in our eyes
+and I often think how it would be really interesting if you could look at all these other
+spectrums bouncing around that's what thermal imaging and some of these other things let you
+sort of get a peek into it and that's only light that's very that's EM radiation it's very close
+to the visible spectrum the infrared it would be much more bizarre and interesting to be able to
+visualize radio waves in a real-time space to like see all the multi-path that's causing your
+Wi-Fi to be weird in specific ways why you know moving something over here causes the the radiation
+to change so much at your antenna to make a difference in your reception strength and these are
+all things that that have a bearing to what you do with light transport as well as other wave
+phenomena like audio like really really high end audio processing is the exact same thing as what we
+treat light processing it you send out energy it bounces off of all sorts of things in the world
+and eventually arrives at something that's going to perceive it which would be your ears in that case
+versus your eyes so to kind of start with the the path of a photon of what it would take I'm you've
+got something creates the the photon and for the longest time in our human existence about the
+only thing that we saw creating photons was a great deal of heat you heat things up hot enough
+and photons start coming off of them you heat it up enough it starts glowing a dull red you heat
+it up more it starts getting more yellowish and towards white as more and more of the colors of
+the spectrum are emitted from these hot things and obviously the sun is a very hot thing where
+you've got a fusion reactor going and the the light that comes off of that is all of these these
+atoms giving up some energy so photons carry energy away from where they came from and this is
+a radiative radiative heat transfer where something gets hot if you leave it all by itself there
+it glows and it eventually stops glowing it cools down going down through the spectrum getting
+cooler and cooler until you don't see any visible light because it's actually lost much of its
+heat on earth radiative heat transfer is the least effective form of heat transfer you get much
+more from conduction where it just kind of goes through the actual physical contact and into
+other areas as the heat spreads out or convection where moving currents of air or water take the
+heat away but in space radiation is the only way you lose heat and in aerospace engineering this
+is extremely important things like the areas like the international space station and spaceships
+they have to worry a whole lot about thermal management because the only tool they've really got
+is radiation you see you see these enormous solar panels where they collect solar energy
+but a lot of space vehicles have to have enormous radiators where they actually let the energy
+go you know go out from the vehicle otherwise they would get hotter and hotter so the i it's
+important to note that even if it's not glowing so that we can see it everything's still radiating
+so you don't see the space station glowing red hot it's just glowing at whatever its normal
+temperature is which could be perceived with infrared sensors but it slowly loses energy
+and it eventually reaches a balance that's why something stuck out in the sun in space doesn't
+get hotter and hotter eventually it reaches the point where the light that's coming in and hitting
+it is equaled by the radiation that's leaving it and there are i i you can make we've made rocket
+engines that are radiatively cooled where they burn 5,000 degrees or so inside and they get so
+blindingly white hot on the outside that all of the energy that's not going out the nozzle
+that's soaking into the walls is radiated away as a whole lot of light and this is essentially what
+old style incandescent light bulbs were yet a tungsten filament you made it really hot by pushing
+electrons through it and it got hot enough and it started glowing and if you watched closely if it
+was a very like a heavy filament you could watch it warm up or especially shut down it would
+go through kind of ramp through the temperatures you would see it be red and get up to white hot
+and then when you shut it down it would cool down through yellow and then back through red before
+finally settling settling back to radiating in non-visible regions at sort of room temperature
+eventually nowadays we have a lot more efficient ways to create photons with fluorescence and LEDs
+things that are tuned carefully to just barely nudge the the electrons in the atoms out to an
+excited state let them collapse back down and spit a photon out for the most part photon
+emission is random in terms of which direction it goes when you look at radio engineering there's
+huge bodies of literature for intended design that determine how you can make make it slightly
+stronger weaker in different directions but there's still a very fundamental nature of randomness
+which is again the quantum mechanics aspect of things there is at a at a very low level natural
+events are completely random and you can't just say I only want photons that are coming
+going to come out of the left side of this material so you get a photon that pops off in some
+random direction it may go straight for if it's coming from a distant star it could go straight
+for trillions of miles more or less just traveling through space there's little bits of general
+relativity with you know warping of light that can happen but for the most part it can continue on
+indefinitely it's a self-propagating wave so pops off of some atoms somewhere maybe flies through
+space for a billion trillion miles or something comes in finally hits our earth's atmosphere
+and then starts interacting with the atmosphere in some way every change in density that
+visible light goes through will will result in it bending its path somewhat this is called refraction
+the most obvious case when you look at it is things like prisms and lenses where you can see the
+light really strongly warped but it happens in any you know any sort of density change going from
+the vacuum of space to the outer reaches of our atmosphere and then every change in in pressure
+or temperature changes the density and that causes very slight and subtle movements of the
+changes in the direction of the light on this is actually why stars twinkle out at night if you're
+on a clear night and you see stars coming in from billions or trillions of miles away it's going
+completely straight till it hits the upper atmosphere and then it may slightly deviate just tiny
+fractions of degrees and this can cause them the very small number of photons that you're seeing
+there to kind of come and go or move around in different ways but the most important thing for
+from a computer graphics standpoint are the effects that happen when it hits more solid matter
+solid surfaces or even liquid surfaces and that's where it has the opportunity to to generally
+well it can be even gas you can wind up having the case of absorbing the photon this happens
+rarely in gas you can pass through hundreds of miles of atmosphere and not have too many of
+the photons absorbed but it happens very rapidly in in matter in solid matter and the a typical
+photon when it hits a surface might penetrate a little bit into it a surface like metal will bounce
+off of just the first several atoms it doesn't take many molecule or many atoms of metal before
+you could reflect light out which is why you can make these super enormous space mirrors that are
+just a very tiny sputtering of aluminum on some plastic film and they can actually make solar
+sails or giant solar collectors and concentrators but for most other materials the light can
+penetrate a little bit further into it as it interacts with the molecules it can either be absorbed
+raising the temperature a little bit going into eventually making it hotter so that it starts
+radiating out radiating out at some level or it can redirect the photon in some way you've got
+the minor redirection from the refraction and much stronger ones when it interacts and bounces
+off of the solid surface now there's a ton of different names there's literally a couple dozen
+different names for the different ways that light can interact with surfaces there's all the
+different types of scattering of course reflection reflection reflection reflection reflection can be
+split up into specular reflection diffuse reflection and there's all sorts of different subcategories
+I mean optics is a huge topic there societies dedicated to you know every aspect of it and there's
+huge terminologies for all of it but for the most part you can say photon comes in if it's not
+absorbed it's going to be kicked out some other direction and then it can go and interact
+potentially with the atmosphere or potentially with another surface and eventually it's either
+absorbed well eventually it is absorbed somewhere but for the most part they're absorbed into
+the surfaces around us but a tiny tiny fraction of all the photons that are bouncing around
+eventually hits our eyes and even when it gets to our eyes which are mostly transparent there's
+this chance that the photon hits and it's specular reflects off of our eye and you know it made
+it all the way out of the billions of possible traces made it to my eye and then decides to
+speculate or reflect off some other direction but most of it that hits the eye and hits the lens
+gets through propagates through I you know vitreous and octopus humor and all the biological parts
+of the eye and hits receptors in the back of our eyeballs that turn those eventually into neural
+impulses that our brain works with now our eyes can actually be quite sensitive the I the rods
+the non-color sensitive part of our eyes when they're fully dark adapted if you've been staying
+outside for in a dark area for 20-30 minutes single photons can cause chemical reactions to happen
+in the you know inside the rod cells it takes a handful of them a couple does in for it to turn
+into a neural impulse but it is possible for people that especially in the old days people watching
+for things on ships since I'm moonless nights that might be out all night with nothing but faint
+starlight you can have cases of just handfuls of photons coming off of something being registered
+and showing up and people acknowledging their existence which is pretty amazing when you think about
+these incredible subatomic particles not even particles but incredible the scope of that being
+detectable by us as biological entities and there are limits to the what you can wind up detecting
+with light light has the visible light that we see has a wavelength and you can't really deal with
+things that are smaller than that which is why you're never going to have a real picture of an
+atom or a molecule because those are much much smaller than the wavelengths of light you eventually
+use electron microscopes and then scanning tunneling microscopes and these other things that don't
+deal with light at all to take those super tiny pictures like the the boy in his atom movie that
+IBM research did which was done with a little raster grid of atoms which is really in the
+fundamental sense of the word deeply awesome that we are dealing with matter you know the very
+constituents of everything at that level and we can make a little a little movie out of it I
+but those pictures have nothing to do with light nothing to do with rendering and the and basically
+the techniques that I'm talking about here that's a completely different way of sensing what's
+going on at that level so I recap the the basic pictures of this you've got you know something a
+sun up here spits out some light travels through space gets to the atmosphere on the earth maybe
+bends a little bit maybe just goes straight through comes down hits the surface maybe gets absorbed
+maybe hits something else you've got walls and rooms and bouncing around in there and eventually
+if we're seeing it reaches somebody's eyeball inside and that's the physics of what happens it's
+really well understood it does come down to a lot of data acquisition and characterization when
+you talk about how the critical interactions with the surfaces when you've got your basic
+theoretical thing if you talk about a flat surface you say light comes in what happens to it that's
+the question of surface response if you have a perfect mirror and it's worth noting that to be
+I you don't have to be perfect on an atomic level to be a perfect mirror you only have to be
+perfect at the optical level which is somewhat larger so people can make basically perfect mirrors
+just highly highly polished things a perfect mirror will have the photon reflect off in this exact
+reflection if you take the normal to the surface you wind up with equal angles there so highly
+polished surfaces act like this I'm when you get a reflection off of something like the surface of
+water it'll behave like this but most of the surfaces that we look around us do not behave like
+this we have I a spread of the energy where it comes in and it bounces off to some degree in
+every direction no matter which way you look at most surfaces you see again zillions of photons
+coming in some of them go in every direction they just go in a direction that's biased based on
+the type of surface that it is a surface that I one of the easy things that a lot of times is
+approximated both in the engineering sciences and in computer graphics is to assume that the
+surface reflects perfectly diffusely or is a lamburgian surface and what that means is that no
+matter which way the light comes in if it hits it completely edge on completely straight on it has
+an equal probability of going in every direction and there are some materials that are close to
+this if you take something like a block of chalk white chalk that behaves almost as a perfect diffuse
+reflector if you light it from one position and you look at that like a little scribed out area
+on it from any different area around it it will appear to have about the same amount of energy
+coming out of it but there are most all surfaces are more complex than that though most of them
+will say for if you've got light coming in here there will be more of it coming out around the
+reflection area and some general amount coming out in all different directions but these can
+actually get quite complicated and the simplifications that we use in graphics sort of approximate
+these but you can measure these with specific tools that go in and take lots of samples from
+moving the lights around because it depends unfortunately this is one of the areas where it does
+get not so great for computer graphics it depends both on the incoming direction and the outcome
+coming direction and those are two angles in each one so it winds up being a four-dimensional
+equation to say how light comes in here how does it come out in some other direction and in fact
+it gets worse than that because very few things do reflect just off of this upper surface most
+of the time the light will go in go below the surface bounce around a little bit and shoot out
+some other direction so if you're saying well my photon comes in here not only do you have to
+say if you're being really really accurate which angle does it come off of but also how far away
+from the original point does it come off of or if it's a thin surface how does it come out on the
+backside you may have other setups coming there when you look at like a leaf in the sunshine you've
+got a lot of the energy bounces off the shiny top face but a lot of it diffuses through and comes
+out on the backside so these are not not pleasantly analytically tractable things they wind up
+being big tables of data and one thing that's important to remember is when you see like
+tables of data that are collected for things don't necessarily capture all of the important
+characteristics of the surface where if you take one of these sensors that you can capture
+a table of data here if you did have your perfect mirror reflector it's almost certainly not going
+to have the exact sample exactly where you want and so but eventually data does win just as we
+increase resolution on things we'll have higher and higher resolutions for our surface models
+and we'll get closer and closer to reality for what we're simulating so to go as kind of a
+capsule history of computer graphics rendering then when computer graphics started off if you
+look in the 60s 60s and early 70s computer graphics research focused on the hidden line problem
+you know we had we had line-oriented displays either true vector displays where like the old
+video game arcade games like I'm blanking out now yeah I asked her it's the best example
+that are actually drawn by raster beams moving around where they really are true line displays
+there's no raster there's no edge aliasing all the different games like that where what the early
+and the earliest computer graphics systems were basically like that where their vector displays
+and once people learned how to draw figured out all the basic projective math to say all right
+I've got my cube here you know I wanted to look like that but when I draw it I've got that on
+there how do we figure out which lines that we're going to erase and I and that was you know that
+occupied research for a while to figure out effective ways to do that without spending at the time
+the scary divide costs for different things and you'd have lots of interesting work thing going on
+but when we eventually got raster displays where we could fill them in of course at that point
+people filled in the the surfaces of the cube they're all grayscale at that time so you can draw
+cube and say well this will be the light face this will be the dark face but that was neat at the
+time but that was not sort of what things look like in reality so people started taking the steps
+that they could to to try and say what do we need to do to make this more approximate what we see
+with our eyes and this has been a path that's been driven probably more than half by sort of ad
+hawk approaches about just well what's what's reasonably easy for us to do that gets us somewhat
+closer to it while there's also been sort of a parallel path of saying well what's the physics
+actually doing how do we make an actual solution for it so the earliest things that got added to
+the shading model for computer graphics was if we assume that there's going to be a light that's
+at some point in the beginning they wouldn't even be local you just say light is coming in from this
+direction so we want to be able to say what color or what shade should each individual service be
+based on where that light is so you've got the obvious things that if it's not facing the light
+no light hits it and you would draw it black so the question about things that are directly
+facing the light so if you've got light coming in if you have a surface completely perpendicular to
+it you make that your brightest color if you've got a surface that's completely parallel with it
+it gets no light make that zero so you've got some curve that goes between it to say how bright
+something should be and it turns out that that's a fairly straightforward bit of math to solve
+where you have light coming in at a certain angle you've got the normal to the surface
+the amount of light that would strike a little surface there is proportional to the cosine
+of this angle and that's actually that's not an approximation that's actually a bit of ground
+truth I if you've got the light coming in and you've got something coming in at this angle
+a surface that's if you count the number of rays that go in on something catching four of
+them directly turning it down only covering two two spaces there all that actually works out
+correct and this is the basis for a lot of the a lot of the real calculations for light transport
+not a hack actually part of real proper physics measuring so once you've got that basic approach
+you go back to your cube
+and you get your light coming in and you've got a brighter face a brighter face a darker face
+and the face is away from it are completely black and then most people say well we don't usually
+see things like that so now we get into the fudging and you say well let's just brighten everything
+up a little bit we'll add an ambient term so you sort of just add this minimum level to everything
+on the back side and that helps a little bit if you've got a cube then everything looks pretty
+much great because it's a constant color just on the side that you might not see over there
+but if you've got something more complex everything that's not facing away from the light
+winds up being the same color and it's clearly not correct if not what you'd like but it was
+all that seemed reasonable to do at the time the next step was to start looking at surfaces that
+are more than these perfectly diffuse reflectors if you make if you model your cube like this
+it looks kind of like it was maybe carved out a chalk and it can be a decent representation of
+that but very few of the surfaces that we see around us are really that simple most things have
+some kind of a shine or highlight on them as we look around you can see reflections and highlights
+on all sorts of things and the obvious bits of metal and plastic little things that you might
+hold in your hand I can look at all these different shines and reflections on the plastic that
+I'm holding here now the observation was made that the highlights on most objects that weren't
+completely mirrors they tended to be something like a bright hot spot like if you had a
+if you had your sphere here you would have a bright hot spot that kind of faded a little bit
+around there and just by looking at that and saying well you know what could we do that would be
+kind of like that the observation was made that well if you take this sort of cosine arrangement
+here this makes this nice broad fall off it makes a you know over the entire surface of the
+sphere coming from that it'll fade off till halfway around the light but if you wanted something
+that was really tight I the thought was well we can just take this value and raise it to a higher
+power we can just take this and go you know square it cubit take it to the the 20th power which
+can be done you know effectively mathematically quite cheaply this has no basis in physical reality
+at all this is a completely ad hoc approach but it worked out okay and this is what the
+time you know the fall lighting model was about where you separated into your diffuse lighting which
+is the more or less what color the surface is and then your specular lighting which is what the
+highlights are going to look like so you had this other value to play around with and that was
+the specular power and nowadays I regret using that in my terminology where we have power maps
+and nobody understands what those are they relate to the you know the specular exponent what you're
+going to take something to a power of to to tighten it the better terminology that's used more
+often now is a roughness map where you have a mapping and you also do it in logarithmic space
+rather than linear but more or less that's still today what a lot of graphics involves is you've
+got a roughness parameter which affects this exponent that you take this extra vector to generate
+your specular highlights for and again it was I it would make so if you're rendering your cube
+and you get the right the light at the right angle like if I'm looking at this here and the lights
+over here you know it hits that if that's at that right reflection angle then you'll get a nice
+bright shade on there that flat surface will catch the light and it will glint at you and that would
+be looked at as a as a real advance for the rendering so you've got something that looks diffuse but
+when it moves it when it moves into the light it kind of catches a flash of light and fades out
+so the facets on these solid shaded models started looking better now what uh the next thing that
+people wanted to do is okay we we've got enough cubes and tetrahedrons and uh dodecahedrons and
+whatever so we want to start making things that that look more realistic we need to have a teapot
+you know we need to have a curved surface in some way so you make some curved surface like this
+there was a lot of work in the early days on directly rasterizing curved surfaces drawing them directly
+but all the real-time graphics almost all of it has been a matter of turning your curved surfaces
+into approximations with flat surfaces so you've got something that is theoretically a curve
+a curve but really it's a bunch of facets so if you apply the lighting model there to it
+you see all of these facets it stands out as like okay you've just carved this as you've carved
+this out with all these flat planes and it doesn't fool you into thinking that this is this
+smooth curved object so the next step in graphics it went on was adding the interpolation across
+across the the vertex's where instead of calculating a value for a face you calculate it
+for a given vertex and for one corner and then you just average you interpolate across there so
+that a point here is going to be some average between three or four of the points that make it up
+and that works surprisingly well if you're looking at a diffuse surface it works out
+just about as good as you'd like there are some minor artifacts called mock bands that you get
+as if it changes too much but if your test relations okay that works out all right it works out
+less well with the specular highlights and the reason is that your specular highlight if you've
+got I it might show up like if you were supposed to have some hot spot right here in the middle
+of a surface if you calculated at the outside this is going to be almost zero for the specular
+almost zero and when you interpolate across it it's going to have nothing you're just not going to
+see it you'll only see a highlight when the specular comes up at the the very edges and this
+is what's still to this day sort of the standard OpenGL shading model is it's gross shading
+with calculations at the vertex's interpolating the colors or parameters across it so
+this model is still with us to this day for a lot of sort of quick stuff that's not
+visual simulation oriented if you just write something using lighting with OpenGL that's the
+model that you get if you turn on specular highlights in graphics where they care more about
+visual quality what what started happening was interpolating not the color across it but interpolating
+the normal sort of the curvature across each point and then applying the lighting model at every
+pixel and at the time this this was like a flagrant use of processing power because we're like
+okay these calculations are expensive we have to do these distance calculations dot products
+exponential power stuff and when you just do it at each vertex on your cube okay so you've got
+you've got a handful of vertex's that you need to calculate but even on an old school display you
+would have hundreds of thousands of pixels and so if you're drawing that they're going from
+doing this maybe a few hundred times or a few thousand times to hundreds of thousands of times
+for a scene was you know a large use of additional processing power but it got you the good looking
+areas where you could have a highlight that that looked about like it should moving across the
+surface or sitting on a floor looking stable there as you moved around people that have been in
+following PC graphics for the last couple decades we've seen games that you know that do not
+have interpolation in the different ways where the lighting would change dramatically we always had
+the problem of densely tessellated characters or objects and then very low tessellation on the
+world and the problem that you'd run into with that is that if you're applying one of these interpolation
+schemes to it you would have something that you could never have highlights in the middle of the
+surface only at the corners and there were also issues with perspective math and clipping
+that would mean that it would change as a really big polygon clip by the edge of the screen
+I in almost all cases the way people did it and this was one of the big things that pushed me
+during the quake time frame to use light maps for the first time where instead of I had seen
+other games that were doing lighting at the vertexes and I didn't think it was you know wasn't good
+enough you couldn't get anything resembling a shadow you had all these swimming artifacts with the
+lighting and it just didn't give the you know what I wanted to see and while quake didn't have
+any specular highlights it did have these you had samples every 16 pixels in the light maps that
+we interpolated across those and that gave us the look that was very important for it and we
+didn't get to actually it was only all the way up to doom three where we would start doing
+purp pixel operations like this to to get the the much better calculations so even with this
+level of graphics at that time where you just got sort of these fun lighting simple models
+hacks like the the specular exponent in the ambient term we started to see some offline
+things being rendered like some movies you know early work some of the early NASA promotional work
+that Jim Blinn did were significant in the sort of growth of all of this and then we finally
+saw some feature theatrical films with like the last star fighter and especially Tron where you
+would see you go back and you look at had Tron and you have a lot of these sort of
+grow shaded solid modeled things on there with your light cycles or recognizers and so on
+and they were doing something they were intelligently picking a battle that could be one at the
+time if you said well we have to go ahead and render photo realistic humans we were nowhere
+close to up to that task but we could do geometric solid models that looked good enough to show
+on the big screen and that was you know that was a pretty big breakthrough and simultaneously with
+this there was an alternate approach to the way graphics were being drawn that I so most of the
+graph the early graphics were done with rasterization where if you've got your your computer screen
+and you've got your quad on here I you would draw this on a computer by calculating these equations
+of the lines and then you would usually just kind of walk across building up your rows of pixels
+and I the whole process of hidden surface removal is another step on top of this where if you've
+got lots of cubes how do you know which one draws on top of the other one and this was another
+thing if you look back in research from the the 70s especially there was tons of work going on
+on hidden surface removal of these clever different algorithmic ways today we just kill it with a
+depth buffer we just throw megabytes and megabytes of memory and the problem gets solved much much
+easier but this path of rasterization is still with us today GPUs don't rasterize in scan line
+order like this they they follow you know crazy winding paths to maximize memory bandwidth to fill
+up tiles you know to rasterize them in different pieces and they rasterize all quads at a time but
+it's still essentially a rasterization method where we have shapes and we figure out how to rasterize
+them we figure out which pixels they're going to cover and then we figure out what we want to do
+to them the alternate scheme which was also developed in the the later 70s is ray tracing where
+instead of saying all right I'm starting with my object I'm going to take these vertexes these
+four vertexes that are in space I'm going to take my virtual camera and I'm going to transform
+that find out where they are on the screen and then fill them in ray tracing goes the other way
+where you start off with your camera in space somewhere your little virtual viewing screen
+and through that you send rays out into your world and you intersect them with your cube over here
+and if it hits that cube first it knows it didn't hit anything behind that it's got a surface
+point there and it can apply whatever shading model it needs to the thing that ray tracing
+gave I mean it's radically slower like hundreds or thousands of times slower than rasterization if
+you're doing just the most straightforward thing if you just want to draw that cube you could draw
+the same thing with rasterization or ray tracing it's just going to be a thousand times slower
+with ray tracing but it allowed a couple things that were either very difficult or impossible to do
+properly with rasterization and the thing that you would always see in ray tracing demos is
+your shiny reflective spheres so you've got a little chrome ball and the fact that you could see
+the world reflected into it and then back into your eye was the thing that ray tracing could do
+that rasterization couldn't do really worth a damn at all I mean you would approximate it with
+environment maps and different things but for reflections and for refraction doing those things
+properly ray tracing was you know was really the only good solution but it wasn't practical even
+for most offline work there are I I can remember looking at old research papers of things that are
+run on deck vax computers and they talk about the number of hours to render these really trivial
+scenes just you know a few boxes and I may be a sphere sitting there and the idea of rendering
+by complete worlds with it was you know was fantasy at the time but it did address some of those
+problems for the first time with reflection and refraction and it also much more elegantly solved
+shadows which all of the stuff talking about surface interactions and the you know finding out what
+you hit with the light that kind of dodges one of the really hard problems which is saying that well
+the light light obviously doesn't reach through things if you transform something up here
+and you transform another another surface down here and the lights up here this should be in
+shadow because it's blocked by this but that turns out to not be a particularly trivial thing
+to resolve it's basically the same problem of how you view something from your point of view
+but viewed from the lights point of view and that can mean that well if every light in your scene
+has to do similar rate a similar rendering process to what your view does and possibly harder
+because there are many directional lights in many different cases and it's just a tough problem
+and as with so many things there's a lot of wonderful research in the 70s and 80s going through
+about how you do shadows effectively with these different analytic solutions in the end we had a brief
+period where stencil volumes were an effective way to do things but now it's essentially all
+shadow buffers where we really do take every light render an image from their scene and use that
+to back project onto there to figure things out but that was one thing that ray tracing had an
+elegant solution for again if you're already a thousand times slower who cares if you're another
+factor of two or three slower for every point you hit you go ahead and say I've got my light up
+here I'll trace to the light or to however many lights I've got and if there's something that blocks
+it then that's going to be shadow and I can take it out so ray tracing always had this much clearer
+abstraction of what you're doing it's easy to tell that you're sending out a little array you hit
+something you determine whether you hit all the other lights or if you bounce or refract into something
+else so it's always been easy and clear it's just had this thousand times slower problem to deal
+with so the advances that were being made on graphics kind of after this early age focused on
+the changes in what you can do with the surfaces as the first obvious thing and a lot of these
+were driven by sort of artistic and aesthetic condition concerns where we got if you pull up a 3D
+rendering program and you look at their material stuff there's a whole page full of options
+things that you can tweak knobs you can turn check boxes you can set and each of these had some
+use case where somebody wanted this because it made their image generally look a certain way
+that they wanted very rarely where these things driven by sort of physically correct rendering
+and there was a huge plethora of these things that came out every different program had a
+different set of options you always had this fallback of you've got your diffuse colors your specular
+color your roughness this basic fong shading model has persist this day but now we have a ton
+of other things that we can we can tag on there things that are subsurface approximate scattering
+approximations for now lighting different frequency response on surfaces is like some of the things
+do have physical basis to them like one obvious thing the Fresnel effect is the effect that as
+you get more and more glancing to something the reflection gets stronger and stronger and you see
+this this is what makes water and glass look like water and glass if you look straight at them
+you pretty much see straight through them without a whole lot of reflection but as you get more and
+more edge on even a surface like this where when I'm looking at this at this angle here I've got a
+very very strong clear sense of the slightly wavy reflection of that white line there while if
+I look at it right here it's barely visible so that's a physical effect in reality that you can
+work through the real physics equations of why this happens but people again sort of called up
+the trustee raise a cosine to a power and it sort of looks like what we want when we're
+dotting a couple vectors together so that has that's something that's based off of plausible
+physics but generally only roughly approximated and there are other things like that with I like
+the change in some metals get their metallic look because they slightly change colors as they get
+towards grazing angles so again you can calculate the real physics for that you can just sign
+it kind of say well this color sort of changes to this color at the edges and start interpolating
+between them but lots and lots of good work and lots of you know lots of high budget movies and
+so on were built with these sort of very ad hoc techniques but sort of in parallel with this the
+other big revolution that was happening was global light transport global illumination
+that comes back to that whole hack of the ambient term this sense that obviously where
+okay if I'm right here the lights are only directly hitting the outside the back of my hand has
+no direct view to any light but it's still quite bright and clearly illuminated it's bright because
+all those lights hit this white white board bounce off of that and wind up lighting my hand
+from the back and you can see like color changes like if I move up here where it's mostly covered
+by the blue marker on there there'll be blue tints to it and this this recognition that so much
+of what we consider important in the visual field is actually indirect it's not just a matter of
+here's the light here's the surface what's the reaction because we come back to how much of the
+light gets bounced around and there's a there's a term called the albedo of a surface which is
+what fraction of the light gets reflected versus absorbed and there's some tricky terminology with
+this because you can have either the total solar albedo where you talk about how much energy
+comes off of the sun and this is used for climate modeling and some remote imaging and things
+like this where you matter but I'm but you've also good then got the visible albedo which for
+rendering is what we care about and the point is that the the best reflectors your chrome sphere
+that's mirrored or your white piece of chalk or your freshly driven snow those can reflect
+90-ish percent of the light while your darkest surfaces your lump of black coal or asphalt in some
+cases might only reflect five percent but when when you're reflecting 90 percent of the light
+what that means is that if you're in a room that has mostly white surfaces a single bit of light
+coming out of your light emitter might bounce around a dozen times before it finally gets absorbed
+so it could take a very complex path before it winds up getting to your eye and this is why we
+could have cases like a dark room illuminated only through the crack under the door but you can
+still wind up looking around even around corners you can go into the closet in the dark room
+illuminated under the keyhole and still find things somewhat lit and that's because of this
+many bouncing path the light can take from the light emitter coming around to it actually gets
+to your eye and this turns out to be a really frighteningly complex and expensive problem to solve
+properly the first sets of attempts at this dealt with radiosity approaches and a lot of this
+was driven by engineering things beyond just making pictures because you would talk about things
+like heat management if you have a certain amount of energy coming in here how hot is something
+going to get and what's the hottest part going to be because that matters for a lot of engineering
+terms so you can do things like you know make a make a complex surface here and say energy is
+coming in here how much of this energy makes its way to here here here and it's not just a matter
+of what that's basic geometry calculations to say how much of this is directly been impinging on
+that surface what gets complicated then is you say well this reflects 50% of its light and that 50%
+goes to all of these different ones here and this one reflects 50% and that goes to all the ones
+here and you know in theory you go if you're doing everything floating point math you can keep
+saying you can bounce it 100 times and say you get well 0.001% winds up coming back to another spot
+at some point you just say it's converged well enough this solution is not going to change much
+on the I no matter how many more bounces that you do so the radiosity solutions work by creating
+this giant linear algebra matrix of coefficients where you say you identify all of your surfaces
+and you say how much can what form factor what fraction of the energy goes to all of the other
+different surfaces and then you may be solving this 10,000 by 10,000 matrix and there were you
+know there's a lot of work on the optimizations that you that go into solving this more effectively
+but there are two reasons why radiosity is not a particularly relevant technique for computer
+graphics anymore one aspect that it's sort of glossed over was the notion of inclusion where
+if you've got a surface if this goes out here and you go around the dark corner all right we've
+got this surface here it's clear that it can't see this surface at all I it can see the surface
+this surface can see part of this surface you know a fraction of it and it can see an even smaller
+part of this surface over here so you have to calculate these occlusion terms where you're saying
+each one each surface unless you're in your you know your deformed stretched icosahedron or some
+I you know surface some solid that has no convex and no concavities inside it you're going to have
+these these aspects of occlusion and this becomes a very very difficult thing to solve
+completely analytically if you're trying to stay in just analytic world and you try to solve well
+okay we have this surface including this surface and then another surface here and another surface
+here it's the potentially visible set problem I on every polygon and it's it's an analytic
+nightmare so you wind up solving this by approximating you just say all right I've got a surface
+here I'll throw a bunch of rays to test out here and I'll throw 20 rays out and if 10 of them
+get through I'll say I'm 50% occluded now a purest mold will start blanching and saying we
+have but there's that's random there's this randomness you might be misestimating there could be
+pathological cases and there's you know there's some truth to that anytime that you're sampling
+things there are sampling cases that that can turn out pathological but the other side of that
+then goes it's like well we're we're tracing rays we have another technique that involves lots
+of tracing rays and come about it from a different route which is to say well let's start with
+ray tracing and let's try and solve the global illumination problem using nothing but ray tracing
+which leads to path tracing so you could make a rendering solution a rendering program where
+you start with your light emitter you throw photons out in all directions you have your cube here
+and somewhere you have your eye you will get a physically accurate image if you throw random rays
+pick a random direction it goes down some of them go off here some of them go up here but eventually
+some of them wind up hitting a surface and then based on what that surface is you determine
+which direction the light goes out it's going to be random and again your your perfect reflector
+would not be random it would go off in exactly the perfect reflection direction all other
+materials will throw light in essentially all directions but with different distributions they'll
+be more biased towards the reflection direction there'll be a chance that they go everywhere so one
+of your billions of light rays goes out hits there it decides it's going to reflect up another one
+goes out hits here it's going to reflect over but eventually some ray is going to come down hit a
+point here and then reflect at exactly the direction that goes over and hits the surface of your eye
+which the lens can then focus into something that you can perceive and this is has an interesting
+biological side to it the larger an eye is the more light it can collect which is why animals
+that will generally hunt at night can have larger eyes larger openings into their eye and why telescopes
+get bigger to see more you can just this is what's happening in reality zillions and zillions of
+photons come off they bounce around and eventually some tiny fraction of them hit the lens of your
+eye or your detector or whatever you're using and can be resolved into an image so you can make
+an image like this people have done it it is extraordinarily inefficient but you can solve everything
+with it this is a complete and accurate so as accurate as your analysis of what the lights distribution
+is and what the surfaces distributions are this can be as good as that you can have your you know
+your extra surface up here where you hit the ceiling you bounce back down you hit a wall over here
+you bounce back over and then eventually make your way to the eye and you start thinking well you
+can have ten bounces going in a random direction your eye is only some handful of millimeters
+across but you're projecting an area this size how many traces do you have to do well you have to
+do billions and billions and you wind up with a very noisy image at that but if you did enough of
+them this would come out with the right solution trace array it either gets absorbed or it reflects
+into a different way or transmits through it you've got this whole the model that you use the
+bi-directional subsurface scattering I'm distribution function so as accurate as that is determines
+what happens to the lights you can have models of the lights there are these standards like IES
+light tables that have I you know those particular lights you could look up what's the distribution
+of photons that come off of them you could look it up for all the different ones and as good as
+the data is your simulation can beam as good as the guard as good as what you feed it but it's
+hopelessly hopelessly inefficient what we wind up doing in different ways that can be reasonable
+approximations are instead of tracing throwing rays out from the light which are mostly going to
+go nowhere near what you want you can reverse the trace and go from your eye like in the kind of
+classic ray tracing go to the surface and then you start getting into the cases where one of the
+key one of the sort of buzzwords in high-end rendering is whether a render is biased or unbiased
+a biased render is not necessarily perfect physics but it's almost they do it because it's going
+to be a lot faster like the standard thing that you do if you don't mind being a biased render
+you say well I have all these directions that I could go to the world I could go up to the
+ceiling I could go down to the floor but I know I've got all these lights up here so I'm going
+to send most of my rays towards the lights because those are almost certainly going to be the
+things that really make a difference so you go you hit your point and you say trace against every
+light you know you've got three lights going here let's run a trace up against them check for a
+clue to solid things blocking it off and then you start throwing random amounts of rays in
+different directions you can be smart and base it on what the character or the surface is I am
+you know it again comes down these distribution functions where you could have rays where it's
+more likely that if light comes in this way it's more likely that it's going to make it out
+towards your eye so it makes sense to sample that more often and there is tons of work going on
+to this day this is sort of where the active state of the art of graphics rendering is where you
+how you optimize this path tracing to be more efficient in different cases but it is always then
+you're making your approximations on what you want to do because you can make like the problem
+with this is if you have if you buy if you're biased and you trace specifically to certain lights
+there could be combinations of surfaces here like you might have a surface here which is
+slightly emissive and if you wind up hitting that because you were tracing towards the light
+that's going to get over represented based on you know versus something that's over here that
+wasn't in the direction of one of the lights but this approach you know it pretty much works
+we do like for the baking in in tech five we have a very primitive lighting solution because
+even though we do it offline we have to the surface area of one of the maps in rage is about as
+much as the pixels that go into a feature film and we have turnaround time so clearly we can't do
+these billions of ray traces for every what would be a frame of that we you know we have to keep
+these down to some credible amount of time so what we do is when we're rasterizing a surface
+we don't even have the viewer at all we're doing a view independent approach for the global
+illumination and then again the terminology is problematic because we have radiosity as terminology
+in a lot of places as a synonym for global illumination and technically it's not it shouldn't be
+that way I mean we have a visualizer called rad preview even though it does not do a matrix calculation
+for radiosity at all it's you know it is based on this more of a tracing approach so we get our
+surfaces we look at all the lights that we think should be affecting us we trace to them to get the
+our shadows and sample them to make soft shadows in fact that's another important thing
+the way you get a soft shadow is if you've got a surface and you've got an object that's going to
+cast a shadow if you have if you had a point light source so it was nothing but a teeny tiny
+point that all the energy came out of then you would have a hard shadow edge it would look like
+doom three I'm where you just have you've got fully illuminated and then fully shadowed in reality
+there's no such thing as a point light source and this is an important important thing to realize
+everything even if you look at a light bulb a dangling incandescent light bulb the photons are actually
+coming out not off of a point but off of a little zigzaggy filament that's inside that it has an
+area and the photons come off distributed from that area now the sharpness of a shadow
+depends on the ratio of the area of that emitter to the distance that it's going across when
+you have a great big broad fluorescent light assembly and you've got a small occluder here
+everything is going to be lit to some degree that you have
+yeah so in this case you might have only the very smallest area there that would be
+solid completely shadowed but as you move over you start to be able to see part of the light
+so it gets brighter and brighter until you get to the point over here where you can see the
+entire light emitter so we have I to get the soft shadows in rages I'm and well so like if you
+looked at the original the earlier quakes there were soft shadows in there but they weren't a
+matter of calculating soft shadows they were because we made a hard shadow calculation and then
+we interpolated between it which is why you got kind of the blurry stair steppy edges there
+for tech five we actually send a number of shadow samples and this is one of those things that
+gets into performance trade-offs where if a designer sets a very large area for a light source
+then it will have you'll have a very broad area of changing shadow resolutions and if you only
+put 16 tests to it that means you only have the possibility of 16 bands of different lighting and
+that's in the best case if it comes out exactly sort of for your samples where they do their best
+good and it's it's completely possible to have if you've got a broad area light source to need
+hundreds of samples for every pixel to determine how bright that should be and they can get
+it can get worse in a lot of cases a lot of offline rendering may use thousands of samples per
+per fragment when you get into the global illumination so what we do from the direct lighting okay
+obviously it's a biased lighting approach there because we sampled directly to the lights but then
+we send out random rays from the surface to see what else it hits and when it goes out and
+hits this surface up here then we apply a simplified version of the lighting to that we don't do
+all the full soft shadows but we do basic lighting approaches we've had options to do multiple
+additional bounces but you know this is what we live with is some approach of sampling the
+global environment and we don't do it lots for each pixel what we wind up doing is I each point
+throws one or a few samples into different directions and then when we average them for this pixel
+we average over a broader range of pixels and these are the types of trade-offs that everybody
+doing rendering makes different trades like this where they I you decide what you think is most
+important how much time you can afford to spend on things and you kind of you make your choices
+and you live with them after that but we know doing it right is just a matter of throwing billions
+of rays in an ideal case you have to throw lots and lots into the environment we can make decent
+approximations now but we're going to soak up all the additional computing power that can be given
+like one of the saws in the offline rendering world is that I you know the frames will always take a
+half hour to render in most studios the more power they get just the more things that they add
+to it there's hope that that's not a log nature that that we are getting to faster turn around
+kind of like the pace of hard drive hard drive size versus usage but it does seem likely that the
+path forward is lots and lots of rays physically accurate material definitions and approaches that
+are approximations of the sampling of path tracing we can do there are some neat demos going on
+going around today like the brigade path tracing demo which is real time and it's doing
+simple path tracing from sort of a parallel outdoor light and it's it's noisy and fizzly as it
+comes in but you can stop and watch it kind of come in more crisply and eventually
+this is going to be the way things go this is the way we're going to be rendering but we still have
+I you know maybe a couple orders of magnitude before it's really competitive I think one more
+order of magnitude and performance and you'll start seeing it used for some real things but
+it's still you have to have a good reason to step away from rasterization but probably when we get
+two orders of magnitude then you start seeing it as one of the more general tools and the reason
+that it's winning in the offline world even though it's still slower people still care about
+how long their renderings take even if you're making a feature film or a TV commercial it matters
+for your iteration time but the the sense is that you get more out of this being understandable
+with rasterization environment maps shadow maps there are all these knobs that people just
+the the best people know what they mean but 90% of the people working in visual
+in computer graphics you know they have these things that they know push this this way and it kind
+of does something but it's a lot of black magic and a lot of things that are just not at all
+physically plausible and this is one of the things that I've been working with the artists at
+in the last several months to start moving us towards this more physically based sense of things
+where if you just use your standard diffuse specular roughness you can have materials just make no
+sense at all in the real world you can have things that reflect more energy than come in when
+you've got a bright diffuse and a bright specular I am and there's the real step that we've had
+to make education wise is treating these maps not just as something that you paint in photoshop but
+how you define the materials that are there where it shouldn't be that if you're looking at
+something that's a belt buckle you say okay this is metal it's going to have a high specular it's
+going to have a low diffuse the specular may have color in it it's going to have a high power or a
+low roughness depending on how you're formulating it because that's what it is but far too often in
+you know for the past decade in computer in games especially the maps that have been fed into
+these things the diffuse maps specular maps whether they're gloss or roughness or whatever you
+term it there are things that are painted in where a lot of times you'd see a specular map where
+yeah you take your diffuse map and you kind of monochromize and maybe color shifted and you stick
+it into the into the specular and you wind up with things that in yes it makes parts of it shiny
+and parts of it not shiny but some of these things like I don't actually think that there is a
+physical material that exists that has a red specular reflection color I mean maybe there is but
+it's certainly not common you know specular colors are generally white except for metals which
+can be the color of the base surface I so there's the biggest thing that's going to be happening
+for making games look better is really not advancing the graphics technologies at least for
+our studio it's the it's the matter of getting materials that actually make sense and once you're
+there then you can start improving you know improving the things that you do with adding your
+better global light transport I all the other cases there one more thing before I cut out from
+the time warning here I so the the cost of all of this billions and billions of rays one technique
+that has that's gotten a lot of currency in recent years is ambient occlusion now to explain what
+ambient occlusion is it's another one of those great big hacks but it works you know usefully and
+it's used it's kind of standard fair and a lot of offline work so if you have a you know an object
+that's got some concavity here and you've got the light you know shining on it from here so you
+light it all up in an ideal world you'd be doing all of this path tracing and you would say that
+okay some of the rays hit here they bounce here they bounce around into here some of them go up
+here hit here and get into that so the path the tortuous path that light can take to get into
+there that's what you really want to to deal with if you've got your white surface there you might
+need to take trace ten bounces from thousands and thousands of things the observation that ambient
+occlusion is based on is that when something has other things very close to it it is very likely
+to be I am not as bright as things that but do not have things next to it if you've got a flat surface
+and you're lit you know there's nothing that's going to be brilliant that's taking anything away from it
+but if you have a flat surface that you know has an occluder here this area right here it might
+be directly seeing the light and it might be seeing everything in this part of the hemisphere
+but part of it's going to be hitting this and some of that may be going and seeing the light
+some of them may be bouncing in different directions so ambient occlusion all it does is instead of
+sampling the whole world it samples just a small area around the point that you're working with
+and importantly perhaps even more importantly than scope of what it's sampling when it hits things
+it doesn't worry about the surface model it doesn't run I you know BRDF or BRSSD at whatever
+I'm all it does is say either I hit something close or I didn't hit something and maybe look
+keep track of how far away it is and if you get something like this where okay there's some light
+coming in here I can see this but I trace out and 90% of everything around me is hitting something
+else sort of close so based on that I'm going to darken it down I just on the assumption that if I
+did run a global illumination trace through all of this that it would come out and say that I'm
+not as bright as something that's next to me that's you know that's open so something out here
+that'll get the full value of whatever it calculates and as you move towards here some of it's
+starting to get darker until you move all the way in here we're almost all of it and it's it's
+say very very crude approximation of just assuming that whatever it hits isn't going to be
+bright and you can break that by having air cases where you know if you had if the light was
+coming in right here where it's directly illuminating all of that and if that was a white surface
+you could have more light coming down onto there rather than less ambient inclusion would say
+it's got nearby things it should always be less but you could actually be getting more light
+from the global illumination in those cases you know it's just one in a long line of all of these
+approximations that we do but the takeaway point is we know what we should do we know what we
+would do if we had infinite computing power to go with it so all of the things now are approximations
+onto it ways that we can model our data ways that we can reduce our number of traces and
+optimizations in the code paths to make things go faster and there's lots of work going on with
+GPU accelerated ray tracing getting some of the caustic graphics work for optimizing it in some other
+ways and there's lots of active research going on about what corners can you cut and it's
+interesting because again we know what the right way zillions of photons coming out collect them
+all at your the lens of your eye and sort of make an image from that but it's going to be
+research for the coming decade or more as we kind of work out what the very best approximations
+for this are so I ran a little bit over my one hour but I could start taking questions now so
+we got the microphone there up until about maybe five to seven years ago there was every year
+an obvious increase in realism in offline rendering for especially movies and I'm wondering
+since a lot of the things that you've mentioned here have been around for as long as I can remember
+an info for a and all that decades ago what is the main driver of that increase in
+visual fidelity or realism in more recent years so a couple factors one is actually getting smarter
+about the materials where these you can throw in all of this light transport stuff and if you
+don't have good materials for it it won't matter you'll still get non-realistic images so better
+data collection some of the laser scanning and the different things that let us get really good
+material qualities that's been one factor but probably the biggest factor has just been people
+being willing to throw that much more processing power at things I am here to go ahead and
+instead of letting these early cases where it could take days to render an image that's never
+going to get used in production and all you do is see you know see some of the images in like
+academic research and the problem with that is while some of the academic research would get the
+formulas right they wouldn't have the data right to go with it where if you've got it's kind of
+like programmer art if you wind up with I you know the programmer the graphics researcher building
+the test scene for it it's probably not going to be a particularly good model of the world it's
+going to have too many spherical callous simplifications in it and it just won't be I like what
+you go to a movie studio and they'll get all the grime and the nicks and the dings and everything
+that that make it feel like a real lived in real lived in world so I think those are really the
+two things materials and then largely getting into the hands making it reasonable for the people
+that are going to put the level of craft and detail that it needs to represent the world making it
+feasible for them to use. Does that your motivation for educating the artists at the end to make it?
+Well I actually think it's necessary I think that it's I if you're not getting with physical
+rendering now you're going to be left behind as an industry and there's been big you know it's
+been interesting watching the offline world where you had sort of the masters of their domain at
+Pixar they because they had the very best in process and technology for a long time they were
+sort of stragglers to adopt many of the things with ray tracing and physically based rendering but
+you know they've come around for the most part now still using the right tool at the right time
+but I can't think of many good arguments for not using physically plausible materials I don't
+think that there are artistic gains to be had by not doing it and there's all sorts of mine
+fields where you can mess yourself up. Thank you. The very latest versions of open GL support
+pixel on tech and fragment shaders and one of the things that I'm curious about is why you don't
+use procedural graphics and procedural geometry more than you do. Okay so procedural
+I procedural graphics has been by you know the wave of the future for the last 20 years and I think
+that I actually have a fairly strong and sound argument philosophical stance against this where
+in the end procedural data is is quirky hard to deal with data compression and one of the things
+that we are continuing to get more and more of is space you know the storage that we can get for
+things. So while you can always pick out some niche market where you are going to be extremely
+constrained on on your space and you'd think well mobile should have been maybe the space where
+procedural stuff comes into its own but you know that's ramping through all of the storage spaces
+for everything that it's really not you know all the standard methods are going on so
+it's not a particular it's a good tool for making programmers but when you want to put it into
+the hands of the the people that are going to if you're modeling the real world you laser scan
+everything you go in and say I'm going to scan this room and I'm going to have a terabyte of data
+and I'll just render that as a I'm enormous point cloud and that's that's credible even it's
+not we can't ship a game like that yet but that's still within sight of something that we can do
+and if you want to give it to an artist to create something then they're largely going to be
+compositing together different things and procedural sources yeah you use them for your clouds and
+your smoke particle things like that but I you know this was this was Pixar's can't for a long
+time about doing you know they would create with with procedures analytic procedures rather than
+textures and that way lost it was really pretty conclusive that nobody wants to do that they want
+to throw 20 layers of effective painting on top of things and you can still come up with use cases
+for it but it adds a lot of complexity I have for you know for a win that outside of poster child
+cases we isn't there so for your offline rendering have you ever considered using progressive photon
+mapping techniques now if you ever had a chance to talk with Henrik von Jensen about any of that
+so I wrote a photon mapping version for our system and there's an interesting a really interesting
+aspect to this where I'm so a fundamental aspect of global illumination is that there's no
+difference between a light emitter and a light reflector where you have to look at saying the
+photons that come off of this surface are just as good as the photons that come off of that light
+and when you when you calculate through when you make a photon map for something you figure out
+how many photons you're going to send into the world you create a map of them and you use that as
+an accelerator for determining your your global illumination solution for each point the problem
+that I ran into was wow that works fine for a single sort of character of a scene for an indoor
+scene I found photon mapping to be pretty effective in a lot of ways I mean you still have all the
+problems of where you wind up setting things bleed throughs in some cases and they're but they're
+manageable problems but when I ran some numbers and I realized that if you're calculating an outdoor
+area the amount of light that falls on like one eight and a half by eleven sheet of paper just holding
+it out in the sun all of a sudden that surface has all of the photons the same amount of photons
+that come out of a hundred watt incandescent light bulb and you start saying well we have acres and
+acres of surfaces out here and of course we're you know we're scaling everything down so it still
+fits with well I completely did not get to any of my output monitors gamma correction all that stuff
+I I so I mean we we have all these hacks to kind of normalize it but I found it to be I in a in a
+situation where you had a bright outdoor area and then a dimmer indoor area you had to have so
+many photons in the outside to make the dim one come out reasonably that it became pretty
+prohibitive the other reason that we don't do photon maps is that it it requires a sequencing where
+that the nice thing about distributed ray tracing and the path tracing in its purest form it's
+completely embarrassingly parallel any surface can be done at the any time because we run on
+multi threads you know multi core processors and multiple systems in a cluster and if you want
+to do something with an intermediate step like a photon map you have to build the photon map in
+some hopefully parallel way and then transfer it to everything else and we at my very first global
+illumination solution in the early days of rage was GPU accelerated and I rendered little hemispheres
+on the GPU and built up a I built up a low resolution megatexture of the world and use that global
+illumination which is was reminiscent of a photon map and it was it was just one of those things
+that in practice turned out to really be kind of a pain and when we went to a a completely separable
+solution a lot of problems stopped happening you know but I it was interesting implementing the photon
+map stuff going through a few of the cases and it's certainly a valid direction right now but I
+think that the in a lot of cases that the necessity to generate that ahead of time is a little bit
+of a hazard for implementation in a lot of parallel cases for running on a single system if you know
+you're going to just plow through it all there it's got a lot of benefits it just hurts a little
+more on a cluster. Hi so you talked a lot about the geometry and the rage tracing all that sort of
+stuff I was just curious if you could talk about how you manage the light representations specifically
+things like fluorescent okay yeah so I and get another one of my topics it was on my list that I
+didn't have time to go through on so again the the classical computer graphics light is you wind
+up with three models of lights you got a point light a spotlight in a parallel light and those are
+our sort of baseline lights in the editor the we augment the point lights by giving them our area
+radius so we can get the soft shadows and so we can have the distributed ray tracing to that the
+the biggest problem though is that these are all of our lights are completely physically
+implausible because they're physically bounded with the exception of the parallel light and some
+of this is history when we go from from quake one I you know all the way up through especially
+doom three we built all of our lights out of out of textures because doom three was all dynamic
+so we multiplied two textures together where you would have a projection texture and a fall off
+texture so they occupied this you know this physical space in the world which is great for for
+culling reasons where you can say all right in doom three we tried to say no more than three lights
+hitting a surface because it was a linear cost every light cost more on that surface so we wound
+up with these lights that were very physically implausible while you can make if you're doing this
+multiplying two textures together you can make a Gaussian fall off light which is a pleasant light
+to work with that is radially symmetric but most of the lights in the game wound up being our square
+light which is a a light that goes almost to the outside edges of this this texture just fading
+a little bit and then fading a little bit in the other direction so we could get kind of about
+as much light as we could into the world for minimal fragment cost and unfortunately we kept those
+through rage as most of our you know as our primary light style and we had some of our very best
+artists love this because it gave them total control they they would call it painting with light
+so they would be able to say I want this area a little bit brighter here so you know I'll
+use this different texture instead of the standard one I'll move this or I'll stretch it so it
+just barely goes below the floor but it has no fall off so it's going to throw all the light into
+it and that is largely the the type of artistic wizardry that we need to evolve past because
+you will never be able to take light emitters like that and make the world feel real because the
+lights not real you can even have completely real materials and you could be doing it with path
+tracing but if your light is only coming from these things that do not resemble real lights then
+it's never going to be bought off as real now several years ago I made a pre a premature evidently
+push towards physically based lighting where I was trying to set all of our lights up with
+using IES light profiles which are these actual light profiles that the people that make light
+bulbs go and measure all of these things you can get you know the light that's coming at all
+these different areas different sample points coming out of it and that's really useful although
+it's important to note that there are simplifications in here just like just because you see an
+equation doesn't mean it's true just because you see a table of data doesn't mean it's true either
+because you have simplifications like an IES spec for three fluorescent bulbs in a fixture
+and yes you are sampling what the light is at all of these points but really you should be getting
+three shadows from it rather than you know rather than one from an area light source so there's
+simplifications built into that but I still you know we are not currently using that the main
+reason why it it fell through when I pushed forward originally was it comes back to the performance
+to keep the build times at a certain you know at a level that they were familiar with you
+wound up with these lights now are extending infinitely they're proper inverse square fall off lights
+so if you've got a level with a thousand lights in it then in theory you're tracing a thousand
+traces out at a minimum to just see whether any light gets there so you you cut this down to
+some rational number of samples and what that means is there's lots of noise in the images
+and one of the battles that's been particularly hard for all of the tech five stuff is trying to
+have a situation where the designers and artists are are willing to work with an approximation of
+what they you know what the final output is and it is you know it is just very tempting to say well
+I always want to look at what the final output is which means that everything is always a production
+quality render which means it always takes forever and if you know I keep hoping that there will
+be more of an acceptance of well this is roughly what it's like I can still you know figure out what
+my gameplay and rough lighting and everything is but that's a battle that we fight daily on this
+Hi John taking quality materials data for granted I'm curious what additional visual fidelity you
+gain by ray tracing box lock trees and then what visual sacrifices you make and what sacrifices
+you have to make in terms of performance or to gain performance so the the question of what
+you're ray tracing against is sort of orthogonal to the the method I mean what you can I you can
+rasterize your ray trace lots of different representations and there was lots of work that went into
+directly ray tracing against curved surfaces and certainly spheres in some of the easy cases
+and for years I did think that ray tracing into some form of voxel space would be a
+an obvious thing to do because it seems that there's you know there's winds there's it's certainly
+far simpler you can make a more regular data structure there's there's all these things but
+it doesn't seem to be panning out that way it does seem to be that all ray tracing will be
+in triangle meshes that you will decimate to it and there's certainly advantages to the comfortable
+toolpaths everything there it seems that's the way that history is flowing in that's probably
+the way it's going to work out when we are ray tracing everything
+you talked a little bit yesterday on the motion blue that happens on like a
+DLCD screens as you move in your head very quickly do you have any more thoughts on if that's a
+solvable problem for this generation of the ours that's going to take a little longer
+so we have an existence proof of something that's good enough I mean what valve put together
+by packing up the the Samsung displays is is good enough if we can get 90 Hertz displays that are
+low persistence that will do I you know 120 would probably be better but I and like my interlace
+scheme maybe a good thing to kind of add on top of that if it can be done but I think there's
+there's a good prospect the fallback plan is LLE LCD backlight flashing so it's important and I
+think that I'm betting that it will be solved for sort of consumer grade VR in the not too
+distant future but it's you know it's not there right now outside of valves prototype
+Hi John thanks for the talk a few years ago I read an MIT paper explaining how to compute
+saw shadows and what they did was they interplay linearly between the parts that were lit
+in the parts that were not lit is that the approach it takes is that a linear map or nonlinear
+map between the number and the pen number and I was just hoping you could explain in detail how
+you calculate the intermediate levels no okay so that does fall into the the category of large
+body of work of approximations that is pretty much gone and forgotten right now our soft shadows
+are done by sending a certain number of samples like it's 16 by default so you send 16 samples
+to different points on the light that are randomly distributed and the density of the shadow
+is just the fraction of them that get through so you can crank that number up in some cases for
+some of the the really broad area emitters in theory you'd want it to be 256 samples so you could
+get a full range of you know or even more on a very bright lights but we we get by with 16 there's
+there's an approximation that I did on that that so come instead of randomly sending to all
+points in the center of the all points across the area of the light source by default we send
+them across the circumference of the light which gives you you know in theory can sometimes make it
+looked I a square factor better but it looks bad at edges so we're still tracing different
+things on there but in the bottom line it's just however many samples you throw that's the
+fraction that comes out things like that are going back through the history of graphics for 40 years
+there's a ton of things that were somewhat complicated analytic solutions that have just over
+and over fallen to raw brute force and I think that all of these things will as well you know when
+we when we are tracing billions of rays per frame that's when we'll be using ray tracing I don't
+think there's gonna be too many intermediate steps to that. Thank you. Hello so I know that in AutoCAD
+and other engineering programs that sorts there are catalogs of different types of materials that
+you can test the effects of different different things on the structure so on so forth of just the
+different kinds of materials and what my question is for you is that with trying to make your
+artist use more accurate materials are you trying to create a catalog of textures or yeah so
+right now we are very much trying to have our master swatch list of I you know if we need there's
+the clear things about okay if you're metal you're in this range if you're paint you're in this
+range if you're wood you're in this range asphalt and having all of this represented as these are
+the the valid ranges of diffuse specular roughness and maps that you're gonna have so we're still
+working through all of that and in terms of material libraries it's it's a little frustrating when
+you look at whether it's you know 3D studio or Modo or VRA whatever the materialists are usually
+the ad hoc collection that's accreted over a couple decades of company lifespan and they're usually
+not a complete consistent cohesive physically based set of materials we spent a little bit of time
+trying to to back track values from one of the material library sets into the things that we could
+use and it wasn't completely clear that they were that they were coming out in the right ranges
+so we're you know we're building up our own set and there's lots of studios doing that there are
+online there are sets of the RDF measurements for a lot of materials that would be good to start
+drawing some of the materials from but there's we're still looking for okay what's the diffuse
+specular and roughness values going rather than this full table of data but eventually I expect that
+we all will be using this is data scanned in from the real world because over and over that's what
+eventually wins in the end thank you all right those I get John thank you thanks on time
