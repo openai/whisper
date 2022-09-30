@@ -149,29 +149,7 @@ class PyTorchInference(Inference):
             # only need to use the last token except in the first forward pass
             tokens = tokens[:, -1:]
 
-        # export decoder as onnx
-        if True and self.kv_cache.shape[2] > self.initial_token_length:
-            print(f"tokens: {tokens.shape}")
-            print(f"audio_features: {audio_features.shape}")
-            print(f"kv_cache: {self.kv_cache.shape}")
-            torch.onnx.export(
-                self.model.decoder,
-                (tokens, audio_features, torch.from_numpy(self.kv_cache), torch.tensor(offset)),
-                "decoder.onnx",
-                verbose=False,
-                opset_version=13,
-                input_names=["tokens", "audio_features", "kv_cache", "offset"],
-                output_names=["logits", "output_kv_cache"],
-                dynamic_axes={
-                    "tokens": [0, 1],
-                    "audio_features": [0],
-                    "kv_cache": [1, 2],
-                    "output_kv_cache": [2],
-                }
-            )
-            exit()
-        #output, self.kv_cache = self.model.decoder(tokens, audio_features, kv_cache=self.kv_cache, offset=offset)
-        output, self.kv_cache = self.model.decoder(tokens, audio_features, kv_cache=torch.from_numpy(self.kv_cache), offset=torch.tensor(offset))
+        output, self.kv_cache = self.model.decoder(tokens, audio_features, kv_cache=self.kv_cache, offset=offset)
         return output
 
     def cleanup_caching(self):
@@ -582,16 +560,6 @@ class DecodingTask:
             # encoded audio features are given; skip audio encoding
             audio_features = mel
         else:
-            # # export encoder as onnx
-            # torch.onnx.export(
-            #     self.model.encoder,
-            #     (mel),
-            #     "encoder.onnx",
-            #     verbose=True,
-            #     opset_version=13,
-            #     input_names=["mel"],
-            # )
-            # exit()
             audio_features = self.model.encoder(mel)
 
         if audio_features.dtype != (torch.float16 if self.options.fp16 else torch.float32):
@@ -620,7 +588,6 @@ class DecodingTask:
         try:
             for i in range(self.sample_len):
                 logits = self.inference.logits(tokens, audio_features)
-                print(f"step: {i}", flush=True)
 
                 if i == 0 and self.tokenizer.no_speech is not None:  # save no_speech_probs
                     probs_at_sot = logits[:, self.sot_index].float().softmax(dim=-1)
