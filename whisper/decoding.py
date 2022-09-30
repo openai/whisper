@@ -578,6 +578,15 @@ class DecodingTask:
             # encoded audio features are given; skip audio encoding
             audio_features = mel
         else:
+            # torch.onnx.export(
+            #     self.model.encoder,
+            #     (mel),
+            #     "encoder.onnx",
+            #     verbose=True,
+            #     opset_version=13,
+            #     input_names=["mel"],
+            # )
+            # exit()
             audio_features = self.model.encoder(mel)
 
         if audio_features.dtype != (torch.float16 if self.options.fp16 else torch.float32):

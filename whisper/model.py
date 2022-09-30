@@ -203,6 +203,19 @@ class TextDecoder(nn.Module):
         return logits, kv_cache
 
 
+class OpenVinoAudioEncoder(nn.Module):
+    def __init__(self, n_mels: int, n_ctx: int, n_state: int, n_head: int, n_layer: int):
+        super().__init__()
+
+        self.core = Core()
+        self._model = self.core.read_model("encoder.xml", "encoder.bin")
+        self.model = self.core.compile_model(self._model, "CPU")
+
+    def forward(self, x: Tensor):
+        result = self.model.infer_new_request(x.numpy())
+        return torch.from_numpy(next(iter(result.values())))
+
+
 class OpenVinoTextDecoder(nn.Module):
     def __init__(self, n_vocab: int, n_ctx: int, n_state: int, n_head: int, n_layer: int):
         super().__init__()
@@ -227,7 +240,21 @@ class Whisper(nn.Module):
     def __init__(self, dims: ModelDimensions):
         super().__init__()
         self.dims = dims
-        self.encoder = AudioEncoder(
+        # self.encoder = AudioEncoder(
+        #     self.dims.n_mels,
+        #     self.dims.n_audio_ctx,
+        #     self.dims.n_audio_state,
+        #     self.dims.n_audio_head,
+        #     self.dims.n_audio_layer,
+        # )
+        # self.decoder = TextDecoder(
+        #     self.dims.n_vocab,
+        #     self.dims.n_text_ctx,
+        #     self.dims.n_text_state,
+        #     self.dims.n_text_head,
+        #     self.dims.n_text_layer,
+        # )
+        self.encoder = OpenVinoAudioEncoder(
             self.dims.n_mels,
             self.dims.n_audio_ctx,
             self.dims.n_audio_state,
@@ -241,13 +268,6 @@ class Whisper(nn.Module):
             self.dims.n_text_head,
             self.dims.n_text_layer,
         )
-        # self.decoder = TextDecoder(
-        #     self.dims.n_vocab,
-        #     self.dims.n_text_ctx,
-        #     self.dims.n_text_state,
-        #     self.dims.n_text_head,
-        #     self.dims.n_text_layer,
-        # )
 
     def embed_audio(self, mel: torch.Tensor):
         return self.encoder.forward(mel)
@@ -260,7 +280,7 @@ class Whisper(nn.Module):
 
     @property
     def device(self):
-        return next(self.parameters()).device
+        return torch.device("cpu")
 
     @property
     def is_multilingual(self):
