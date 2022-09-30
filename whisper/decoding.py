@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Dict, List, Tuple, Iterable, Optional, Sequence, Union, TYPE_CHECKING
+from time import time
 
 import numpy as np
 import torch
@@ -132,14 +133,15 @@ class PyTorchInference(Inference):
         self.model: "Whisper" = model
         self.initial_token_length = initial_token_length
         self.kv_cache = None
+        self.export_onnx = False
 
     def logits(self, tokens: Tensor, audio_features: Tensor) -> Tensor:
         if self.kv_cache is None:
             # hard code for decoder layer 4, 6, 8, 10
-            self.kv_cache = torch.zeros([8, 5, self.initial_token_length, 384])
+            self.kv_cache = np.zeros([8, 5, self.initial_token_length, 384], dtype=np.float32)
         else:
             length = self.kv_cache.shape[2]
-            new_kv_cache = torch.zeros([8, 5, length + 1, 384])
+            new_kv_cache = np.zeros([8, 5, length + 1, 384], dtype=np.float32)
             new_kv_cache[:, :, :-1, :] = self.kv_cache
             self.kv_cache = new_kv_cache
 
@@ -147,13 +149,31 @@ class PyTorchInference(Inference):
             # only need to use the last token except in the first forward pass
             tokens = tokens[:, -1:]
 
-        return self.model.decoder(tokens, audio_features, kv_cache=self.kv_cache)
+        if self.export_onnx and self.kv_cache.numel() > 0:
+            torch.onnx.export(
+                self.model.decoder,
+                (tokens, audio_features, self.kv_cache),
+                "decoder.onnx",
+                verbose=True,
+                opset_version=13,
+                input_names=["tokens", "audio_features", "kv_cache"],
+                output_names=["logits", "output_kv_cache"],
+                dynamic_axes={
+                    "tokens": [1],
+                    "kv_cache": [2],
+                    "output_kv_cache": [2],
+                }
+            )
+            exit()
+        # output, self.kv_cache = self.model.decoder(tokens, audio_features, kv_cache=self.kv_cache)
+        output, self.kv_cache = self.model.decoder(tokens, audio_features, kv_cache=torch.from_numpy(self.kv_cache))
+        return output
 
     def cleanup_caching(self):
         self.kv_cache = None
 
     def rearrange_kv_cache(self, source_indices):
-        self.kv_cache = self.kv_cache[:, source_indices].detach()
+        self.kv_cache = self.kv_cache[:, source_indices]
 
 
 class SequenceRanker:

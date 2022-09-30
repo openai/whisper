@@ -8,6 +8,8 @@ import torch.nn.functional as F
 from torch import Tensor
 from torch import nn
 
+from openvino.runtime import Core
+
 from .transcribe import transcribe as transcribe_function
 from .decoding import detect_language as detect_language_function, decode as decode_function
 
@@ -199,7 +201,30 @@ class TextDecoder(nn.Module):
         x = self.ln(x)
         logits = (x @ torch.transpose(self.token_embedding.weight.to(x.dtype), 0, 1)).float()
 
-        return logits
+        return logits, kv_cache
+
+
+# from stable_diffusion.openvino
+def result(var):
+    return next(iter(var.values()))
+
+class OpenVinoTextDecoder(nn.Module):
+    def __init__(self, n_vocab: int, n_ctx: int, n_state: int, n_head: int, n_layer: int):
+        super().__init__()
+
+        self.core = Core()
+        self._model = self.core.read_model("decoder.xml", "decoder.bin")
+        self.model = self.core.compile_model(self._model, "CPU")
+
+    def forward(self, x: Tensor, xa: Tensor, kv_cache: Optional[dict] = None):
+        output, kv_cache = self.model.infer_new_request(
+            {
+                "tokens": x.numpy(),
+                "audio_features": xa.numpy(),
+                "kv_cache": kv_cache,
+            }
+        ).values()
+        return torch.from_numpy(output), kv_cache
 
 
 class Whisper(nn.Module):
@@ -213,6 +238,13 @@ class Whisper(nn.Module):
             self.dims.n_audio_head,
             self.dims.n_audio_layer,
         )
+        # self.decoder = OpenVinoTextDecoder(
+        #     self.dims.n_vocab,
+        #     self.dims.n_text_ctx,
+        #     self.dims.n_text_state,
+        #     self.dims.n_text_head,
+        #     self.dims.n_text_layer,
+        # )
         self.decoder = TextDecoder(
             self.dims.n_vocab,
             self.dims.n_text_ctx,
