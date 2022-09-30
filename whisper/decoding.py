@@ -133,16 +133,26 @@ class PyTorchInference(Inference):
         self.model: "Whisper" = model
         self.initial_token_length = initial_token_length
         self.kv_cache = None
-        self.export_onnx = False
+        if model.type == "tiny.en":
+            self.kv_cache_size = lambda x, y: [8, x, y, 384]
+        elif model.type == "base.en":
+            self.kv_cache_size = lambda x, y: [12, x, y, 512]
+        elif model.type == "small.en":
+            self.kv_cache_size = lambda x, y: [24, x, y, 768]
+        elif model.type == "medium.en":
+            self.kv_cache_size = lambda x, y: [48, x, y, 1024]
+        else:
+            raise ValueError(f"Unsupported model type: {model.type}")
 
     def logits(self, tokens: Tensor, audio_features: Tensor) -> Tensor:
+        n_group = tokens.shape[0]
         if self.kv_cache is None:
-            # hard code for decoder layer 4, 6, 8, 10
-            self.kv_cache = np.zeros([8, 5, self.initial_token_length, 384], dtype=np.float32)
+            self.kv_cache = np.zeros(
+                self.kv_cache_size(n_group, self.initial_token_length), dtype=np.float32)
             offset = 0
         else:
             offset = self.kv_cache.shape[2]
-            new_kv_cache = np.zeros([8, 5, offset + 1, 384], dtype=np.float32)
+            new_kv_cache = np.zeros(self.kv_cache_size(n_group, offset + 1), dtype=np.float32)
             new_kv_cache[:, :, :-1, :] = self.kv_cache
             self.kv_cache = new_kv_cache
 
@@ -150,24 +160,29 @@ class PyTorchInference(Inference):
             # only need to use the last token except in the first forward pass
             tokens = tokens[:, -1:]
 
-        if self.export_onnx and self.kv_cache.shape[2] > self.initial_token_length:
+        # export decoder as onnx
+        if False and self.kv_cache.shape[2] > self.initial_token_length:
+            print(f"tokens: {tokens.shape}")
+            print(f"audio_features: {audio_features.shape}")
+            print(f"kv_cache: {self.kv_cache.shape}")
             torch.onnx.export(
                 self.model.decoder,
                 (tokens, audio_features, torch.from_numpy(self.kv_cache), torch.tensor(offset)),
                 "decoder.onnx",
-                verbose=True,
+                verbose=False,
                 opset_version=13,
                 input_names=["tokens", "audio_features", "kv_cache", "offset"],
                 output_names=["logits", "output_kv_cache"],
                 dynamic_axes={
-                    "tokens": [1],
-                    "kv_cache": [2],
+                    "tokens": [0, 1],
+                    "audio_features": [0],
+                    "kv_cache": [1, 2],
                     "output_kv_cache": [2],
                 }
             )
             exit()
-        output, self.kv_cache = self.model.decoder(tokens, audio_features, kv_cache=self.kv_cache, offset=offset)
-        # output, self.kv_cache = self.model.decoder(tokens, audio_features, kv_cache=torch.from_numpy(self.kv_cache), offset=torch.tensor(offset))
+        #output, self.kv_cache = self.model.decoder(tokens, audio_features, kv_cache=self.kv_cache, offset=offset)
+        output, self.kv_cache = self.model.decoder(tokens, audio_features, kv_cache=torch.from_numpy(self.kv_cache), offset=torch.tensor(offset))
         return output
 
     def cleanup_caching(self):
@@ -578,6 +593,7 @@ class DecodingTask:
             # encoded audio features are given; skip audio encoding
             audio_features = mel
         else:
+            # # export encoder as onnx
             # torch.onnx.export(
             #     self.model.encoder,
             #     (mel),
@@ -615,6 +631,7 @@ class DecodingTask:
         try:
             for i in range(self.sample_len):
                 logits = self.inference.logits(tokens, audio_features)
+                print(f"step: {i}, logits: {logits}", flush=True)
 
                 if i == 0 and self.tokenizer.no_speech is not None:  # save no_speech_probs
                     probs_at_sot = logits[:, self.sot_index].float().softmax(dim=-1)

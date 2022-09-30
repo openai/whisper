@@ -84,7 +84,12 @@ class MultiHeadAttention(nn.Module):
         k = self.key(x if xa is None else xa)
         v = self.value(x if xa is None else xa)
         if kv_cache is not None and k.shape[1] <= self.n_ctx:
-            key_id = self.layer_id - 4
+            # here is hard coded
+            # tiny.en: 4
+            # base.en: 6
+            # small.en: 12
+            # medium.en: 24
+            key_id = self.layer_id - 24
             value_id = key_id + 1
             size = k.shape[1]
             kv_cache[key_id, :, -size:, :] = k
@@ -210,8 +215,10 @@ class OpenVinoAudioEncoder(nn.Module):
 
         self.core = Core()
         self._model = self.core.read_model(
-            hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="encoder.xml"),
-            hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="encoder.bin"),
+            # hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="encoder.xml"),
+            # hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="encoder.bin"),
+            "encoder.xml",
+            "encoder.bin",
         )
         self.model = self.core.compile_model(self._model, "CPU")
 
@@ -226,8 +233,10 @@ class OpenVinoTextDecoder(nn.Module):
 
         self.core = Core()
         self._model = self.core.read_model(
-            hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="decoder.xml"),
-            hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="decoder.bin"),
+            # hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="decoder.xml"),
+            # hf_hub_download(repo_id=f"zhuzilin/whisper-openvino-{model}", filename="decoder.bin"),
+            "decoder.xml",
+            "decoder.bin",
         )
         self.model = self.core.compile_model(self._model, "CPU")
 
@@ -246,23 +255,24 @@ class OpenVinoTextDecoder(nn.Module):
 class Whisper(nn.Module):
     def __init__(self, dims: ModelDimensions, model: str):
         super().__init__()
+        self.type = model
         self.dims = dims
-        # self.encoder = AudioEncoder(
-        #     self.dims.n_mels,
-        #     self.dims.n_audio_ctx,
-        #     self.dims.n_audio_state,
-        #     self.dims.n_audio_head,
-        #     self.dims.n_audio_layer,
-        # )
-        # self.decoder = TextDecoder(
-        #     self.dims.n_vocab,
-        #     self.dims.n_text_ctx,
-        #     self.dims.n_text_state,
-        #     self.dims.n_text_head,
-        #     self.dims.n_text_layer,
-        # )
-        self.encoder = OpenVinoAudioEncoder(model=model)
-        self.decoder = OpenVinoTextDecoder(model=model)
+        self.encoder = AudioEncoder(
+            self.dims.n_mels,
+            self.dims.n_audio_ctx,
+            self.dims.n_audio_state,
+            self.dims.n_audio_head,
+            self.dims.n_audio_layer,
+        )
+        self.decoder = TextDecoder(
+            self.dims.n_vocab,
+            self.dims.n_text_ctx,
+            self.dims.n_text_state,
+            self.dims.n_text_head,
+            self.dims.n_text_layer,
+        )
+        # self.encoder = OpenVinoAudioEncoder(model=model)
+        # self.decoder = OpenVinoTextDecoder(model=model)
 
     def embed_audio(self, mel: torch.Tensor):
         return self.encoder.forward(mel)
