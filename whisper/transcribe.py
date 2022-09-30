@@ -294,7 +294,7 @@ def cli():
         temperature = [temperature]
 
     from . import load_model
-    model = load_model(model_name, device=device)
+    model = load_model(model_name)
 
     for audio_path in args.pop("audio"):
         result = transcribe(model, audio_path, temperature=temperature, **args)

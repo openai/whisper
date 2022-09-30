@@ -65,7 +65,7 @@ def available_models() -> List[str]:
     return list(_MODELS.keys())
 
 
-def load_model(name: str, device: Optional[Union[str, torch.device]] = None, download_root: str = None, in_memory: bool = False) -> Whisper:
+def load_model(name: str) -> Whisper:
     """
     Load a Whisper ASR model
 
@@ -87,24 +87,25 @@ def load_model(name: str, device: Optional[Union[str, torch.device]] = None, dow
         The Whisper ASR model instance
     """
 
-    if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-    if download_root is None:
-        download_root = os.path.join(os.path.expanduser("~"), ".cache", "whisper")
-
-    if name in _MODELS:
-        checkpoint_file = _download(_MODELS[name], download_root, in_memory)
-    elif os.path.isfile(name):
-        checkpoint_file = open(name, "rb").read() if in_memory else name
+    if name == "tiny":
+        dims_config = {'n_mels': 80, 'n_vocab': 51865, 'n_audio_ctx': 1500, 'n_audio_state': 384, 'n_audio_head': 6, 'n_audio_layer': 4, 'n_text_ctx': 448, 'n_text_state': 384, 'n_text_head': 6, 'n_text_layer': 4}
+    elif name == "tiny.en":
+        dims_config = {'n_mels': 80, 'n_vocab': 51864, 'n_audio_ctx': 1500, 'n_audio_state': 384, 'n_audio_head': 6, 'n_audio_layer': 4, 'n_text_ctx': 448, 'n_text_state': 384, 'n_text_head': 6, 'n_text_layer': 4}
+    elif name == "base":
+        dims_config = {'n_mels': 80, 'n_vocab': 51865, 'n_audio_ctx': 1500, 'n_audio_state': 512, 'n_audio_head': 8, 'n_audio_layer': 6, 'n_text_ctx': 448, 'n_text_state': 512, 'n_text_head': 8, 'n_text_layer': 6}
+    elif name == "base.en":
+        dims_config = {'n_mels': 80, 'n_vocab': 51864, 'n_audio_ctx': 1500, 'n_audio_state': 512, 'n_audio_head': 8, 'n_audio_layer': 6, 'n_text_ctx': 448, 'n_text_state': 512, 'n_text_head': 8, 'n_text_layer': 6}
+    elif name == "small":
+        dims_config = {'n_mels': 80, 'n_vocab': 51865, 'n_audio_ctx': 1500, 'n_audio_state': 768, 'n_audio_head': 12, 'n_audio_layer': 12, 'n_text_ctx': 448, 'n_text_state': 768, 'n_text_head': 12, 'n_text_layer': 12}
+    elif name == "small.en":
+        dims_config = {'n_mels': 80, 'n_vocab': 51864, 'n_audio_ctx': 1500, 'n_audio_state': 768, 'n_audio_head': 12, 'n_audio_layer': 12, 'n_text_ctx': 448, 'n_text_state': 768, 'n_text_head': 12, 'n_text_layer': 12}
+    elif name == "medium":
+        dims_config = {'n_mels': 80, 'n_vocab': 51865, 'n_audio_ctx': 1500, 'n_audio_state': 1024, 'n_audio_head': 16, 'n_audio_layer': 24, 'n_text_ctx': 448, 'n_text_state': 1024, 'n_text_head': 16, 'n_text_layer': 24}
+    elif name == "medium.en":
+        dims_config = {'n_mels': 80, 'n_vocab': 51864, 'n_audio_ctx': 1500, 'n_audio_state': 1024, 'n_audio_head': 16, 'n_audio_layer': 24, 'n_text_ctx': 448, 'n_text_state': 1024, 'n_text_head': 16, 'n_text_layer': 24}
     else:
-        raise RuntimeError(f"Model {name} not found; available models = {available_models()}")
+        raise ValueError(f"model type {name} not supported")
 
-    with (io.BytesIO(checkpoint_file) if in_memory else open(checkpoint_file, "rb")) as fp:
-        checkpoint = torch.load(fp, map_location=device)
-    del checkpoint_file
-
-    dims = ModelDimensions(**checkpoint["dims"])
+    dims = ModelDimensions(**dims_config)
     model = Whisper(dims, name)
-    model.load_state_dict(checkpoint["model_state_dict"], strict=False)
-
-    return model.to(device)
+    return model
