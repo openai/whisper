@@ -94,7 +94,7 @@ class DecodingOptions:
 
     # timestamp sampling options
     without_timestamps: bool = False              # use <|notimestamps|> to sample text tokens only
-    max_initial_timestamp: Optional[float] = 0.0  # the initial timestamp cannot be later than this
+    max_initial_timestamp: Optional[float] = 1.0  # the initial timestamp cannot be later than this
 
     # implementation details
     fp16: bool = True  # use fp16 for most of the calculation
