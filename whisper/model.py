@@ -90,10 +90,6 @@ class Whisper(nn.Module):
         return output
 
     @property
-    def device(self):
-        return torch.device("cpu")
-
-    @property
     def is_multilingual(self):
         return self.dims.n_vocab == 51865
 

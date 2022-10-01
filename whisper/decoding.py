@@ -97,9 +97,6 @@ class DecodingOptions:
     without_timestamps: bool = False              # use <|notimestamps|> to sample text tokens only
     max_initial_timestamp: Optional[float] = 0.0  # the initial timestamp cannot be later than this
 
-    # implementation details
-    fp16: bool = True  # use fp16 for most of the calculation
-
 
 @dataclass(frozen=True)
 class DecodingResult:
@@ -329,7 +326,7 @@ class BeamSearchDecoder(TokenDecoder):
 
             finished_sequences.append(finished)
 
-        tokens = torch.tensor(next_tokens, device=tokens.device)
+        tokens = torch.tensor(next_tokens)
         self.inference.rearrange_kv_cache(source_indices)
 
         # add newly finished sequences to self.finished_sequences
@@ -553,17 +550,11 @@ class DecodingTask:
         return tuple(sorted(set(suppress_tokens)))
 
     def _get_audio_features(self, mel: Tensor):
-        if self.options.fp16:
-            mel = mel.half()
-
         if mel.shape[-2:] == (self.model.dims.n_audio_ctx, self.model.dims.n_audio_state):
             # encoded audio features are given; skip audio encoding
             audio_features = mel
         else:
             audio_features = self.model.encoder(mel)
-
-        if audio_features.dtype != (torch.float16 if self.options.fp16 else torch.float32):
-            return TypeError(f"audio_features has an incorrect dtype: {audio_features.dtype}")
 
         return audio_features
 
@@ -582,7 +573,7 @@ class DecodingTask:
     def _main_loop(self, audio_features: Tensor, tokens: Tensor):
         assert audio_features.shape[0] == tokens.shape[0]
         n_batch = tokens.shape[0]
-        sum_logprobs: Tensor = torch.zeros(n_batch, device=audio_features.device)
+        sum_logprobs: Tensor = torch.zeros(n_batch)
         no_speech_probs = [np.nan] * n_batch
 
         try:

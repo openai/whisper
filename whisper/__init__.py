@@ -74,12 +74,6 @@ def load_model(name: str) -> Whisper:
     name : str
         one of the official model names listed by `whisper.available_models()`, or
         path to a model checkpoint containing the model dimensions and the model state_dict.
-    device : Union[str, torch.device]
-        the PyTorch device to put the model into
-    download_root: str
-        path to download the model files; by default, it uses "~/.cache/whisper"
-    in_memory: bool
-        whether to preload the model weights into host memory
 
     Returns
     -------
