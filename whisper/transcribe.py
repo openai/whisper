@@ -175,6 +175,8 @@ def transcribe(
             segment_duration = segment.shape[-1] * HOP_LENGTH / SAMPLE_RATE
 
             decode_options["prompt"] = all_tokens[prompt_reset_since:]
+            if len(decode_options["prompt"]) == 0 and initial_prompt and condition_on_previous_text:
+                decode_options["prompt"] = initial_prompt
             result: DecodingResult = decode_with_fallback(segment)
             tokens = torch.tensor(result.tokens)
 
