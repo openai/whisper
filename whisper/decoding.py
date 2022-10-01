@@ -112,7 +112,7 @@ class DecodingResult:
 
 
 class Inference:
-    def logits(self, tokens: Tensor, audio_features: Tensor) -> Tensor:
+    def logits(self, tokens: Tensor, audio_features: np.ndarray) -> Tensor:
         """Perform a forward pass on the decoder and return per-token logits"""
         raise NotImplementedError
 
@@ -131,7 +131,7 @@ class PyTorchInference(Inference):
         self.initial_token_length = initial_token_length
         self.kv_cache = None
 
-    def logits(self, tokens: Tensor, audio_features: Tensor) -> Tensor:
+    def logits(self, tokens: Tensor, audio_features: np.ndarray) -> Tensor:
         n_group = tokens.shape[0]
         if self.kv_cache is None:
             self.kv_cache = self.model.new_kv_cache(n_group, self.initial_token_length)
@@ -572,6 +572,7 @@ class DecodingTask:
 
     def _main_loop(self, audio_features: Tensor, tokens: Tensor):
         assert audio_features.shape[0] == tokens.shape[0]
+        audio_features = audio_features.numpy()
         n_batch = tokens.shape[0]
         sum_logprobs: Tensor = torch.zeros(n_batch)
         no_speech_probs = [np.nan] * n_batch

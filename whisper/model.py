@@ -1,10 +1,8 @@
 from dataclasses import dataclass
-from typing import Dict
-from typing import Iterable, Optional
+from typing import Dict, Union
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 from torch import Tensor
 from torch import nn
 
@@ -56,11 +54,13 @@ class OpenVinoTextDecoder(nn.Module):
         )
         self.model = self.core.compile_model(self._model, "CPU")
 
-    def forward(self, x: Tensor, xa: Tensor, kv_cache: Tensor, offset: int):
+    def forward(self, x: Tensor, xa: Union[Tensor, np.ndarray], kv_cache: Tensor, offset: int):
+        if torch.is_tensor(xa):
+            xa = xa.numpy()
         output, kv_cache = self.model.infer_new_request(
             {
                 "tokens": x.numpy(),
-                "audio_features": xa.numpy(),
+                "audio_features": xa,
                 "kv_cache": kv_cache,
                 "offset": np.array(offset, dtype=int),
             }
@@ -79,7 +79,7 @@ class Whisper(nn.Module):
     def embed_audio(self, mel: torch.Tensor):
         return self.encoder.forward(mel)
 
-    def logits(self, tokens: torch.Tensor, audio_features: torch.Tensor):
+    def logits(self, tokens: torch.Tensor, audio_features: Union[torch.Tensor, np.ndarray]):
         kv_cache = self.new_kv_cache(tokens.shape[0], tokens.shape[-1])
         output, _ = self.decoder.forward(tokens, audio_features, kv_cache=kv_cache, offset=0)
         return output
