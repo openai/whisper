@@ -45,7 +45,7 @@ def detect_language(model: "Whisper", mel: Tensor, tokenizer: Tokenizer = None) 
 
     # forward pass using a single token, startoftranscript
     n_audio = mel.shape[0]
-    x = torch.tensor([[tokenizer.sot]] * n_audio).to(mel.device)  # [n_audio, 1]
+    x = torch.tensor([[tokenizer.sot]] * n_audio)  # [n_audio, 1]
     logits = model.logits(x, mel)[:, 0]
 
     # collect detected languages; suppress all non-language tokens
@@ -629,7 +629,7 @@ class DecodingTask:
 
         # repeat the audio & text tensors by the group size, for beam search or best-of-n sampling
         audio_features = audio_features.repeat_interleave(self.n_group, dim=0)
-        tokens = tokens.repeat_interleave(self.n_group, dim=0).to(audio_features.device)
+        tokens = tokens.repeat_interleave(self.n_group, dim=0)
 
         # call the main sampling loop
         tokens, sum_logprobs, no_speech_probs = self._main_loop(audio_features, tokens)

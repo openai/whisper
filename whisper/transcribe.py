@@ -78,7 +78,7 @@ def transcribe(
     if decode_options.get("language", None) is None:
         if verbose:
             print("Detecting language using up to the first 30 seconds. Use `--language` to specify the language")
-        segment = pad_or_trim(mel, N_FRAMES).to(model.device).to(dtype)
+        segment = pad_or_trim(mel, N_FRAMES).to(dtype)
         _, probs = model.detect_language(segment)
         decode_options["language"] = max(probs, key=probs.get)
         if verbose is not None:
@@ -167,7 +167,7 @@ def transcribe(
     with tqdm.tqdm(total=num_frames, unit='frames', disable=verbose is not False) as pbar:
         while seek < num_frames:
             timestamp_offset = float(seek * HOP_LENGTH / SAMPLE_RATE)
-            segment = pad_or_trim(mel[:, :, seek:], N_FRAMES).to(model.device).to(dtype)
+            segment = pad_or_trim(mel[:, :, seek:], N_FRAMES).to(dtype)
             segment_duration = segment.shape[-1] * HOP_LENGTH / SAMPLE_RATE
 
             decode_options["prompt"] = all_tokens[prompt_reset_since:]
