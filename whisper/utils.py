@@ -85,3 +85,28 @@ def write_srt(transcript: Iterator[dict], file: TextIO):
             file=file,
             flush=True,
         )
+
+def write_csv(transcript: Iterator[dict], file: TextIO):
+    """
+    Write a transcript to a file in CSV format containing lines like:
+    <startTime-in-integer-milliseconds>, <endTime-in-integer-milliseconds>, <transcript-including-commas>
+    
+    Using integer milliseconds as start and end times means there's no chance of interference from an environment
+    setting a language encoding that causes the decimal in a floatinng point number to appear as a comma; also is
+    faster and more efficient to parse & store, e.g., in a C++ application.
+
+    Example usage 
+        from pathlib import Path
+        from whisper.utils import write_csv
+
+        result = transcribe(model, audio_path, temperature=temperature, **args)
+
+        # save CSV -- see transcribe.py
+        with open(os.path.join(output_dir, os.path.basename(audio_path) + ".csv"), "w", encoding="utf-8") as csv:
+            write_csv(result["segments"], file=csv)
+    """    
+    for segment in transcript:
+        print(round(1000 * segment['start']), file=file, end = ', ')
+        print(round(1000 * segment['end']),   file=file, end = ', ')  
+        print(segment['text'].strip(),        file=file, flush=True)
+ 
