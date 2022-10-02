@@ -435,6 +435,8 @@ class ApplyTimestampRules(LogitFilter):
             max_text_token_logprob = logprobs[k, : self.tokenizer.timestamp_begin].max()
             if timestamp_logprob > max_text_token_logprob:
                 logits[k, : self.tokenizer.timestamp_begin] = -np.inf
+            else:
+                logits[k, self.tokenizer.timestamp_begin :] = -np.inf
 
 
 class DecodingTask:
@@ -699,7 +701,7 @@ def decode(model: "Whisper", mel: Tensor, options: DecodingOptions = DecodingOpt
         mel = mel.unsqueeze(0)
 
     result = DecodingTask(model, options).run(mel)
-    
+
     if single:
         result = result[0]
 
