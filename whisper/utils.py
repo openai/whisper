@@ -108,5 +108,4 @@ def write_csv(transcript: Iterator[dict], file: TextIO):
     for segment in transcript:
         print(round(1000 * segment['start']), file=file, end = ', ')
         print(round(1000 * segment['end']),   file=file, end = ', ')  
-        print(segment['text'].strip(),        file=file, flush=True)
- 
+        print('"' + segment['text'].strip().replace('"', "''") + '"', file=file, flush=True)
