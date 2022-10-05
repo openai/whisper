@@ -103,6 +103,16 @@ print(result["text"])
 
 Internally, the `transcribe()` method reads the entire file and processes the audio with a sliding 30-second window, performing autoregressive sequence-to-sequence predictions on each window.
 
+The `transcribe()` method requires the argument `language="en"` when using `.en` models:
+
+```python
+import whisper
+
+model = whisper.load_model("medium.en")
+result = model.transcribe("audio.mp3", language="en")
+print(result["text"])
+```
+
 Below is an example usage of `whisper.detect_language()` and `whisper.decode()` which provide lower-level access to the model.
 
 ```python
