@@ -272,6 +272,7 @@ def cli():
     parser.add_argument("--compression_ratio_threshold", type=optional_float, default=2.4, help="if the gzip compression ratio is higher than this value, treat the decoding as failed")
     parser.add_argument("--logprob_threshold", type=optional_float, default=-1.0, help="if the average log probability is lower than this value, treat the decoding as failed")
     parser.add_argument("--no_speech_threshold", type=optional_float, default=0.6, help="if the probability of the <|nospeech|> token is higher than this value AND the decoding has failed due to `logprob_threshold`, consider the segment as silence")
+    parser.add_argument("--threads", type=optional_int, default=0, help="number of threads for torch")
 
     args = parser.parse_args().__dict__
     model_name: str = args.pop("model")
@@ -290,6 +291,10 @@ def cli():
         temperature = tuple(np.arange(temperature, 1.0 + 1e-6, temperature_increment_on_fallback))
     else:
         temperature = [temperature]
+
+    threads = args.pop("threads")
+    if threads > 0:
+        torch.set_num_threads(threads)
 
     from . import load_model
     model = load_model(model_name, device=device, download_root=model_dir)
