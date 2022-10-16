@@ -284,6 +284,7 @@ def cli():
     model_dir: str = args.pop("model_dir")
     output_dir: str = args.pop("output_dir")
     device: str = args.pop("device")
+    output_files: str = args.pop("output")
     os.makedirs(output_dir, exist_ok=True)
 
     if model_name.endswith(".en") and args["language"] not in {"en", "English"}:
@@ -311,17 +312,17 @@ def cli():
         audio_basename = os.path.basename(audio_path)
        
         # save TXT
-        if args["output"] != "none":
+        if output_files != "none":
             with open(os.path.join(output_dir, audio_basename + ".txt"), "w", encoding="utf-8") as txt:
                 write_txt(result["segments"], file=txt)
 
         # save VTT
-        if args["output"] in ["vtt","all"]:
+        if output_files in ["vtt","all"]:
             with open(os.path.join(output_dir, audio_basename + ".vtt"), "w", encoding="utf-8") as vtt:
                 write_vtt(result["segments"], file=vtt)
 
         # save SRT
-        if args["output"] in ["srt","all"]:
+        if output_files in ["srt","all"]:
             with open(os.path.join(output_dir, audio_basename + ".srt"), "w", encoding="utf-8") as srt:
                 write_srt(result["segments"], file=srt)
 
