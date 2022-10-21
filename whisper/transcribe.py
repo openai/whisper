@@ -74,6 +74,8 @@ def transcribe(
     if model.device == torch.device("cpu"):
         if torch.cuda.is_available():
             warnings.warn("Performing inference on CPU when CUDA is available")
+        if torch.backends.mps.is_available():
+            warnings.warn("Performing inference on CPU when MPS is available")
         if dtype == torch.float16:
             warnings.warn("FP16 is not supported on CPU; using FP32 instead")
             dtype = torch.float32
