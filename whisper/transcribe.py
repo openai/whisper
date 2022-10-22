@@ -84,13 +84,16 @@ def transcribe(
     mel = log_mel_spectrogram(audio)
 
     if decode_options.get("language", None) is None:
-        if verbose:
-            print("Detecting language using up to the first 30 seconds. Use `--language` to specify the language")
-        segment = pad_or_trim(mel, N_FRAMES).to(model.device).to(dtype)
-        _, probs = model.detect_language(segment)
-        decode_options["language"] = max(probs, key=probs.get)
-        if verbose is not None:
-            print(f"Detected language: {LANGUAGES[decode_options['language']].title()}")
+        if not model.is_multilingual:
+            decode_options["language"] = "en"
+        else:
+            if verbose:
+                print("Detecting language using up to the first 30 seconds. Use `--language` to specify the language")
+            segment = pad_or_trim(mel, N_FRAMES).to(model.device).to(dtype)
+            _, probs = model.detect_language(segment)
+            decode_options["language"] = max(probs, key=probs.get)
+            if verbose is not None:
+                print(f"Detected language: {LANGUAGES[decode_options['language']].title()}")
 
     language = decode_options["language"]
     task = decode_options.get("task", "transcribe")
@@ -261,7 +264,7 @@ def cli():
     parser.add_argument("--best_of", type=optional_int, default=5, help="number of candidates when sampling with non-zero temperature")
     parser.add_argument("--beam_size", type=optional_int, default=5, help="number of beams in beam search, only applicable when temperature is zero")
     parser.add_argument("--patience", type=float, default=None, help="optional patience value to use in beam decoding, as in https://arxiv.org/abs/2204.05424, the default (1.0) is equivalent to conventional beam search")
-    parser.add_argument("--length_penalty", type=float, default=None, help="optional token length penalty coefficient (alpha) as in https://arxiv.org/abs/1609.08144, uses simple lengt normalization by default")
+    parser.add_argument("--length_penalty", type=float, default=None, help="optional token length penalty coefficient (alpha) as in https://arxiv.org/abs/1609.08144, uses simple length normalization by default")
 
     parser.add_argument("--suppress_tokens", type=str, default="-1", help="comma-separated list of token ids to suppress during sampling; '-1' will suppress most special characters except common punctuations")
     parser.add_argument("--initial_prompt", type=str, default=None, help="optional text to provide as a prompt for the first window.")
@@ -272,6 +275,7 @@ def cli():
     parser.add_argument("--compression_ratio_threshold", type=optional_float, default=2.4, help="if the gzip compression ratio is higher than this value, treat the decoding as failed")
     parser.add_argument("--logprob_threshold", type=optional_float, default=-1.0, help="if the average log probability is lower than this value, treat the decoding as failed")
     parser.add_argument("--no_speech_threshold", type=optional_float, default=0.6, help="if the probability of the <|nospeech|> token is higher than this value AND the decoding has failed due to `logprob_threshold`, consider the segment as silence")
+    parser.add_argument("--threads", type=optional_int, default=0, help="number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS")
 
     args = parser.parse_args().__dict__
     model_name: str = args.pop("model")
@@ -281,7 +285,8 @@ def cli():
     os.makedirs(output_dir, exist_ok=True)
 
     if model_name.endswith(".en") and args["language"] not in {"en", "English"}:
-        warnings.warn(f"{model_name} is an English-only model but receipted '{args['language']}'; using English instead.")
+        if args["language"] is not None:
+            warnings.warn(f"{model_name} is an English-only model but receipted '{args['language']}'; using English instead.")
         args["language"] = "en"
 
     temperature = args.pop("temperature")
@@ -290,6 +295,10 @@ def cli():
         temperature = tuple(np.arange(temperature, 1.0 + 1e-6, temperature_increment_on_fallback))
     else:
         temperature = [temperature]
+
+    threads = args.pop("threads")
+    if threads > 0:
+        torch.set_num_threads(threads)
 
     from . import load_model
     model = load_model(model_name, device=device, download_root=model_dir)
