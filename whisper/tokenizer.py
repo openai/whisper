@@ -29,6 +29,7 @@ LANGUAGES = {
     "fi": "finnish",
     "vi": "vietnamese",
     "iw": "hebrew",
+    "he": "hebrew",
     "uk": "ukrainian",
     "el": "greek",
     "ms": "malay",
