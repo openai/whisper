@@ -162,7 +162,7 @@ wer = load("wer")
 print(100 * wer.compute(references=result["reference"], predictions=result["prediction"]))
 ```
 **Print Output:**
-```python
+```bash
 4.254436419182681
 ```
 
