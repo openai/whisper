@@ -157,7 +157,7 @@ def transcribe(
                 "start": start,
                 "end": end,
                 "text": text,
-                "tokens": result.tokens,
+                "tokens": text_tokens.tolist(),
                 "temperature": result.temperature,
                 "avg_logprob": result.avg_logprob,
                 "compression_ratio": result.compression_ratio,
