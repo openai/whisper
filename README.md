@@ -1,5 +1,7 @@
 # Whisper
 
+This is an UNOFFICIAL distribution of whisper.ai.
+
 [[Blog]](https://openai.com/blog/whisper)
 [[Paper]](https://cdn.openai.com/papers/whisper.pdf)
 [[Model card]](model-card.md)
