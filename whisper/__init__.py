@@ -37,7 +37,8 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
         raise RuntimeError(f"{download_target} exists and is not a regular file")
 
     if os.path.isfile(download_target):
-        model_bytes = open(download_target, "rb").read()
+        with open(download_target, "rb") as f:
+            model_bytes = f.read()
         if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
         else:
