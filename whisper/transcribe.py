@@ -25,6 +25,8 @@ def transcribe(
     compression_ratio_threshold: Optional[float] = 2.4,
     logprob_threshold: Optional[float] = -1.0,
     no_speech_threshold: Optional[float] = 0.6,
+    language_threshold: Optional[float] = 0.6,
+    language_detection_segments: int = 1,
     condition_on_previous_text: bool = True,
     **decode_options,
 ):
@@ -57,6 +59,13 @@ def transcribe(
         If the no_speech probability is higher than this value AND the average log probability
         over sampled tokens is below `logprob_threshold`, consider the segment as silent
 
+    language_threshold: float
+        If the maximum probability of the language tokens is higher than this value, the language is 
+        detected
+
+    language_detection_segments: int
+        Number of segments to consider for the language detection
+
     condition_on_previous_text: bool
         if True, the previous output of the model is provided as a prompt for the next window;
         disabling may make the text inconsistent across windows, but the model becomes less prone to
@@ -82,16 +91,34 @@ def transcribe(
         decode_options["fp16"] = False
 
     mel = log_mel_spectrogram(audio)
+    num_frames = mel.shape[-1]
 
     if decode_options.get("language", None) is None:
         if not model.is_multilingual:
             decode_options["language"] = "en"
         else:
             if verbose:
-                print("Detecting language using up to the first 30 seconds. Use `--language` to specify the language")
-            segment = pad_or_trim(mel, N_FRAMES).to(model.device).to(dtype)
-            _, probs = model.detect_language(segment)
-            decode_options["language"] = max(probs, key=probs.get)
+                print("Detecting language. Use `--language` to specify the language")
+            if language_detection_segments is None or language_detection_segments < 1:
+                language_detection_segments = 1 
+            seek = 0
+            languages = []
+            while seek < num_frames and seek < N_FRAMES * language_detection_segments:
+                segment = pad_or_trim(mel[:, seek:], N_FRAMES).to(model.device).to(dtype)
+                _, probs = model.detect_language(segment)
+                lang = max(probs, key=probs.get)
+                lang_prob = probs[lang]
+                if language_threshold is not None and lang_prob > language_threshold:
+                    decode_options["language"] = lang
+                    break
+                else:
+                    languages.append(lang)
+                    seek += segment.shape[-1]
+            else:
+                # If no language detected for all segments, the majority vote of the highest projected 
+                # languages for all segments is used to determine the language.
+                decode_options["language"] = max(set(languages), key=languages.count)
+
             if verbose is not None:
                 print(f"Detected language: {LANGUAGES[decode_options['language']].title()}")
 
@@ -168,7 +195,6 @@ def transcribe(
             print(f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}")
 
     # show the progress bar when verbose is False (otherwise the transcribed text will be printed)
-    num_frames = mel.shape[-1]
     previous_seek_value = seek
 
     with tqdm.tqdm(total=num_frames, unit='frames', disable=verbose is not False) as pbar:
@@ -259,6 +285,8 @@ def cli():
 
     parser.add_argument("--task", type=str, default="transcribe", choices=["transcribe", "translate"], help="whether to perform X->X speech recognition ('transcribe') or X->English translation ('translate')")
     parser.add_argument("--language", type=str, default=None, choices=sorted(LANGUAGES.keys()) + sorted([k.title() for k in TO_LANGUAGE_CODE.keys()]), help="language spoken in the audio, specify None to perform language detection")
+    parser.add_argument("--language_threshold", type=optional_float, default=None, help="if the maximum probability of the language tokens is higher than this value, the language is detected")
+    parser.add_argument("--language_detection_segments", type=int, default=1, help="number of segments to consider for the language detection")
 
     parser.add_argument("--temperature", type=float, default=0, help="temperature to use for sampling")
     parser.add_argument("--best_of", type=optional_int, default=5, help="number of candidates when sampling with non-zero temperature")
