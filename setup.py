@@ -4,9 +4,9 @@ import pkg_resources
 from setuptools import setup, find_packages
 
 setup(
-    name="whisper",
+    name="whisper-openai",
     py_modules=["whisper"],
-    version="1.0",
+    version="1.0.0",
     description="Robust Speech Recognition via Large-Scale Weak Supervision",
     readme="README.md",
     python_requires=">=3.7",
