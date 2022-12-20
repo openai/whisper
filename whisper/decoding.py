@@ -99,6 +99,10 @@ class DecodingOptions:
     # implementation details
     fp16: bool = True  # use fp16 for most of the calculation
 
+    # silence and failure parameters
+    no_speech_threshold: float = 0.6
+    logprob_threshold: Optional[float] = -1.0
+
 
 @dataclass(frozen=True)
 class DecodingResult:
