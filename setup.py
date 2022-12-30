@@ -3,7 +3,19 @@ import os
 import pkg_resources
 from setuptools import setup, find_packages
 
-setup(
+setup(description="Robust Speech Recognition via Large-Scale Weak Supervision",
+
+    readme="README.md",
+
+    python_requires=">=3.7",
+
+    author="OpenAI",
+
+    url="https://github.com/openai/whisper",
+
+    license="MIT",
+
+    packages=find_packages(exclude=["tests
     name="whisper",
     py_modules=["whisper"],
     version="1.0",
