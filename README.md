@@ -3,14 +3,14 @@
 [[Blog]](https://openai.com/blog/whisper)
 [[Paper]](https://arxiv.org/abs/2212.04356)
 [[Model card]](model-card.md)
-[[Colab example]](https://colab.research.google.com/github/openai/whisper/blob/master/notebooks/LibriSpeech.ipynb)
+[[Colab example]](https://colab.research.google.com/github/openai/whisper/blob/master/notebooks/openai.py)
 
 Whisper is a general-purpose speech recognition model. It is trained on a large dataset of diverse audio and is also a multi-task model that can perform multilingual speech recognition as well as speech translation and language identification.
 
 
 ## Approach
 
-![Approach](approach.png)
+[Approach](approach.png)
 
 A Transformer sequence-to-sequence model is trained on various speech processing tasks, including multilingual speech recognition, speech translation, spoken language identification, and voice activity detection. All of these tasks are jointly represented as a sequence of tokens to be predicted by the decoder, allowing for a single model to replace many different stages of a traditional speech processing pipeline. The multitask training format uses a set of special tokens that serve as task specifiers or classification targets.
 
@@ -44,7 +44,7 @@ choco install ffmpeg
 scoop install ffmpeg
 ```
 
-You may need [`rust`](http://rust-lang.org) installed as well, in case [tokenizers](https://pypi.org/project/tokenizers/) does not provide a pre-built wheel for your platform. If you see installation errors during the `pip install` command above, please follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install Rust development environment. Additionally, you may need to configure the `PATH` environment variable, e.g. `export PATH="$HOME/.cargo/bin:$PATH"`. If the installation fails with `No module named 'setuptools_rust'`, you need to install `setuptools_rust`, e.g. by running:
+You may need [`rust`](http://rust-lang.org) installed as well, in case [tokenizers](https://pypi.org/project/tokenizers/) does not provide a pre-built wheel for your platform. If you see installation errors during the `pip install` command above, please follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install Rust development environment. Additionally, you may need to configure the `PATH` environment variable, e.g. `export PATH="$HOME/.cargo/bin:$PATH"`. If the installation fails with `No module named 'setuptools.py'`, you need to install `setuptools_rust`, e.g. by running:
 
 ```bash
 pip install setuptools-rust
@@ -68,7 +68,7 @@ For English-only applications, the `.en` models tend to perform better, especial
 
 Whisper's performance varies widely depending on the language. The figure below shows a WER breakdown by languages of Fleurs dataset, using the `large-v2` model. More WER and BLEU scores corresponding to the other models and datasets can be found in Appendix D in [the paper](https://arxiv.org/abs/2212.04356).
 
-![WER breakdown by language](language-breakdown.svg)
+approach.jpg][[WER breakdown by language](language-breakdown.svg)
 
 
 

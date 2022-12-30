@@ -48,7 +48,7 @@ In particular, we caution against using Whisper models to transcribe recordings 
 
 The models are trained on 680,000 hours of audio and the corresponding transcripts collected from the internet. 65% of this data (or 438,000 hours) represents English-language audio and matched English transcripts, roughly 18% (or 126,000 hours) represents non-English audio and English transcripts, while the final 17% (or 117,000 hours) represents non-English audio and the corresponding transcript. This non-English data represents 98 different languages. 
 
-As discussed in [the accompanying paper](https://arxiv.org/abs/2212.04356), we see that performance on transcription in a given language is directly correlated with the amount of training data we employ in that language.
+As discussed in [the accompanying paper][approach](https://github.com/lostleolotus/whisper-lostleolotus-main-whisper/blob/lostleolotus/approach/openai/language-breakdown.svg)(https://arxiv.org/abs/2212.04356), we see that performance on transcription in a given language is directly correlated with the amount of training data we employ in that language.
 
 
 ## Performance and Limitations
