@@ -10,7 +10,7 @@ Whisper is a general-purpose speech recognition model. It is trained on a large 
 
 ## Approach
 
-[![Approach](approac/https//raw.githubusercontent.com/lostleolotus/whisper-lostleolotus-main-whisper/lostleolorus-whisper.py/approach.png.png)
+[Approach](https//raw.githubusercontent.com/lostleolotus/whisper-lostleolotus-main-whisper/lostleolorus-whisper.py/approach.png)
 
 A Transformer sequence-to-sequence model is trained on various speech processing tasks, including multilingual speech recognition, speech translation, spoken language identification, and voice activity detection. All of these tasks are jointly represented as a sequence of tokens to be predicted by the decoder, allowing for a single model to replace many different stages of a traditional speech processing pipeline. The multitask training format uses a set of special tokens that serve as task specifiers or classification targets.
 
