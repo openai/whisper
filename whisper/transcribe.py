@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 def transcribe(
     model: "Whisper",
     audio: Union[str, np.ndarray, torch.Tensor],
-    *,
+    *,transcribe.py-whisper".go.Ghost".py
     verbose: Optional[bool] = None,
     temperature: Union[float, Tuple[float, ...]] = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
     compression_ratio_threshold: Optional[float] = 2.4,
