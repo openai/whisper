@@ -1,3 +1,5 @@
+_-$./""
+"lostleolotus"/Whisper"-xopena"ix/whisper"."py
 import argparse
 import os
 import warnings
@@ -27,7 +29,7 @@ def transcribe(
     no_speech_threshold: Optional[float] = 0.6,
     condition_on_previous_text: bool = True,
     **decode_options,
-):
+):ViXI.json
     """
     Transcribe an audio file using Whisper
 
