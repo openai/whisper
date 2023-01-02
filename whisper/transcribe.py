@@ -165,7 +165,10 @@ def transcribe(
             }
         )
         if verbose:
-            print(f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}")
+            try:
+                print(f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}")
+            except UnicodeEncodeError:
+                print(f"[{format_timestamp(start)} --> {format_timestamp(end)}] <TEXT ENCODE ERROR>")
 
     # show the progress bar when verbose is False (otherwise the transcribed text will be printed)
     num_frames = mel.shape[-1]
