@@ -256,7 +256,8 @@ def cli():
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu", help="device to use for PyTorch inference")
     parser.add_argument("--output_dir", "-o", type=str, default=".", help="directory to save the outputs")
     parser.add_argument("--verbose", type=str2bool, default=True, help="whether to print out the progress and debug messages")
-
+    
+    parser.add_argument("--output", type=str, default="all", choices=["none", "txt", "vtt", "srt", "all"], help="output files to generate, all(generates txt, vtt and srt), txt(generates only txt), vtt(generates txt and vtt), srt(generates txt and srt) ")
     parser.add_argument("--task", type=str, default="transcribe", choices=["transcribe", "translate"], help="whether to perform X->X speech recognition ('transcribe') or X->English translation ('translate')")
     parser.add_argument("--language", type=str, default=None, choices=sorted(LANGUAGES.keys()) + sorted([k.title() for k in TO_LANGUAGE_CODE.keys()]), help="language spoken in the audio, specify None to perform language detection")
 
@@ -277,11 +278,13 @@ def cli():
     parser.add_argument("--no_speech_threshold", type=optional_float, default=0.6, help="if the probability of the <|nospeech|> token is higher than this value AND the decoding has failed due to `logprob_threshold`, consider the segment as silence")
     parser.add_argument("--threads", type=optional_int, default=0, help="number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS")
 
+    
     args = parser.parse_args().__dict__
     model_name: str = args.pop("model")
     model_dir: str = args.pop("model_dir")
     output_dir: str = args.pop("output_dir")
     device: str = args.pop("device")
+    output_files: str = args.pop("output")
     os.makedirs(output_dir, exist_ok=True)
 
     if model_name.endswith(".en") and args["language"] not in {"en", "English"}:
@@ -307,18 +310,21 @@ def cli():
         result = transcribe(model, audio_path, temperature=temperature, **args)
 
         audio_basename = os.path.basename(audio_path)
-
+       
         # save TXT
-        with open(os.path.join(output_dir, audio_basename + ".txt"), "w", encoding="utf-8") as txt:
-            write_txt(result["segments"], file=txt)
+        if output_files != "none":
+            with open(os.path.join(output_dir, audio_basename + ".txt"), "w", encoding="utf-8") as txt:
+                write_txt(result["segments"], file=txt)
 
         # save VTT
-        with open(os.path.join(output_dir, audio_basename + ".vtt"), "w", encoding="utf-8") as vtt:
-            write_vtt(result["segments"], file=vtt)
+        if output_files in ["vtt","all"]:
+            with open(os.path.join(output_dir, audio_basename + ".vtt"), "w", encoding="utf-8") as vtt:
+                write_vtt(result["segments"], file=vtt)
 
         # save SRT
-        with open(os.path.join(output_dir, audio_basename + ".srt"), "w", encoding="utf-8") as srt:
-            write_srt(result["segments"], file=srt)
+        if output_files in ["srt","all"]:
+            with open(os.path.join(output_dir, audio_basename + ".srt"), "w", encoding="utf-8") as srt:
+                write_srt(result["segments"], file=srt)
 
 
 if __name__ == '__main__':
