@@ -21,7 +21,10 @@ setup(
         )
     ],
     entry_points = {
-        'console_scripts': ['whisper=whisper.transcribe:cli'],
+        'console_scripts': [
+            'whisper=whisper.transcribe:cli',
+            'whisper-download=whisper.download:cli',
+        ],
     },
     include_package_data=True,
     extras_require={'dev': ['pytest']},
