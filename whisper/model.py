@@ -1,3 +1,5 @@
+#just adding a comment
+
 from dataclasses import dataclass
 from typing import Dict
 from typing import Iterable, Optional
@@ -20,10 +22,8 @@ class ModelDimensions:
     n_audio_head: int
     n_audio_layer: int
     n_vocab: int
-    n_text_ctx: int
-    n_text_state: int
-    n_text_head: int
-    n_text_layer: int
+    n_text_ctx: intw
+   
 
 
 class LayerNorm(nn.LayerNorm):
