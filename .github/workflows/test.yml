@@ -7,7 +7,7 @@ on:
     branches:
       - main
 jobs:
-  CLIP-test:
+  whisper-test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
