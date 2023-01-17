@@ -44,7 +44,7 @@ def transcribe(
         If False, displays minimal details. If None, does not display anything
 
     temperature: Union[float, Tuple[float, ...]]
-        Temperature for sampling. It can be a tuple of temperatures, which will be successfully used
+        Temperature for sampling. It can be a tuple of temperatures, which will be successively used
         upon failures according to either `compression_ratio_threshold` or `logprob_threshold`.
 
     compression_ratio_threshold: float
