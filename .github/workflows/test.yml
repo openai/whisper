@@ -18,7 +18,7 @@ jobs:
             pytorch-version: 1.10.2
     steps:
       - uses: conda-incubator/setup-miniconda@v2
-      - run: conda install -n test python=${{ matrix.python-version }} pytorch=${{ matrix.pytorch-version }} cpuonly -c pytorch
+      - run: conda install -n test ffmpeg python=${{ matrix.python-version }} pytorch=${{ matrix.pytorch-version }} cpuonly -c pytorch
       - uses: actions/checkout@v2
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip install pytest
