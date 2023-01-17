@@ -31,7 +31,7 @@ jobs:
       if: ${{ steps.regex-match.outputs.match != '' }}
       env:
         TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
       run: |
-        python setup.py sdist bdist_wheel
+        python setup.py sdist
         twine upload dist/*

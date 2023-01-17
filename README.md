@@ -2,7 +2,7 @@
 
 [[Blog]](https://openai.com/blog/whisper)
 [[Paper]](https://arxiv.org/abs/2212.04356)
-[[Model card]](model-card.md)
+[[Model card]](https://github.com/openai/whisper/blob/main/model-card.md)
 [[Colab example]](https://colab.research.google.com/github/openai/whisper/blob/master/notebooks/LibriSpeech.ipynb)
 
 Whisper is a general-purpose speech recognition model. It is trained on a large dataset of diverse audio and is also a multi-task model that can perform multilingual speech recognition as well as speech translation and language identification.
@@ -10,20 +10,16 @@ Whisper is a general-purpose speech recognition model. It is trained on a large 
 
 ## Approach
 
-![Approach](approach.png)
+![Approach](https://raw.githubusercontent.com/openai/whisper/main/approach.png)
 
 A Transformer sequence-to-sequence model is trained on various speech processing tasks, including multilingual speech recognition, speech translation, spoken language identification, and voice activity detection. All of these tasks are jointly represented as a sequence of tokens to be predicted by the decoder, allowing for a single model to replace many different stages of a traditional speech processing pipeline. The multitask training format uses a set of special tokens that serve as task specifiers or classification targets.
 
 
 ## Setup
 
-We used Python 3.9.9 and [PyTorch](https://pytorch.org/) 1.10.1 to train and test our models, but the codebase is expected to be compatible with Python 3.7 or later and recent PyTorch versions. The codebase also depends on a few Python packages, most notably [HuggingFace Transformers](https://huggingface.co/docs/transformers/index) for their fast tokenizer implementation and [ffmpeg-python](https://github.com/kkroening/ffmpeg-python) for reading audio files. The following command will pull and install the latest commit from this repository, along with its Python dependencies 
+We used Python 3.9.9 and [PyTorch](https://pytorch.org/) 1.10.1 to train and test our models, but the codebase is expected to be compatible with Python 3.7 or later and recent PyTorch versions. The codebase also depends on a few Python packages, most notably [HuggingFace Transformers](https://huggingface.co/docs/transformers/index) for their fast tokenizer implementation and [ffmpeg-python](https://github.com/kkroening/ffmpeg-python) for reading audio files. The following command will pull and install the latest commit from this repository, along with its Python dependencies:
 
     pip install git+https://github.com/openai/whisper.git 
-
-You may also install whisper from pypi with
-
-    pip install whisper-openai
 
 To update the package to the latest version of this repository, please run:
 
@@ -72,7 +68,7 @@ For English-only applications, the `.en` models tend to perform better, especial
 
 Whisper's performance varies widely depending on the language. The figure below shows a WER (Word Error Rate) breakdown by languages of Fleurs dataset, using the `large-v2` model. More WER and BLEU scores corresponding to the other models and datasets can be found in Appendix D in [the paper](https://arxiv.org/abs/2212.04356). The smaller is better.
 
-![WER breakdown by language](language-breakdown.svg)
+![WER breakdown by language](https://raw.githubusercontent.com/openai/whisper/main/language-breakdown.svg)
 
 
 
@@ -94,7 +90,7 @@ Run the following to view all available options:
 
     whisper --help
 
-See [tokenizer.py](whisper/tokenizer.py) for the list of all available languages.
+See [tokenizer.py](https://github.com/openai/whisper/blob/main/whisper/tokenizer.py) for the list of all available languages.
 
 
 ## Python usage
@@ -144,4 +140,4 @@ Please use the [🙌 Show and tell](https://github.com/openai/whisper/discussion
 
 ## License
 
-The code and the model weights of Whisper are released under the MIT License. See [LICENSE](LICENSE) for further details.
+The code and the model weights of Whisper are released under the MIT License. See [LICENSE](https://github.com/openai/whisper/blob/main/LICENSE) for further details.
