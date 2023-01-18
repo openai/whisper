@@ -1,0 +1,26 @@
+name: test
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  whisper-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10']
+        pytorch-version: [1.10.2, 1.13.1]
+        exclude:
+          - python-version: '3.10'
+            pytorch-version: 1.10.2
+    steps:
+      - uses: conda-incubator/setup-miniconda@v2
+      - run: conda install -n test ffmpeg python=${{ matrix.python-version }} pytorch=${{ matrix.pytorch-version }} cpuonly -c pytorch
+      - uses: actions/checkout@v2
+      - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
+      - run: pip install pytest
+      - run: pip install .
+      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]'
