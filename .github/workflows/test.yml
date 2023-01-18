@@ -23,4 +23,4 @@ jobs:
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip install pytest
       - run: pip install .
-      - run: pytest -k 'not test_transcribe or test_transcribe[tiny]'
+      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]'
