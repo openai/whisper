@@ -94,7 +94,7 @@ def load_model(name: str, device: Optional[Union[str, torch.device]] = None, dow
     if device is None:
         if torch.cuda.is_available():
             device = "cuda"
-        elif torch.backends.mps.is_available():
+        elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
             device = "mps"
         else:
             device = "cpu"
