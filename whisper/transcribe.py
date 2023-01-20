@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import warnings
 from typing import List, Optional, Tuple, Union, TYPE_CHECKING
 
@@ -44,7 +45,7 @@ def transcribe(
         If False, displays minimal details. If None, does not display anything
 
     temperature: Union[float, Tuple[float, ...]]
-        Temperature for sampling. It can be a tuple of temperatures, which will be successfully used
+        Temperature for sampling. It can be a tuple of temperatures, which will be successively used
         upon failures according to either `compression_ratio_threshold` or `logprob_threshold`.
 
     compression_ratio_threshold: float
@@ -165,7 +166,11 @@ def transcribe(
             }
         )
         if verbose:
-            print(f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}")
+            line = f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}\n"
+            # compared to just `print(line)`, this replaces any character not representable using
+            # the system default encoding with an '?', avoiding UnicodeEncodeError.
+            sys.stdout.buffer.write(line.encode(sys.getdefaultencoding(), errors="replace"))
+            sys.stdout.flush()
 
     # show the progress bar when verbose is False (otherwise the transcribed text will be printed)
     num_frames = mel.shape[-1]
