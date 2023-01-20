@@ -1,4 +1,5 @@
 import os
+import string
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import List, Optional, Tuple, Union
@@ -268,6 +269,39 @@ class Tokenizer:
         tokens = self.tokenizer.encode(text)
         assert len(tokens) == 1, f"{text} is not encoded as a single token"
         return tokens[0]
+
+    def split_tokens_on_unicode(self, tokens: List[int]):
+        words = []
+        word_tokens = []
+        current_tokens = []
+
+        for token in tokens:
+            current_tokens.append(token)
+            decoded = self.decode_with_timestamps(current_tokens)
+            if "\ufffd" not in decoded:
+                words.append(decoded)
+                word_tokens.append(current_tokens)
+                current_tokens = []
+
+        return words, word_tokens
+
+    def split_tokens_on_spaces(self, tokens: List[int]):
+        subwords, subword_tokens_list = self.split_tokens_on_unicode(tokens)
+        words = []
+        word_tokens = []
+
+        for subword, subword_tokens in zip(subwords, subword_tokens_list):
+            special = subword_tokens[0] >= self.eot
+            with_space = subword.startswith(" ")
+            punctuation = subword.strip() in string.punctuation
+            if special or with_space or punctuation:
+                words.append(subword)
+                word_tokens.append(subword_tokens)
+            else:
+                words[-1] = words[-1] + subword
+                word_tokens[-1].extend(subword_tokens)
+
+        return words, word_tokens
 
 
 @lru_cache(maxsize=None)
