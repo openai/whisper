@@ -2,108 +2,22 @@ import argparse
 import os
 import sys
 import warnings
-from typing import List, Optional, Tuple, Union, TYPE_CHECKING
+from typing import Optional, Tuple, Union, TYPE_CHECKING
 
 import numpy as np
 import torch
 import tqdm
 
-from .audio import HOP_LENGTH, N_FRAMES, SAMPLE_RATE, FRAMES_PER_SECOND, TOKENS_PER_SECOND, log_mel_spectrogram, pad_or_trim
+from .audio import HOP_LENGTH, N_FRAMES, SAMPLE_RATE, FRAMES_PER_SECOND, log_mel_spectrogram, \
+    pad_or_trim
 from .decoding import DecodingOptions, DecodingResult
-from .tokenizer import LANGUAGES, TO_LANGUAGE_CODE, Tokenizer, get_tokenizer
-from .utils import exact_div, format_timestamp, optional_int, optional_float, str2bool, write_txt, write_vtt, write_srt
+from .timing import add_word_timestamps
+from .tokenizer import LANGUAGES, TO_LANGUAGE_CODE, get_tokenizer
+from .utils import exact_div, format_timestamp, optional_int, optional_float, str2bool, write_txt, \
+    write_vtt, write_srt
 
 if TYPE_CHECKING:
     from .model import Whisper
-
-
-def add_word_timestamps(
-    model: "Whisper",
-    tokenizer: Tokenizer,
-    mel: torch.Tensor,
-    num_frames: int,
-    segments: List[dict],
-    *,
-    medfilt_width: int = 7,
-    qk_scale: float = 1.0,
-):
-    if len(segments) == 0:
-        return
-
-    from dtw import dtw
-    from scipy.ndimage import median_filter
-
-    # install hooks on the cross attention layers to retrieve the attention weights
-    QKs = [None] * model.dims.n_text_layer
-    hooks = [
-        block.cross_attn.register_forward_hook(
-            lambda _, ins, outs, index=i: QKs.__setitem__(index, outs[-1])
-        )
-        for i, block in enumerate(model.decoder.blocks)
-    ]
-
-    tokens = torch.tensor(
-        [
-            *tokenizer.sot_sequence,
-            tokenizer.timestamp_begin,
-            *[t for segment in segments for t in segment["tokens"]],
-            tokenizer.timestamp_begin + mel.shape[-1] // 2,
-            tokenizer.eot,
-        ]
-    ).to(model.device)
-
-    with torch.no_grad():
-        model(mel.unsqueeze(0), tokens.unsqueeze(0))
-
-    for hook in hooks:
-        hook.remove()
-
-    weights = torch.cat(QKs)  # layers * heads * tokens * frames
-    weights = weights[:, :, :, : num_frames // 2].cpu()
-    weights = median_filter(weights, (1, 1, 1, medfilt_width))
-    weights = torch.tensor(weights * qk_scale).softmax(dim=-1)
-
-    w = weights / weights.norm(dim=-2, keepdim=True)
-    matrix = w.mean(axis=(0, 1))
-
-    alignment = dtw(-matrix.double().numpy())
-
-    jumps = np.pad(np.diff(alignment.index1s), (1, 0), constant_values=1).astype(bool)
-    jump_times = alignment.index2s[jumps] / TOKENS_PER_SECOND
-
-    if tokenizer.language in {"zh", "ja", "th", "lo", "my"}:
-        # These languages don't typically use spaces, so it is difficult to split words
-        # without morpheme analysis. Here, we instead split words at any
-        # position where the tokens are decoded as valid unicode points
-        split_tokens = tokenizer.split_tokens_on_unicode
-    else:
-        split_tokens = tokenizer.split_tokens_on_spaces
-
-    words, word_tokens = split_tokens(tokens[1:].tolist())
-
-    token_sources = np.repeat(np.arange(len(segments)), [len(s["tokens"]) for s in segments])
-    token_sources = [None] * len(tokenizer.sot_sequence) + list(token_sources)
-
-    time_offset = segments[0]["seek"] * HOP_LENGTH / SAMPLE_RATE
-    word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens]), (1, 0))
-    start_times = time_offset + jump_times[word_boundaries[:-1]]
-    end_times = time_offset + jump_times[word_boundaries[1:]]
-
-    for segment in segments:
-        segment["words"] = []
-
-    for i, (word, start, end) in enumerate(zip(words, start_times, end_times)):
-        if word.startswith("<|") or word.strip() in ".,!?、。":
-            continue
-
-        segment = segments[token_sources[word_boundaries[i]]]
-        segment["words"].append(dict(word=word, start=round(start, 2), end=round(end, 2)))
-
-    # adjust the segment-level timestamps based on the word-level timestamps
-    for segment in segments:
-        if len(segment["words"]) > 0:
-            segment["start"] = segment["words"][0]["start"]
-            segment["end"] = segment["words"][-1]["end"]
 
 
 def transcribe(
@@ -116,7 +30,7 @@ def transcribe(
     logprob_threshold: Optional[float] = -1.0,
     no_speech_threshold: Optional[float] = 0.6,
     condition_on_previous_text: bool = True,
-    word_level_timestamps: bool = False,
+    word_timestamps: bool = False,
     **decode_options,
 ):
     """
@@ -152,6 +66,10 @@ def transcribe(
         if True, the previous output of the model is provided as a prompt for the next window;
         disabling may make the text inconsistent across windows, but the model becomes less prone to
         getting stuck in a failure loop, such as repetition looping or timestamps going out of sync.
+
+    word_timestamps: bool
+        Extract word-level timestamps using the cross-attention pattern and dynamic time warping,
+        and include the timestamps for each word in each segment.
 
     decode_options: dict
         Keyword arguments to construct `DecodingOptions` instances
@@ -332,7 +250,7 @@ def transcribe(
                 # do not feed the prompt tokens if a high temperature was used
                 prompt_reset_since = len(all_tokens)
 
-            if word_level_timestamps:
+            if word_timestamps:
                 current_segments = all_segments[last_segment_index:]
                 add_word_timestamps(
                     model,
@@ -342,7 +260,7 @@ def transcribe(
                     segments=current_segments,
                 )
                 word_end_timestamps = [w["end"] for s in current_segments for w in s["words"]]
-                if len(word_end_timestamps) > 0:
+                if len(consecutive) > 0 and len(word_end_timestamps) > 0:
                     seek_shift = (word_end_timestamps[-1] - time_offset) * FRAMES_PER_SECOND
                     seek = previous_seek + round(seek_shift)
 
@@ -391,7 +309,7 @@ def cli():
     parser.add_argument("--compression_ratio_threshold", type=optional_float, default=2.4, help="if the gzip compression ratio is higher than this value, treat the decoding as failed")
     parser.add_argument("--logprob_threshold", type=optional_float, default=-1.0, help="if the average log probability is lower than this value, treat the decoding as failed")
     parser.add_argument("--no_speech_threshold", type=optional_float, default=0.6, help="if the probability of the <|nospeech|> token is higher than this value AND the decoding has failed due to `logprob_threshold`, consider the segment as silence")
-    parser.add_argument("--word_level_timestamps", type=str2bool, default=False, help="Extract word-level timestamps and refine the results based on them")
+    parser.add_argument("--word_timestamps", type=str2bool, default=False, help="Extract word-level timestamps and refine the results based on them")
     parser.add_argument("--threads", type=optional_int, default=0, help="number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS")
 
     args = parser.parse_args().__dict__
