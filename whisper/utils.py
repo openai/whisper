@@ -102,7 +102,6 @@ class WriteSRT(ResultWriter):
             )
 
 
-
 class WriteTSV(ResultWriter):
     """
     Write a transcript to a file in TSV (tab-separated values) format containing lines like:
@@ -119,7 +118,7 @@ class WriteTSV(ResultWriter):
         for segment in result["segments"]:
             print(round(1000 * segment['start']), file=file, end="\t")
             print(round(1000 * segment['end']), file=file, end="\t")
-            print(segment['text'].strip().replace("\t, " "), file=file, flush=True)
+            print(segment['text'].strip().replace("\t", " "), file=file, flush=True)
 
 
 class WriteJSON(ResultWriter):
