@@ -24,7 +24,8 @@ def optional_float(string):
 
 
 def compression_ratio(text) -> float:
-    return len(text) / len(zlib.compress(text.encode("utf-8")))
+    text_bytes = text.encode("utf-8")
+    return len(text_bytes) / len(zlib.compress(text_bytes))
 
 
 def format_timestamp(seconds: float, always_include_hours: bool = False, decimal_marker: str = '.'):

@@ -12,6 +12,7 @@ from .audio import load_audio, log_mel_spectrogram, pad_or_trim
 from .decoding import DecodingOptions, DecodingResult, decode, detect_language
 from .model import Whisper, ModelDimensions
 from .transcribe import transcribe
+from .version import __version__
 
 
 _MODELS = {
@@ -23,7 +24,9 @@ _MODELS = {
     "small": "https://openaipublic.azureedge.net/main/whisper/models/9ecf779972d90ba49c06d968637d720dd632c55bbf19d441fb42bf17a411e794/small.pt",
     "medium.en": "https://openaipublic.azureedge.net/main/whisper/models/d7440d1dc186f76616474e0ff0b3b6b879abc9d1a4926b7adfa41db2d497ab4f/medium.en.pt",
     "medium": "https://openaipublic.azureedge.net/main/whisper/models/345ae4da62f9b3d59415adc60127b97c714f32e89e936602e85993674d08dcb1/medium.pt",
-    "large": "https://openaipublic.azureedge.net/main/whisper/models/e4b87e7e0bf463eb8e6956e646f1e277e901512310def2c24bf0e11bd3c28e9a/large.pt",
+    "large-v1": "https://openaipublic.azureedge.net/main/whisper/models/e4b87e7e0bf463eb8e6956e646f1e277e901512310def2c24bf0e11bd3c28e9a/large-v1.pt",
+    "large-v2": "https://openaipublic.azureedge.net/main/whisper/models/81f7c96c852ee8fc832187b0132e569d6c3065a3252ed18e56effd0b6a73e524/large-v2.pt",
+    "large": "https://openaipublic.azureedge.net/main/whisper/models/81f7c96c852ee8fc832187b0132e569d6c3065a3252ed18e56effd0b6a73e524/large-v2.pt",
 }
 
 
@@ -37,7 +40,8 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
         raise RuntimeError(f"{download_target} exists and is not a regular file")
 
     if os.path.isfile(download_target):
-        model_bytes = open(download_target, "rb").read()
+        with open(download_target, "rb") as f:
+            model_bytes = f.read()
         if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
         else:
@@ -90,9 +94,14 @@ def load_model(name: str, device: Optional[Union[str, torch.device]] = None, dow
     if device is None:
         device = "cuda" if torch.cuda.is_available() else "cpu"
     if download_root is None:
-        download_root = os.getenv(
-            "XDG_CACHE_HOME", 
-            os.path.join(os.path.expanduser("~"), ".cache", "whisper")
+        download_root = os.path.join(
+            os.getenv(
+                "XDG_CACHE_HOME",
+                os.path.join(
+                    os.path.expanduser("~"), ".cache"
+                )
+            ),
+            "whisper"
         )
 
     if name in _MODELS:

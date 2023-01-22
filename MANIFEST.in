@@ -1,3 +1,6 @@
+include requirements.txt
+include README.md
+include LICENSE
 include whisper/assets/*
 include whisper/assets/gpt2/*
 include whisper/assets/multilingual/*
