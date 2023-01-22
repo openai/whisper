@@ -105,11 +105,11 @@ class WriteSRT(ResultWriter):
 class WriteTSV(ResultWriter):
     """
     Write a transcript to a file in TSV (tab-separated values) format containing lines like:
-    <startTime-in-integer-milliseconds>\t<endTime-in-integer-milliseconds>\t<transcript-including-commas>
-    
-    Using integer milliseconds as start and end times means there's no chance of interference from an environment
-    setting a language encoding that causes the decimal in a floatinng point number to appear as a comma; also is
-    faster and more efficient to parse & store, e.g., in a C++ application.
+    <start time in integer milliseconds>\t<end time in integer milliseconds>\t<transcript text>
+
+    Using integer milliseconds as start and end times means there's no chance of interference from
+    an environment setting a language encoding that causes the decimal in a floating point number
+    to appear as a comma; also is faster and more efficient to parse & store, e.g., in C++.
     """
     extension: str = "tsv"
 
