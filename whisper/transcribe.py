@@ -11,7 +11,7 @@ import tqdm
 from .audio import SAMPLE_RATE, N_FRAMES, HOP_LENGTH, pad_or_trim, log_mel_spectrogram
 from .decoding import DecodingOptions, DecodingResult
 from .tokenizer import LANGUAGES, TO_LANGUAGE_CODE, get_tokenizer
-from .utils import exact_div, format_timestamp, optional_int, optional_float, str2bool, write_txt, write_vtt, write_srt, write_csv
+from .utils import exact_div, format_timestamp, optional_int, optional_float, str2bool, get_writer
 
 if TYPE_CHECKING:
     from .model import Whisper
@@ -260,6 +260,7 @@ def cli():
     parser.add_argument("--model_dir", type=str, default=None, help="the path to save model files; uses ~/.cache/whisper by default")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu", help="device to use for PyTorch inference")
     parser.add_argument("--output_dir", "-o", type=str, default=".", help="directory to save the outputs")
+    parser.add_argument("--output_format", "-f", type=str, default="all", choices=["txt", "vtt", "srt", "tsv", "json", "all"], help="format of the output file; if not specified, all available formats will be produced")
     parser.add_argument("--verbose", type=str2bool, default=True, help="whether to print out the progress and debug messages")
 
     parser.add_argument("--task", type=str, default="transcribe", choices=["transcribe", "translate"], help="whether to perform X->X speech recognition ('transcribe') or X->English translation ('translate')")
@@ -286,6 +287,7 @@ def cli():
     model_name: str = args.pop("model")
     model_dir: str = args.pop("model_dir")
     output_dir: str = args.pop("output_dir")
+    output_format: str = args.pop("output_format")
     device: str = args.pop("device")
     os.makedirs(output_dir, exist_ok=True)
 
@@ -308,26 +310,12 @@ def cli():
     from . import load_model
     model = load_model(model_name, device=device, download_root=model_dir)
 
+    writer = get_writer(output_format, output_dir)
+
     for audio_path in args.pop("audio"):
         result = transcribe(model, audio_path, temperature=temperature, **args)
+        writer(result, audio_path)
 
-        audio_basename = os.path.basename(audio_path)
-
-        # save TXT
-        with open(os.path.join(output_dir, audio_basename + ".txt"), "w", encoding="utf-8") as txt:
-            write_txt(result["segments"], file=txt)
-
-        # save VTT
-        with open(os.path.join(output_dir, audio_basename + ".vtt"), "w", encoding="utf-8") as vtt:
-            write_vtt(result["segments"], file=vtt)
-
-        # save SRT
-        with open(os.path.join(output_dir, audio_basename + ".srt"), "w", encoding="utf-8") as srt:
-            write_srt(result["segments"], file=srt)
-
-        # save CSV
-        with open(os.path.join(output_dir, audio_basename + ".csv"), "w", encoding="utf-8") as csv:
-            write_csv(result["segments"], file=csv)
 
 if __name__ == '__main__':
     cli()
