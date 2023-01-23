@@ -2,7 +2,7 @@ try:
     import triton
     import triton.language as tl
 except ImportError:
-    raise RuntimeError("triton import failed; try `pip install triton`")
+    raise RuntimeError("triton import failed; try `pip install --pre triton`")
 
 
 @triton.jit
@@ -28,6 +28,6 @@ def dtw_kernel(cost, trace, x, x_stride, cost_stride, trace_stride, N, M, BLOCK_
         tl.store(cost_ptr + offsets, cost_row, mask=mask)
 
         trace_ptr = trace + (k + 1) * trace_stride + 1
-        tl.store(trace_ptr + offsets, 0, mask=mask & (c0 <= c1) & (c0 <= c2))
-        tl.store(trace_ptr + offsets, 1, mask=mask & (c1 <= c0) & (c1 <= c2))
         tl.store(trace_ptr + offsets, 2, mask=mask & (c2 <= c0) & (c2 <= c1))
+        tl.store(trace_ptr + offsets, 1, mask=mask & (c1 <= c0) & (c1 <= c2))
+        tl.store(trace_ptr + offsets, 0, mask=mask & (c0 <= c1) & (c0 <= c2))
