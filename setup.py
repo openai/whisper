@@ -1,4 +1,5 @@
 import os
+import sys
 
 import pkg_resources
 from setuptools import setup, find_packages
@@ -8,6 +9,10 @@ def read_version(fname="whisper/version.py"):
     exec(compile(open(fname, encoding="utf-8").read(), fname, "exec"))
     return locals()["__version__"]
 
+
+requirements = []
+if sys.platform.startswith("linux"):
+    requirements.append("triton>=2.0.0.dev20221202")
 
 setup(
     name="openai-whisper",
@@ -22,7 +27,7 @@ setup(
     url="https://github.com/openai/whisper",
     license="MIT",
     packages=find_packages(exclude=["tests*"]),
-    install_requires=[
+    install_requires=requirements + [
         str(r)
         for r in pkg_resources.parse_requirements(
             open(os.path.join(os.path.dirname(__file__), "requirements.txt"))
