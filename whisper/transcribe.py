@@ -1,6 +1,5 @@
 import argparse
 import os
-import sys
 import warnings
 from typing import Optional, Tuple, Union, TYPE_CHECKING
 
@@ -12,7 +11,7 @@ from .audio import HOP_LENGTH, N_FRAMES, SAMPLE_RATE, FRAMES_PER_SECOND, log_mel
 from .decoding import DecodingOptions, DecodingResult
 from .timing import add_word_timestamps
 from .tokenizer import LANGUAGES, TO_LANGUAGE_CODE, get_tokenizer
-from .utils import exact_div, format_timestamp, optional_int, optional_float, str2bool, get_writer
+from .utils import exact_div, format_timestamp, make_safe, optional_int, optional_float, str2bool, get_writer
 
 if TYPE_CHECKING:
     from .model import Whisper
@@ -172,6 +171,9 @@ def transcribe(
                 "no_speech_prob": result.no_speech_prob,
             }
         )
+
+        if verbose:
+            print(make_safe(f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}"))
 
     # show the progress bar when verbose is False (otherwise the transcribed text will be printed)
     num_frames = mel.shape[-1]
