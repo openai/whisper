@@ -106,6 +106,7 @@ class DecodingResult:
     language: str
     language_probs: Optional[Dict[str, float]] = None
     tokens: List[int] = field(default_factory=list)
+    token_logits: List[float] = field(default_factory=list)
     text: str = ""
     avg_logprob: float = np.nan
     no_speech_prob: float = np.nan
@@ -251,22 +252,27 @@ class GreedyDecoder(TokenDecoder):
         self.temperature = temperature
         self.eot = eot
 
-    def update(self, tokens: Tensor, logits: Tensor, sum_logprobs: Tensor) -> Tuple[Tensor, bool]:
+    def update(self, tokens: Tensor, token_logits: Tensor, logits: Tensor, sum_logprobs: Tensor) -> Tuple[Tensor, bool]:
         temperature = self.temperature
         if temperature == 0:
             next_tokens = logits.argmax(dim=-1)
         else:
             next_tokens = Categorical(logits=logits / temperature).sample()
+        next_token_logits = token_logits
 
         logprobs = F.log_softmax(logits.float(), dim=-1)
         current_logprobs = logprobs[torch.arange(logprobs.shape[0]), next_tokens]
         sum_logprobs += current_logprobs * (tokens[:, -1] != self.eot)
 
         next_tokens[tokens[:, -1] == self.eot] = self.eot
+        #next_token_logits[token_logits[:, -1]]
+        Probs = F.softmax(logits, dim=-1)
+        token_logits = torch.stack([Probs[k, next_tokens[k]] for k in range(next_tokens.shape[0])], dim=0)
+        token_logits = torch.cat([next_token_logits, token_logits[:, None]], dim=-1)
         tokens = torch.cat([tokens, next_tokens[:, None]], dim=-1)
-
+        # the 2 lines below compute the confidence score (values between [0,1], normalized via softmax(logits))
         completed = (tokens[:, -1] == self.eot).all()
-        return tokens, completed
+        return [tokens,token_logits] , completed
 
     def finalize(self, tokens: Tensor, sum_logprobs: Tensor):
         # make sure each sequence has at least one EOT token at the end
@@ -581,7 +587,7 @@ class DecodingTask:
 
         return languages, lang_probs
 
-    def _main_loop(self, audio_features: Tensor, tokens: Tensor):
+    def _main_loop(self, audio_features: Tensor, tokens: Tensor, token_logits: Tensor):
         assert audio_features.shape[0] == tokens.shape[0]
         n_batch = tokens.shape[0]
         sum_logprobs: Tensor = torch.zeros(n_batch, device=audio_features.device)
@@ -603,14 +609,15 @@ class DecodingTask:
                     logit_filter.apply(logits, tokens)
 
                 # expand the tokens tensor with the selected next tokens
-                tokens, completed = self.decoder.update(tokens, logits, sum_logprobs)
-
+                tokens_data, completed = self.decoder.update(tokens, token_logits, logits, sum_logprobs)
+                tokens = tokens_data[0]
+                token_logits = tokens_data[1]
                 if completed or tokens.shape[-1] > self.n_ctx:
                     break
         finally:
             self.inference.cleanup_caching()
 
-        return tokens, sum_logprobs, no_speech_probs
+        return tokens, token_logits, sum_logprobs, no_speech_probs
 
     @torch.no_grad()
     def run(self, mel: Tensor) -> List[DecodingResult]:
@@ -620,6 +627,7 @@ class DecodingTask:
 
         audio_features: Tensor = self._get_audio_features(mel)  # encoder forward pass
         tokens: Tensor = torch.tensor([self.initial_tokens]).repeat(n_audio, 1)
+        token_logits: Tensor = torch.tensor([]).repeat(n_audio, 1)   #############
 
         # detect language if requested, overwriting the language token
         languages, language_probs = self._detect_language(audio_features, tokens)
@@ -632,15 +640,15 @@ class DecodingTask:
         # repeat the audio & text tensors by the group size, for beam search or best-of-n sampling
         audio_features = audio_features.repeat_interleave(self.n_group, dim=0)
         tokens = tokens.repeat_interleave(self.n_group, dim=0).to(audio_features.device)
+        token_logits = token_logits.repeat_interleave(self.n_group, dim=0).to(audio_features.device)
 
         # call the main sampling loop
-        tokens, sum_logprobs, no_speech_probs = self._main_loop(audio_features, tokens)
-
+        tokens, token_logits, sum_logprobs, no_speech_probs = self._main_loop(audio_features, tokens, token_logits)
         # reshape the tensors to have (n_audio, n_group) as the first two dimensions
         audio_features = audio_features[:: self.n_group]
         no_speech_probs = no_speech_probs[:: self.n_group]
         assert audio_features.shape[0] == len(no_speech_probs) == n_audio
-
+        
         tokens = tokens.reshape(n_audio, self.n_group, -1)
         sum_logprobs = sum_logprobs.reshape(n_audio, self.n_group)
 
@@ -654,26 +662,26 @@ class DecodingTask:
         selected = self.sequence_ranker.rank(tokens, sum_logprobs)
         tokens: List[List[int]] = [t[i].tolist() for i, t in zip(selected, tokens)]
         texts: List[str] = [tokenizer.decode(t).strip() for t in tokens]
-
         sum_logprobs: List[float] = [lp[i] for i, lp in zip(selected, sum_logprobs)]
         avg_logprobs: List[float] = [lp / (len(t) + 1) for t, lp in zip(tokens, sum_logprobs)]
 
-        fields = (texts, languages, tokens, audio_features, avg_logprobs, no_speech_probs)
+        fields = (texts, languages, tokens, token_logits, audio_features, avg_logprobs, no_speech_probs)
         if len(set(map(len, fields))) != 1:
             raise RuntimeError(f"inconsistent result lengths: {list(map(len, fields))}")
-
+        
         return [
             DecodingResult(
                 audio_features=features,
                 language=language,
                 tokens=tokens,
+                token_logits=token_logits,
                 text=text,
                 avg_logprob=avg_logprob,
                 no_speech_prob=no_speech_prob,
                 temperature=self.options.temperature,
                 compression_ratio=compression_ratio(text),
             )
-            for text, language, tokens, features, avg_logprob, no_speech_prob in zip(*fields)
+            for text, language, tokens, token_logits, features, avg_logprob, no_speech_prob in zip(*fields)
         ]
 
 
@@ -701,10 +709,8 @@ def decode(model: "Whisper", mel: Tensor, options: DecodingOptions = DecodingOpt
     single = mel.ndim == 2
     if single:
         mel = mel.unsqueeze(0)
-
     result = DecodingTask(model, options).run(mel)
-    
+
     if single:
         result = result[0]
-
     return result

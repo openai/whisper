@@ -145,12 +145,26 @@ def transcribe(
         all_tokens.extend(initial_prompt)
 
     def add_segment(
-        *, start: float, end: float, text_tokens: torch.Tensor, result: DecodingResult
+        *, start: float, end: float, text_tokens: torch.Tensor, token_logits: torch.Tensor, result: DecodingResult
     ):
-        text = tokenizer.decode([token for token in text_tokens if token < tokenizer.eot])
+
+        #text = tokenizer.decode([token for token in text_tokens if token < tokenizer.eot])
+        text = ""; confidence = []; confidence_word = []  # we define confidence_word list here just for safety in case the first word doesn't start with blank symbol
+        for i in range(len(text_tokens)):
+            token = text_tokens[i]
+            if token < tokenizer.eot:
+                subword = tokenizer.decode(token)
+                if subword.startswith(" "):
+                    if i > 0:
+                        confidence.append(np.mean(confidence_word))     # we use the mean of all subword confidences for each word
+                    confidence_word = []
+                confidence_word.append(token_logits[i])
+
+            text += subword
+        confidence.append(np.mean(confidence_word))        
+        
         if len(text.strip()) == 0:  # skip empty text output
             return
-
         all_segments.append(
             {
                 "id": len(all_segments),
@@ -159,6 +173,7 @@ def transcribe(
                 "end": end,
                 "text": text,
                 "tokens": text_tokens.tolist(),
+                "confidence": confidence,
                 "temperature": result.temperature,
                 "avg_logprob": result.avg_logprob,
                 "compression_ratio": result.compression_ratio,
@@ -185,6 +200,7 @@ def transcribe(
             decode_options["prompt"] = all_tokens[prompt_reset_since:]
             result: DecodingResult = decode_with_fallback(segment)
             tokens = torch.tensor(result.tokens)
+            token_logits = torch.tensor(result.token_logits)
 
             if no_speech_threshold is not None:
                 # no voice activity check
@@ -196,13 +212,14 @@ def transcribe(
                 if should_skip:
                     seek += segment.shape[-1]  # fast-forward to the next segment boundary
                     continue
-
+            #print(result)
             timestamp_tokens: torch.Tensor = tokens.ge(tokenizer.timestamp_begin)
             consecutive = torch.where(timestamp_tokens[:-1] & timestamp_tokens[1:])[0].add_(1)
             if len(consecutive) > 0:  # if the output contains two consecutive timestamp tokens
                 last_slice = 0
                 for current_slice in consecutive:
                     sliced_tokens = tokens[last_slice:current_slice]
+                    sliced_token_logits = token_logits[last_slice:current_slice]
                     start_timestamp_position = (
                         sliced_tokens[0].item() - tokenizer.timestamp_begin
                     )
@@ -213,6 +230,7 @@ def transcribe(
                         start=timestamp_offset + start_timestamp_position * time_precision,
                         end=timestamp_offset + end_timestamp_position * time_precision,
                         text_tokens=sliced_tokens[1:-1],
+                        token_logits=sliced_token_logits[1:-1],
                         result=result,
                     )
                     last_slice = current_slice
@@ -234,6 +252,7 @@ def transcribe(
                     start=timestamp_offset,
                     end=timestamp_offset + duration,
                     text_tokens=tokens,
+                    token_logits=token_logits,
                     result=result,
                 )
 
@@ -248,7 +267,7 @@ def transcribe(
             pbar.update(min(num_frames, seek) - previous_seek_value)
             previous_seek_value = seek
 
-    return dict(text=tokenizer.decode(all_tokens[len(initial_prompt):]), segments=all_segments, language=language)
+    return dict(text=tokenizer.decode(all_tokens[len(initial_prompt):]), segments=all_segments, language=language, token_logits = token_logits)
 
 
 def cli():
@@ -311,7 +330,6 @@ def cli():
     model = load_model(model_name, device=device, download_root=model_dir)
 
     writer = get_writer(output_format, output_dir)
-
     for audio_path in args.pop("audio"):
         result = transcribe(model, audio_path, temperature=temperature, **args)
         writer(result, audio_path)
