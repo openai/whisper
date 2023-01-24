@@ -1,7 +1,7 @@
 import os
 import string
 from dataclasses import dataclass
-from functools import lru_cache
+from functools import lru_cache, cached_property
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
@@ -157,43 +157,35 @@ class Tokenizer:
         outputs = [s if isinstance(s, str) else self.tokenizer.decode(s) for s in outputs]
         return "".join(outputs)
 
-    @property
-    @lru_cache()
+    @cached_property
     def eot(self) -> int:
         return self.tokenizer.eos_token_id
 
-    @property
-    @lru_cache()
+    @cached_property
     def sot(self) -> int:
         return self._get_single_token_id("<|startoftranscript|>")
 
-    @property
-    @lru_cache()
+    @cached_property
     def sot_lm(self) -> int:
         return self._get_single_token_id("<|startoflm|>")
 
-    @property
-    @lru_cache()
+    @cached_property
     def sot_prev(self) -> int:
         return self._get_single_token_id("<|startofprev|>")
 
-    @property
-    @lru_cache()
+    @cached_property
     def no_speech(self) -> int:
         return self._get_single_token_id("<|nospeech|>")
 
-    @property
-    @lru_cache()
+    @cached_property
     def no_timestamps(self) -> int:
         return self._get_single_token_id("<|notimestamps|>")
 
-    @property
-    @lru_cache()
+    @cached_property
     def timestamp_begin(self) -> int:
         return self.tokenizer.all_special_ids[-1] + 1
 
-    @property
-    @lru_cache()
+    @cached_property
     def language_token(self) -> int:
         """Returns the token id corresponding to the value of the `language` field"""
         if self.language is None:
@@ -211,8 +203,7 @@ class Tokenizer:
 
         raise KeyError(f"Language {self.language} not found in tokenizer.")
 
-    @property
-    @lru_cache()
+    @cached_property
     def all_language_tokens(self) -> Tuple[int]:
         result = []
         for token, token_id in zip(
@@ -223,18 +214,15 @@ class Tokenizer:
                 result.append(token_id)
         return tuple(result)
 
-    @property
-    @lru_cache()
+    @cached_property
     def all_language_codes(self) -> Tuple[str]:
         return tuple(self.decode([l]).strip("<|>") for l in self.all_language_tokens)
 
-    @property
-    @lru_cache()
+    @cached_property
     def sot_sequence_including_notimestamps(self) -> Tuple[int]:
         return tuple(list(self.sot_sequence) + [self.no_timestamps])
 
-    @property
-    @lru_cache()
+    @cached_property
     def non_speech_tokens(self) -> Tuple[int]:
         """
         Returns the list of tokens to suppress in order to avoid any speaker tags or non-speech
