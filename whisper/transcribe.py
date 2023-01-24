@@ -27,8 +27,8 @@ def transcribe(
     logprob_threshold: Optional[float] = -1.0,
     no_speech_threshold: Optional[float] = 0.6,
     condition_on_previous_text: bool = True,
-    word_timestamps: bool = False,
     initial_prompt: Optional[str] = None,
+    word_timestamps: bool = False,
     **decode_options,
 ):
     """
@@ -68,6 +68,11 @@ def transcribe(
     word_timestamps: bool
         Extract word-level timestamps using the cross-attention pattern and dynamic time warping,
         and include the timestamps for each word in each segment.
+
+    initial_prompt: Optional[str]
+        Optional text to provide as a prompt for the first window. This can be used to provide, or
+        "prompt-engineer" a context for transcription, e.g. custom vocabularies or proper nouns
+        to make it more likely to predict those word correctly.
 
     decode_options: dict
         Keyword arguments to construct `DecodingOptions` instances
@@ -174,9 +179,6 @@ def transcribe(
             }
         )
 
-        if verbose:
-            print(make_safe(f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}"))
-
     # show the progress bar when verbose is False (otherwise the transcribed text will be printed)
     num_frames = mel.shape[-1]
     previous_seek = seek
@@ -269,11 +271,8 @@ def transcribe(
             if verbose:
                 for segment in all_segments[last_segment_index:]:
                     start, end, text = segment["start"], segment["end"], segment["text"]
-                    line = f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}\n"
-                    # compared to just `print(line)`, this replaces any character not representable using
-                    # the system default encoding with an '?', avoiding UnicodeEncodeError.
-                    sys.stdout.buffer.write(line.encode(sys.getdefaultencoding(), errors="replace"))
-                    sys.stdout.flush()
+                    line = f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}"
+                    print(make_safe(line))
 
             # update progress bar
             pbar.update(min(num_frames, seek) - previous_seek)
