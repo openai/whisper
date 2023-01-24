@@ -37,5 +37,5 @@ setup(
         "console_scripts": ["whisper=whisper.transcribe:cli"],
     },
     include_package_data=True,
-    extras_require={"dev": ["pytest"]},
+    extras_require={"dev": ["pytest", "scipy"]},
 )
