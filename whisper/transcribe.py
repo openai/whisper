@@ -1,8 +1,7 @@
 import argparse
 import os
-import sys
 import warnings
-from typing import List, Optional, Tuple, Union, TYPE_CHECKING
+from typing import Optional, Tuple, Union, TYPE_CHECKING
 
 import numpy as np
 import torch
@@ -11,7 +10,7 @@ import tqdm
 from .audio import SAMPLE_RATE, N_FRAMES, HOP_LENGTH, pad_or_trim, log_mel_spectrogram
 from .decoding import DecodingOptions, DecodingResult
 from .tokenizer import LANGUAGES, TO_LANGUAGE_CODE, get_tokenizer
-from .utils import exact_div, format_timestamp, optional_int, optional_float, str2bool, get_writer
+from .utils import exact_div, format_timestamp, make_safe, optional_int, optional_float, str2bool, get_writer
 
 if TYPE_CHECKING:
     from .model import Whisper
@@ -181,11 +180,7 @@ def transcribe(
             }
         )
         if verbose:
-            line = f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}\n"
-            # compared to just `print(line)`, this replaces any character not representable using
-            # the system default encoding with an '?', avoiding UnicodeEncodeError.
-            sys.stdout.buffer.write(line.encode(sys.getdefaultencoding(), errors="replace"))
-            sys.stdout.flush()
+            print(make_safe(f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}"))
 
     # show the progress bar when verbose is False (otherwise the transcribed text will be printed)
     num_frames = mel.shape[-1]
