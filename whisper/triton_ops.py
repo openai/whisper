@@ -1,3 +1,9 @@
+import math
+
+import numpy as np
+import torch
+from functools import lru_cache
+
 try:
     import triton
     import triton.language as tl
@@ -31,3 +37,56 @@ def dtw_kernel(cost, trace, x, x_stride, cost_stride, trace_stride, N, M, BLOCK_
         tl.store(trace_ptr + offsets, 2, mask=mask & (c2 <= c0) & (c2 <= c1))
         tl.store(trace_ptr + offsets, 1, mask=mask & (c1 <= c0) & (c1 <= c2))
         tl.store(trace_ptr + offsets, 0, mask=mask & (c0 <= c1) & (c0 <= c2))
+
+
+@lru_cache(maxsize=None)
+def median_kernel(filter_width: int):
+    @triton.jit
+    def kernel(y, x, x_stride, y_stride, BLOCK_SIZE: tl.constexpr):  # x.shape[-1] == filter_width
+        row_idx = tl.program_id(0)
+        offsets = tl.arange(0, BLOCK_SIZE)
+        mask = offsets < y_stride
+
+        x_ptr = x + row_idx * x_stride
+        y_ptr = y + row_idx * y_stride
+
+        LOAD_ALL_ROWS_HERE
+
+        BUBBLESORT_HERE
+
+        tl.store(y_ptr + offsets, MIDDLE_ROW_HERE, mask=mask)
+
+    kernel = triton.JITFunction(kernel.fn)
+    kernel.src = kernel.src.replace("    LOAD_ALL_ROWS_HERE", "\n".join([
+        f"    row{i} = tl.load(x_ptr + offsets + {i}, mask=mask)"
+        for i in range(filter_width)
+    ]))
+    kernel.src = kernel.src.replace("    BUBBLESORT_HERE", "\n\n".join([
+        "\n\n".join([
+            "\n".join([
+                f"    smaller = tl.where(row{j} < row{j + 1}, row{j}, row{j + 1})",
+                f"    larger = tl.where(row{j} > row{j + 1}, row{j}, row{j + 1})",
+                f"    row{j} = smaller",
+                f"    row{j + 1} = larger",
+            ])
+            for j in range(filter_width - i - 1)
+        ])
+        for i in range(filter_width // 2 + 1)
+    ]))
+    kernel.src = kernel.src.replace("MIDDLE_ROW_HERE", f"row{filter_width // 2}")
+
+    return kernel
+
+
+def median_filter_cuda(x: torch.Tensor, filter_width: int):
+    """Apply a median filter of given width along the last dimension of x"""
+    slices = x.contiguous().unfold(-1, filter_width, 1)
+    grid = np.prod(slices.shape[:-2])
+
+    kernel = median_kernel(filter_width)
+    y = torch.empty_like(slices[..., 0])
+
+    BLOCK_SIZE = 1 << (y.stride(-2) - 1).bit_length()
+    kernel[(grid,)](y, x, x.stride(-2), y.stride(-2), BLOCK_SIZE=BLOCK_SIZE)
+
+    return y

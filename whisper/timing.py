@@ -17,9 +17,13 @@ def median_filter(x: torch.Tensor, filter_width: int):
     assert 3 <= x.ndim <= 4, "`median_filter()` is implemented for only 3D or 4D tensors"
     assert filter_width > 0 and filter_width % 2 == 1, "`filter_width` should be an odd number"
 
-    padded = F.pad(x, (0, 0, filter_width // 2, filter_width // 2), mode='replicate')
-    slices = padded.unfold(-1, filter_width, 1)
-    return slices.median(dim=-1).values
+    x = F.pad(x, (filter_width // 2, filter_width // 2, 0, 0), mode='replicate')
+    if x.is_cuda:
+        from .triton_ops import median_filter_cuda
+        return median_filter_cuda(x, filter_width)
+
+    # sort() is faster than torch.median (https://github.com/pytorch/pytorch/issues/51450)
+    return x.unfold(-1, filter_width, 1).sort()[0][..., filter_width // 2]
 
 
 @numba.jit
