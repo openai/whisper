@@ -13,10 +13,21 @@ def test_transcribe(model_name: str):
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
 
     language = "en" if model_name.endswith(".en") else None
-    result = model.transcribe(audio_path, language=language, temperature=0.0)
+    result = model.transcribe(audio_path, language=language, temperature=0.0, word_timestamps=True)
     assert result["language"] == "en"
 
     transcription = result["text"].lower()
     assert "my fellow americans" in transcription
     assert "your country" in transcription
     assert "do for you" in transcription
+
+    timing_checked = False
+    for segment in result["segments"]:
+        for timing in segment["words"]:
+            assert timing["start"] < timing["end"]
+            if timing["word"].strip() == "Americans":
+                assert timing["start"] <= 1.75
+                assert timing["end"] >= 2.05
+                timing_checked = True
+
+    assert timing_checked
