@@ -252,11 +252,10 @@ class GreedyDecoder(TokenDecoder):
         self.eot = eot
 
     def update(self, tokens: Tensor, logits: Tensor, sum_logprobs: Tensor) -> Tuple[Tensor, bool]:
-        temperature = self.temperature
-        if temperature == 0:
+        if self.temperature == 0:
             next_tokens = logits.argmax(dim=-1)
         else:
-            next_tokens = Categorical(logits=logits / temperature).sample()
+            next_tokens = Categorical(logits=logits / self.temperature).sample()
 
         logprobs = F.log_softmax(logits.float(), dim=-1)
         current_logprobs = logprobs[torch.arange(logprobs.shape[0]), next_tokens]
@@ -511,10 +510,8 @@ class DecodingTask:
 
     def _get_initial_tokens(self) -> Tuple[int]:
         tokens = list(self.sot_sequence)
-        prefix = self.options.prefix
-        prompt = self.options.prompt
 
-        if prefix:
+        if prefix := self.options.prefix:
             prefix_tokens = (
                 self.tokenizer.encode(" " + prefix.strip()) if isinstance(prefix, str) else prefix
             )
@@ -523,7 +520,7 @@ class DecodingTask:
                 prefix_tokens = prefix_tokens[-max_prefix_len:]
             tokens = tokens + prefix_tokens
 
-        if prompt:
+        if prompt := self.options.prompt:
             prompt_tokens = (
                 self.tokenizer.encode(" " + prompt.strip()) if isinstance(prompt, str) else prompt
             )
@@ -698,13 +695,9 @@ def decode(model: "Whisper", mel: Tensor, options: DecodingOptions = DecodingOpt
     result: Union[DecodingResult, List[DecodingResult]]
         The result(s) of decoding contained in `DecodingResult` dataclass instance(s)
     """
-    single = mel.ndim == 2
-    if single:
+    if single := mel.ndim == 2:
         mel = mel.unsqueeze(0)
 
     result = DecodingTask(model, options).run(mel)
-    
-    if single:
-        result = result[0]
 
-    return result
+    return result[0] if single else result
