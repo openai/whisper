@@ -1,5 +1,5 @@
 from typing import List, TYPE_CHECKING
-
+from dataclasses import dataclass
 import numba
 import numpy as np
 import torch
@@ -113,18 +113,34 @@ def dtw(x: torch.Tensor) -> np.ndarray:
     return dtw_cpu(x.double().cpu().numpy())
 
 
-def add_word_timestamps(
+@dataclass
+class Alignment:
+    words: List[str]
+    word_tokens: List[List[int]]
+    start_times: np.ndarray
+    end_times: np.ndarray
+
+
+def find_alignment(
     model: "Whisper",
     tokenizer: Tokenizer,
+    text_tokens: List[int],
     mel: torch.Tensor,
     num_frames: int,
-    segments: List[dict],
     *,
+    max_qk_layers: int = 6,
     medfilt_width: int = 7,
     qk_scale: float = 1.0,
-):
-    if len(segments) == 0:
-        return
+) -> Alignment:
+    tokens = torch.tensor(
+        [
+            *tokenizer.sot_sequence,
+            tokenizer.timestamp_begin,
+            *text_tokens,
+            tokenizer.timestamp_begin + num_frames // 2,
+            tokenizer.eot,
+        ]
+    ).to(model.device)
 
     # install hooks on the cross attention layers to retrieve the attention weights
     QKs = [None] * model.dims.n_text_layer
@@ -135,23 +151,13 @@ def add_word_timestamps(
         for i, block in enumerate(model.decoder.blocks)
     ]
 
-    tokens = torch.tensor(
-        [
-            *tokenizer.sot_sequence,
-            tokenizer.timestamp_begin,
-            *[t for segment in segments for t in segment["tokens"]],
-            tokenizer.timestamp_begin + mel.shape[-1] // 2,
-            tokenizer.eot,
-        ]
-    ).to(model.device)
-
     with torch.no_grad():
         model(mel.unsqueeze(0), tokens.unsqueeze(0))
 
     for hook in hooks:
         hook.remove()
 
-    weights = torch.cat(QKs[-6:])  # layers * heads * tokens * frames
+    weights = torch.cat(QKs[-max_qk_layers:])  # layers * heads * tokens * frames
     weights = weights[:, :, :, : num_frames // 2]
     weights = median_filter(weights, medfilt_width)
     weights = (weights * qk_scale).softmax(dim=-1)
@@ -167,24 +173,43 @@ def add_word_timestamps(
         # These languages don't typically use spaces, so it is difficult to split words
         # without morpheme analysis. Here, we instead split words at any
         # position where the tokens are decoded as valid unicode points
-        split_tokens = tokenizer.split_tokens_on_unicode
+        words, word_tokens = tokenizer.split_tokens_on_unicode(tokens[1:].tolist())
     else:
-        split_tokens = tokenizer.split_tokens_on_spaces
+        words, word_tokens = tokenizer.split_tokens_on_spaces(tokens[1:].tolist())
 
-    words, word_tokens = split_tokens(tokens[1:].tolist())
+    word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens]), (1, 0))
+    start_times = jump_times[word_boundaries[:-1]]
+    end_times = jump_times[word_boundaries[1:]]
 
-    token_sources = np.repeat(np.arange(len(segments)), [len(s["tokens"]) for s in segments])
-    token_sources = [None] * len(tokenizer.sot_sequence) + list(token_sources)
+    return Alignment(words, word_tokens, start_times, end_times)
+
+
+def add_word_timestamps(
+    segments: List[dict],
+    model: "Whisper",
+    tokenizer: Tokenizer,
+    mel: torch.Tensor,
+    num_frames: int,
+    **hyperparams,
+):
+    if len(segments) == 0:
+        return
+
+    text_tokens = [t for segment in segments for t in segment["tokens"]]
+    alignment = find_alignment(model, tokenizer, text_tokens, mel, num_frames, **hyperparams)
 
     time_offset = segments[0]["seek"] * HOP_LENGTH / SAMPLE_RATE
-    word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens]), (1, 0))
-    start_times = time_offset + jump_times[word_boundaries[:-1]]
-    end_times = time_offset + jump_times[word_boundaries[1:]]
+    alignment.start_times = time_offset + alignment.start_times
+    alignment.end_times = time_offset + alignment.end_times
+
+    token_sources = np.repeat(np.arange(len(segments)), [len(s["tokens"]) for s in segments])
+    token_sources: List[int] = [None] * len(tokenizer.sot_sequence) + list(token_sources)
 
     for segment in segments:
         segment["words"] = []
 
-    for i, (word, start, end) in enumerate(zip(words, start_times, end_times)):
+    word_boundaries = np.pad(np.cumsum([len(t) for t in alignment.word_tokens]), (1, 0))
+    for i, (word, start, end) in enumerate(zip(alignment.words, alignment.start_times, alignment.end_times)):
         if word.startswith("<|") or word.strip() in ".,!?、。":  # TODO: expand
             continue
 

@@ -111,6 +111,9 @@ def transcribe(
     task: str = decode_options.get("task", "transcribe")
     tokenizer = get_tokenizer(model.is_multilingual, language=language, task=task)
 
+    if word_timestamps and task == "translate":
+        warnings.warn("Word-level timestamps on translations may not be reliable.")
+
     def decode_with_fallback(segment: torch.Tensor) -> DecodingResult:
         temperatures = [temperature] if isinstance(temperature, (int, float)) else temperature
         decode_result = None
@@ -257,11 +260,11 @@ def transcribe(
             if word_timestamps:
                 current_segments = all_segments[last_segment_index:]
                 add_word_timestamps(
-                    model,
-                    tokenizer,
+                    segments=current_segments,
+                    model=model,
+                    tokenizer=tokenizer,
                     mel=mel_segment,
                     num_frames=segment_size,
-                    segments=current_segments,
                 )
                 word_end_timestamps = [w["end"] for s in current_segments for w in s["words"]]
                 if len(consecutive) > 0 and len(word_end_timestamps) > 0:
