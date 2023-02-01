@@ -412,8 +412,8 @@ class ApplyTimestampRules(LogitFilter):
 
         # timestamps have to appear in pairs, except directly before EOT; mask logits accordingly
         for k in range(tokens.shape[0]):
-            selected_tokens = tokens[k, self.sample_begin :]
-            seq = [t for t in selected_tokens.tolist()]
+            sampled_tokens = tokens[k, self.sample_begin :]
+            seq = [t for t in sampled_tokens.tolist()]
             last_was_timestamp = len(seq) >= 1 and seq[-1] >= self.tokenizer.timestamp_begin
             penultimate_was_timestamp = len(seq) < 2 or seq[-2] >= self.tokenizer.timestamp_begin
 
@@ -423,10 +423,9 @@ class ApplyTimestampRules(LogitFilter):
                 else:  # cannot be normal text tokens
                     logits[k, : self.tokenizer.eot] = -np.inf
 
-            timestamps = selected_tokens[selected_tokens.ge(self.tokenizer.timestamp_begin)]
+            timestamps = sampled_tokens[sampled_tokens.ge(self.tokenizer.timestamp_begin)]
             if timestamps.numel() > 0:
-                # timestamp tokens should not decrease
-                # forbid timestamp tokens less, then last one
+                # timestamps shouldn't decrease; forbid timestamp tokens smaller than the last
                 logits[k, self.tokenizer.timestamp_begin : timestamps[-1]] = -np.inf
 
         if tokens.shape[1] == self.sample_begin:
