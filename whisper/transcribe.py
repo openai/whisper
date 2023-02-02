@@ -159,33 +159,25 @@ def transcribe(
     else:
         initial_prompt_tokens = []
 
-    def add_segment(
-        *, start: float, end: float, text_tokens: torch.Tensor, result: DecodingResult
+    def new_segment(
+        *, start: float, end: float, tokens: torch.Tensor, result: DecodingResult
     ):
-        text_tokens = [token for token in text_tokens.tolist() if token < tokenizer.eot]
-        text = tokenizer.decode(text_tokens)
-        if len(text.strip()) == 0:  # skip empty text output
-            return
+        text_tokens = [token for token in tokens.tolist() if token < tokenizer.eot]
+        return {
+            "id": len(all_segments),
+            "seek": seek,
+            "start": start,
+            "end": end,
+            "text": tokenizer.decode(text_tokens),
+            "tokens": text_tokens,
+            "temperature": result.temperature,
+            "avg_logprob": result.avg_logprob,
+            "compression_ratio": result.compression_ratio,
+            "no_speech_prob": result.no_speech_prob,
+        }
 
-        all_segments.append(
-            {
-                "id": len(all_segments),
-                "seek": seek,
-                "start": start,
-                "end": end,
-                "text": text,
-                "tokens": text_tokens,
-                "temperature": result.temperature,
-                "avg_logprob": result.avg_logprob,
-                "compression_ratio": result.compression_ratio,
-                "no_speech_prob": result.no_speech_prob,
-            }
-        )
-
-    # show the progress bar when verbose is False (otherwise the transcribed text will be printed)
+    # show the progress bar when verbose is False (if True, transcribed text will be printed)
     num_frames = mel.shape[-1]
-    previous_seek = seek
-
     with tqdm.tqdm(total=num_frames, unit='frames', disable=verbose is not False) as pbar:
         while seek < num_frames:
             time_offset = float(seek * HOP_LENGTH / SAMPLE_RATE)
@@ -209,7 +201,10 @@ def transcribe(
                     seek += segment_size  # fast-forward to the next segment boundary
                     continue
 
-            last_segment_index = len(all_segments)
+            previous_seek = seek
+            current_segments = []
+            current_tokens = []
+
             timestamp_tokens: torch.Tensor = tokens.ge(tokenizer.timestamp_begin)
             consecutive = torch.where(timestamp_tokens[:-1] & timestamp_tokens[1:])[0].add_(1)
             if len(consecutive) > 0:  # if the output contains two consecutive timestamp tokens
@@ -222,12 +217,13 @@ def transcribe(
                     end_timestamp_position = (
                         sliced_tokens[-1].item() - tokenizer.timestamp_begin
                     )
-                    add_segment(
+                    current_segments.append(new_segment(
                         start=time_offset + start_timestamp_position * time_precision,
                         end=time_offset + end_timestamp_position * time_precision,
-                        text_tokens=sliced_tokens[1:-1],
+                        tokens=sliced_tokens,
                         result=result,
-                    )
+                    ))
+                    current_tokens.append(sliced_tokens.tolist())
                     last_slice = current_slice
                 last_timestamp_position = (
                     tokens[last_slice - 1].item() - tokenizer.timestamp_begin
@@ -243,22 +239,20 @@ def transcribe(
                     last_timestamp_position = timestamps[-1].item() - tokenizer.timestamp_begin
                     duration = last_timestamp_position * time_precision
 
-                add_segment(
+                current_segments.append(new_segment(
                     start=time_offset,
                     end=time_offset + duration,
-                    text_tokens=tokens,
+                    tokens=tokens,
                     result=result,
-                )
-
+                ))
+                current_tokens.append(tokens.tolist())
                 seek += segment_size
-                all_tokens.extend(tokens.tolist())
 
             if not condition_on_previous_text or result.temperature > 0.5:
                 # do not feed the prompt tokens if a high temperature was used
                 prompt_reset_since = len(all_tokens)
 
             if word_timestamps:
-                current_segments = all_segments[last_segment_index:]
                 add_word_timestamps(
                     segments=current_segments,
                     model=model,
@@ -268,18 +262,29 @@ def transcribe(
                 )
                 word_end_timestamps = [w["end"] for s in current_segments for w in s["words"]]
                 if len(consecutive) > 0 and len(word_end_timestamps) > 0:
-                    seek_shift = (word_end_timestamps[-1] - time_offset) * FRAMES_PER_SECOND
-                    seek = previous_seek + round(seek_shift)
+                    seek_shift = round((word_end_timestamps[-1] - time_offset) * FRAMES_PER_SECOND)
+                    if seek_shift > 0:
+                        seek = previous_seek + seek_shift
 
             if verbose:
-                for segment in all_segments[last_segment_index:]:
+                for segment in current_segments:
                     start, end, text = segment["start"], segment["end"], segment["text"]
                     line = f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}"
                     print(make_safe(line))
 
+            # if a segment is instantaneous or does not contain text, clear it
+            for i, segment in enumerate(current_segments):
+                if segment["start"] == segment["end"] or segment["text"].strip() == "":
+                    segment["text"] = ""
+                    segment["tokens"] = []
+                    segment["words"] = []
+                    current_tokens[i] = []
+
+            all_segments.extend(current_segments)
+            all_tokens.extend([token for segment in current_tokens for token in segment])
+
             # update progress bar
             pbar.update(min(num_frames, seek) - previous_seek)
-            previous_seek = seek
 
     return dict(
         text=tokenizer.decode(all_tokens[len(initial_prompt_tokens):]),

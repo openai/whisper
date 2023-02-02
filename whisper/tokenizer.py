@@ -258,6 +258,15 @@ class Tokenizer:
         assert len(tokens) == 1, f"{text} is not encoded as a single token"
         return tokens[0]
 
+    def split_to_word_tokens(self, tokens: List[int]):
+        if self.language in {"zh", "ja", "th", "lo", "my"}:
+            # These languages don't typically use spaces, so it is difficult to split words
+            # without morpheme analysis. Here, we instead split words at any
+            # position where the tokens are decoded as valid unicode points
+            return self.split_tokens_on_unicode(tokens)
+
+        return self.split_tokens_on_spaces(tokens)
+
     def split_tokens_on_unicode(self, tokens: List[int]):
         words = []
         word_tokens = []
@@ -282,7 +291,7 @@ class Tokenizer:
             special = subword_tokens[0] >= self.eot
             with_space = subword.startswith(" ")
             punctuation = subword.strip() in string.punctuation
-            if special or with_space or punctuation:
+            if special or with_space or punctuation or len(words) == 0:
                 words.append(subword)
                 word_tokens.append(subword_tokens)
             else:

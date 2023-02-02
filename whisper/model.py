@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 from typing import Dict
 from typing import Iterable, Optional
-
+import gzip
+import base64
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -213,6 +214,15 @@ class Whisper(nn.Module):
             self.dims.n_text_head,
             self.dims.n_text_layer,
         )
+        # use the last half layers for alignment by default; see `set_alignment_heads()` below
+        all_heads = torch.zeros(self.dims.n_text_layer, self.dims.n_text_head, dtype=torch.bool)
+        all_heads[self.dims.n_text_layer // 2:] = True
+        self.register_buffer("alignment_heads", all_heads.to_sparse(), persistent=False)
+
+    def set_alignment_heads(self, dump: bytes):
+        array = np.frombuffer(gzip.decompress(base64.b85decode(dump)), dtype=bool).copy()
+        mask = torch.from_numpy(array).reshape(self.dims.n_text_layer, self.dims.n_text_head)
+        self.register_buffer("alignment_heads", mask.to_sparse(), persistent=False)
 
     def embed_audio(self, mel: torch.Tensor):
         return self.encoder(mel)

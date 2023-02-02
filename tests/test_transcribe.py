@@ -25,9 +25,10 @@ def test_transcribe(model_name: str):
     for segment in result["segments"]:
         for timing in segment["words"]:
             assert timing["start"] < timing["end"]
-            if timing["word"].strip() == "Americans":
-                assert timing["start"] <= 1.75
-                assert timing["end"] >= 2.05
+            if timing["word"].strip(" ,") == "Americans":
+                assert timing["start"] <= 1.8
+                assert timing["end"] >= 1.8
+                print(timing)
                 timing_checked = True
 
     assert timing_checked

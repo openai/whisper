@@ -1,5 +1,9 @@
-from typing import List, TYPE_CHECKING
+import time
+import subprocess
+import warnings
 from dataclasses import dataclass
+from typing import List, TYPE_CHECKING
+
 import numba
 import numpy as np
 import torch
@@ -14,17 +18,31 @@ if TYPE_CHECKING:
 
 def median_filter(x: torch.Tensor, filter_width: int):
     """Apply a median filter of width `filter_width` along the last dimension of `x`"""
-    assert 3 <= x.ndim <= 4, "`median_filter()` is implemented for only 3D or 4D tensors"
+    if (ndim := x.ndim) <= 2:  # `F.pad` does not support 1D or 2D inputs for reflect padding
+        x = x[None, None, :]
+
     assert filter_width > 0 and filter_width % 2 == 1, "`filter_width` should be an odd number"
 
-    x = F.pad(x, (filter_width // 2, filter_width // 2, 0, 0), mode='replicate')
+    result = None
+    x = F.pad(x, (filter_width // 2, filter_width // 2, 0, 0), mode="reflect")
     if x.is_cuda:
-        from .triton_ops import median_filter_cuda
-        return median_filter_cuda(x, filter_width)
+        try:
+            from .triton_ops import median_filter_cuda
+            result = median_filter_cuda(x, filter_width)
+        except (RuntimeError, subprocess.CalledProcessError):
+            warnings.warn(
+                "Failed to launch Triton kernels, likely due to missing CUDA toolkit; "
+                "falling back to a slower median kernel implementation..."
+            )
 
-    # sort() is faster than torch.median (https://github.com/pytorch/pytorch/issues/51450)
-    return x.unfold(-1, filter_width, 1).sort()[0][..., filter_width // 2]
+    if result is None:
+        # sort() is faster than torch.median (https://github.com/pytorch/pytorch/issues/51450)
+        result = x.unfold(-1, filter_width, 1).sort()[0][..., filter_width // 2]
 
+    if ndim <= 2:
+        result = result[0, 0]
+
+    return result
 
 @numba.jit
 def backtrace(trace: np.ndarray):
@@ -108,17 +126,24 @@ def dtw_cuda(x, BLOCK_SIZE=1024):
 
 def dtw(x: torch.Tensor) -> np.ndarray:
     if x.is_cuda:
-        return dtw_cuda(x)
+        try:
+            return dtw_cuda(x)
+        except (RuntimeError, subprocess.CalledProcessError):
+            warnings.warn(
+                "Failed to launch Triton kernels, likely due to missing CUDA toolkit; "
+                "falling back to a slower DTW implementation..."
+            )
 
     return dtw_cpu(x.double().cpu().numpy())
 
 
 @dataclass
-class Alignment:
-    words: List[str]
-    word_tokens: List[List[int]]
-    start_times: np.ndarray
-    end_times: np.ndarray
+class WordTiming:
+    word: str
+    tokens: List[int]
+    start: float
+    end: float
+    probability: float
 
 
 def find_alignment(
@@ -128,16 +153,14 @@ def find_alignment(
     mel: torch.Tensor,
     num_frames: int,
     *,
-    max_qk_layers: int = 6,
     medfilt_width: int = 7,
     qk_scale: float = 1.0,
-) -> Alignment:
+) -> List[WordTiming]:
     tokens = torch.tensor(
         [
             *tokenizer.sot_sequence,
-            tokenizer.timestamp_begin,
+            tokenizer.no_timestamps,
             *text_tokens,
-            tokenizer.timestamp_begin + num_frames // 2,
             tokenizer.eot,
         ]
     ).to(model.device)
@@ -146,50 +169,105 @@ def find_alignment(
     QKs = [None] * model.dims.n_text_layer
     hooks = [
         block.cross_attn.register_forward_hook(
-            lambda _, ins, outs, index=i: QKs.__setitem__(index, outs[-1])
+            lambda _, ins, outs, index=i: QKs.__setitem__(index, outs[-1][0])
         )
         for i, block in enumerate(model.decoder.blocks)
     ]
 
     with torch.no_grad():
-        model(mel.unsqueeze(0), tokens.unsqueeze(0))
+        logits = model(mel.unsqueeze(0), tokens.unsqueeze(0))[0]
+        token_probs = logits[len(tokenizer.sot_sequence):, :tokenizer.eot].softmax(dim=-1)
+        text_token_probs = token_probs[np.arange(len(text_tokens)), text_tokens].tolist()
 
     for hook in hooks:
         hook.remove()
 
-    weights = torch.cat(QKs[-max_qk_layers:])  # layers * heads * tokens * frames
-    weights = weights[:, :, :, : num_frames // 2]
-    weights = median_filter(weights, medfilt_width)
+    # heads * tokens * frames
+    weights = torch.stack([QKs[l][h] for l, h in model.alignment_heads.indices().T])
+    weights = weights[:, :, : num_frames // 2]
     weights = (weights * qk_scale).softmax(dim=-1)
-    weights = weights / weights.norm(dim=-2, keepdim=True)
-    matrix = weights.mean(axis=(0, 1)).neg()
+    std, mean = torch.std_mean(weights, dim=-2, keepdim=True, unbiased=False)
+    weights = (weights - mean) / std
+    weights = median_filter(weights, medfilt_width)
 
-    text_indices, time_indices = dtw(matrix)
+    matrix = weights.mean(axis=0)
+    matrix = matrix[len(tokenizer.sot_sequence):-1]
+    text_indices, time_indices = dtw(-matrix)
+
+    words, word_tokens = tokenizer.split_to_word_tokens(text_tokens + [tokenizer.eot])
+    word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens[:-1]]), (1, 0))
 
     jumps = np.pad(np.diff(text_indices), (1, 0), constant_values=1).astype(bool)
     jump_times = time_indices[jumps] / TOKENS_PER_SECOND
-
-    if tokenizer.language in {"zh", "ja", "th", "lo", "my"}:
-        # These languages don't typically use spaces, so it is difficult to split words
-        # without morpheme analysis. Here, we instead split words at any
-        # position where the tokens are decoded as valid unicode points
-        words, word_tokens = tokenizer.split_tokens_on_unicode(tokens[1:].tolist())
-    else:
-        words, word_tokens = tokenizer.split_tokens_on_spaces(tokens[1:].tolist())
-
-    word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens]), (1, 0))
     start_times = jump_times[word_boundaries[:-1]]
     end_times = jump_times[word_boundaries[1:]]
+    word_probabilities = [
+        np.mean(text_token_probs[i:j]) for i, j in zip(word_boundaries[:-1], word_boundaries[1:])
+    ]
 
-    return Alignment(words, word_tokens, start_times, end_times)
+    # hack: ensure the first and second word is not longer than twice the median word duration.
+    # a better segmentation algorithm based on VAD should be able to replace this.
+    word_durations = end_times - start_times
+    word_durations = word_durations[word_durations.nonzero()]
+    if len(word_durations) > 0:
+        median_duration = np.median(word_durations)
+        max_duration = median_duration * 2
+        if len(word_durations) >= 2 and word_durations[1] > max_duration:
+            end_times[0] = start_times[1] = max(end_times[2] / 2, end_times[2] - max_duration)
+        if len(word_durations) >= 1 and end_times[0] - start_times[0] > max_duration:
+            start_times[0] = max(0, end_times[0] - max_duration)
+
+    return [
+        WordTiming(word, tokens, start, end, probability)
+        for word, tokens, start, end, probability in zip(
+            words, word_tokens, start_times, end_times, word_probabilities
+        )
+    ]
+
+
+def merge_punctuations(alignment: List[WordTiming], prepended: str, appended: str):
+    # merge prepended punctuations
+    i = len(alignment) - 2
+    j = len(alignment) - 1
+    while i >= 0:
+        previous = alignment[i]
+        following = alignment[j]
+        if previous.word.startswith(" ") and previous.word.strip() in prepended:
+            # prepend it to the following word
+            following.word = previous.word + following.word
+            following.tokens = previous.tokens + following.tokens
+            previous.word = ""
+            previous.tokens = []
+        else:
+            j = i
+        i -= 1
+
+    # merge appended punctuations
+    i = 0
+    j = 1
+    while j < len(alignment):
+        previous = alignment[i]
+        following = alignment[j]
+        if not previous.word.endswith(" ") and following.word in appended:
+            # append it to the previous word
+            previous.word = previous.word + following.word
+            previous.tokens = previous.tokens + following.tokens
+            following.word = ""
+            following.tokens = []
+        else:
+            i = j
+        j += 1
 
 
 def add_word_timestamps(
+    *,
     segments: List[dict],
     model: "Whisper",
     tokenizer: Tokenizer,
     mel: torch.Tensor,
     num_frames: int,
+    prepend_punctuations: str = "\"\'“¿([{-",
+    append_punctuations: str = "\"\'.。,，!！?？:：”)]}、",
     **hyperparams,
 ):
     if len(segments) == 0:
@@ -197,27 +275,26 @@ def add_word_timestamps(
 
     text_tokens = [t for segment in segments for t in segment["tokens"]]
     alignment = find_alignment(model, tokenizer, text_tokens, mel, num_frames, **hyperparams)
+    merge_punctuations(alignment, prepend_punctuations, append_punctuations)
 
     time_offset = segments[0]["seek"] * HOP_LENGTH / SAMPLE_RATE
-    alignment.start_times = time_offset + alignment.start_times
-    alignment.end_times = time_offset + alignment.end_times
-
     token_sources = np.repeat(np.arange(len(segments)), [len(s["tokens"]) for s in segments])
-    token_sources: List[int] = [None] * len(tokenizer.sot_sequence) + list(token_sources)
 
     for segment in segments:
         segment["words"] = []
 
-    word_boundaries = np.pad(np.cumsum([len(t) for t in alignment.word_tokens]), (1, 0))
-    for i, (word, start, end) in enumerate(zip(alignment.words, alignment.start_times, alignment.end_times)):
-        if word.startswith("<|") or word.strip() in ".,!?、。":  # TODO: expand
-            continue
+    word_boundaries = np.pad(np.cumsum([len(w.tokens) for w in alignment]), (1, 0))
+    for i, timing in enumerate(alignment):
+        if timing.word:
+            segment = segments[token_sources[word_boundaries[i]]]
+            start = round(time_offset + timing.start, 2)
+            end = round(time_offset + timing.end, 2)
+            segment["words"].append(
+                dict(word=timing.word, start=start, end=end, probability=timing.probability)
+            )
 
-        segment = segments[token_sources[word_boundaries[i]]]
-        segment["words"].append(dict(word=word, start=round(start, 2), end=round(end, 2)))
-
-    # adjust the segment-level timestamps based on the word-level timestamps
     for segment in segments:
-        if len(segment["words"]) > 0:
-            segment["start"] = segment["words"][0]["start"]
-            segment["end"] = segment["words"][-1]["end"]
+        if len(words := segment["words"]) > 0:
+            # adjust the segment-level timestamps based on the word-level timestamps
+            segment["start"] = words[0]["start"]
+            segment["end"] = words[-1]["end"]
