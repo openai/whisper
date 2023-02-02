@@ -1,4 +1,3 @@
-import time
 import subprocess
 import warnings
 from dataclasses import dataclass
@@ -18,7 +17,13 @@ if TYPE_CHECKING:
 
 def median_filter(x: torch.Tensor, filter_width: int):
     """Apply a median filter of width `filter_width` along the last dimension of `x`"""
-    if (ndim := x.ndim) <= 2:  # `F.pad` does not support 1D or 2D inputs for reflect padding
+    pad_width = filter_width // 2
+    if x.shape[-1] <= pad_width:
+        # F.pad requires the padding width to be smaller than the input dimension
+        return x
+
+    if (ndim := x.ndim) <= 2:
+        # `F.pad` does not support 1D or 2D inputs for reflect padding but supports 3D and 4D
         x = x[None, None, :]
 
     assert filter_width > 0 and filter_width % 2 == 1, "`filter_width` should be an odd number"
