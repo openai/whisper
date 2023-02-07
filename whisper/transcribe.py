@@ -197,6 +197,13 @@ def transcribe(
             timestamp_tokens: torch.Tensor = tokens.ge(tokenizer.timestamp_begin)
             consecutive = torch.where(timestamp_tokens[:-1] & timestamp_tokens[1:])[0].add_(1)
             if len(consecutive) > 0:  # if the output contains two consecutive timestamp tokens
+                no_speech_after_last_timestamp = (
+                    tokens[-1] >= tokenizer.timestamp_begin and consecutive[-1] != len(tokens) - 1
+                )
+                if no_speech_after_last_timestamp:
+                    # append a dummy index to process the last segment
+                    consecutive = torch.cat((consecutive, torch.tensor([len(tokens)])), dim=0)
+
                 last_slice = 0
                 for current_slice in consecutive:
                     sliced_tokens = tokens[last_slice:current_slice]
@@ -213,11 +220,16 @@ def transcribe(
                         result=result,
                     )
                     last_slice = current_slice
-                last_timestamp_position = (
-                    tokens[last_slice - 1].item() - tokenizer.timestamp_begin
-                )
-                seek += last_timestamp_position * input_stride
-                all_tokens.extend(tokens[: last_slice + 1].tolist())
+
+                if no_speech_after_last_timestamp:
+                    seek += segment.shape[-1]
+                    all_tokens.extend(tokens.tolist())
+                else:
+                    last_timestamp_position = (
+                        tokens[last_slice - 1].item() - tokenizer.timestamp_begin
+                    )
+                    seek += last_timestamp_position * input_stride
+                    all_tokens.extend(tokens[: last_slice + 1].tolist())
             else:
                 duration = segment_duration
                 timestamps = tokens[timestamp_tokens.nonzero().flatten()]
