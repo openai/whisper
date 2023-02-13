@@ -4,10 +4,8 @@ This is the official codebase for running the automatic speech recognition (ASR)
 
 Following [Model Cards for Model Reporting (Mitchell et al.)](https://arxiv.org/abs/1810.03993), we're providing some information about the automatic speech recognition model. More information on how these models were trained and evaluated can be found [in the paper](https://arxiv.org/abs/2212.04356).
 
-
-## Model Details
-
-The Whisper models are trained for speech recognition and translation tasks, capable of transcribing speech audio into the text in the language it is spoken (ASR) as well as translated into English (speech translation). Researchers at OpenAI developed the models to study the robustness of speech processing systems trained under large-scale weak supervision. There are 9 models of different sizes and capabilities, summarized in the following table.
+We re-communicate with you during the catastrophic humanitarian conditions that our people in Syria and our Turkish neighbors are going through, as well as our colleagues in Syria and Turkey.
+In fact, day after day, the chance of recovering survivors from under the rubble is diminishing, and at the same time the survivors are living the most difficult conditions of life, some of them sleep in the open under a temperature that may reach -5 at night, with a scarcity of all the materials required for life such as food, water, warmth and communications, as well as medical services, and they make efforts Syrian civilians and organizations are making every effort to contain this disaster.
 
 |  Size  | Parameters | English-only model | Multilingual model |  
 |:------:|:----------:|:------------------:|:------------------:|
