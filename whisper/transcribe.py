@@ -29,6 +29,8 @@ def transcribe(
     condition_on_previous_text: bool = True,
     initial_prompt: Optional[str] = None,
     word_timestamps: bool = False,
+    prepend_punctuations: str = "\"\'“¿([{-",
+    append_punctuations: str = "\"\'.。,，!！?？:：”)]}、",
     **decode_options,
 ):
     """
@@ -68,6 +70,12 @@ def transcribe(
     word_timestamps: bool
         Extract word-level timestamps using the cross-attention pattern and dynamic time warping,
         and include the timestamps for each word in each segment.
+
+    prepend_punctuations: str
+        If word_timestamps is True, merge these punctuation symbols with the next word
+
+    append_punctuations: str
+        If word_timestamps is True, merge these punctuation symbols with the previous word
 
     initial_prompt: Optional[str]
         Optional text to provide as a prompt for the first window. This can be used to provide, or
@@ -259,6 +267,8 @@ def transcribe(
                     tokenizer=tokenizer,
                     mel=mel_segment,
                     num_frames=segment_size,
+                    prepend_punctuations=prepend_punctuations,
+                    append_punctuations=append_punctuations,
                 )
                 word_end_timestamps = [w["end"] for s in current_segments for w in s["words"]]
                 if len(consecutive) > 0 and len(word_end_timestamps) > 0:
@@ -324,6 +334,8 @@ def cli():
     parser.add_argument("--logprob_threshold", type=optional_float, default=-1.0, help="if the average log probability is lower than this value, treat the decoding as failed")
     parser.add_argument("--no_speech_threshold", type=optional_float, default=0.6, help="if the probability of the <|nospeech|> token is higher than this value AND the decoding has failed due to `logprob_threshold`, consider the segment as silence")
     parser.add_argument("--word_timestamps", type=str2bool, default=False, help="Extract word-level timestamps and refine the results based on them")
+    parser.add_argument("--prepend_punctuations", type=str, default="\"\'“¿([{-", help="If word_timestamps is True, merge these punctuation symbols with the next word")
+    parser.add_argument("--append_punctuations", type=str, default="\"\'.。,，!！?？:：”)]}、", help="If word_timestamps is True, merge these punctuation symbols with the previous word")
     parser.add_argument("--threads", type=optional_int, default=0, help="number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS")
 
     args = parser.parse_args().__dict__
