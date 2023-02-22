@@ -106,6 +106,7 @@ class DecodingResult:
     language: str
     language_probs: Optional[Dict[str, float]] = None
     tokens: List[int] = field(default_factory=list)
+    tokens_probs: list[float] = field(default_factory=list)
     text: str = ""
     avg_logprob: float = np.nan
     no_speech_prob: float = np.nan
@@ -196,7 +197,7 @@ class TokenDecoder:
     def reset(self):
         """Initialize any stateful variables for decoding a new sequence"""
 
-    def update(self, tokens: Tensor, logits: Tensor, sum_logprobs: Tensor) -> Tuple[Tensor, bool]:
+    def update(self, tokens: Tensor, logits: Tensor, sum_logprobs: Tensor, tokens_probs: list[list[float]]) -> Tuple[Tensor, list, bool]:
         """Specify how to select the next token, based on the current trace and logits
 
         Parameters
@@ -210,10 +211,16 @@ class TokenDecoder:
         sum_logprobs : Tensor, shape = (n_batch)
             cumulative log probabilities for each sequence
 
+        tokens_probs : list
+            Each confidence of the model's predicted token in the context so far, including the prefix and sot_sequence prob tokens
+            
         Returns
         -------
         tokens : Tensor, shape = (n_batch, current_sequence_length + 1)
             the tokens, appended with the selected next token
+
+        tokens_probs : list
+            confidence of the model's token prediction appended with the selected next token prob
 
         completed : bool
             True if all sequences has reached the end of text
@@ -222,7 +229,7 @@ class TokenDecoder:
         raise NotImplementedError
 
     def finalize(
-        self, tokens: Tensor, sum_logprobs: Tensor
+        self, tokens: Tensor, tokens_probs: list, sum_logprobs: Tensor
     ) -> Tuple[Sequence[Sequence[Tensor]], List[List[float]]]:
         """Finalize search and return the final candidate sequences
 
@@ -239,6 +246,9 @@ class TokenDecoder:
         tokens : Sequence[Sequence[Tensor]], length = n_audio
             sequence of Tensors containing candidate token sequences, for each audio input
 
+        tokens_probs : List
+            sequence containing candidate tokens_probs sequences, for each audio input
+
         sum_logprobs : List[List[float]], length = n_audio
             sequence of cumulative log probabilities corresponding to the above
 
@@ -251,7 +261,7 @@ class GreedyDecoder(TokenDecoder):
         self.temperature = temperature
         self.eot = eot
 
-    def update(self, tokens: Tensor, logits: Tensor, sum_logprobs: Tensor) -> Tuple[Tensor, bool]:
+    def update(self, tokens: Tensor, logits: Tensor, sum_logprobs: Tensor, tokens_probs: list) -> Tuple[Tensor, list, bool]:
         if self.temperature == 0:
             next_tokens = logits.argmax(dim=-1)
         else:
@@ -259,18 +269,24 @@ class GreedyDecoder(TokenDecoder):
 
         logprobs = F.log_softmax(logits.float(), dim=-1)
         current_logprobs = logprobs[torch.arange(logprobs.shape[0]), next_tokens]
+        current_probs = torch.exp(current_logprobs)
         sum_logprobs += current_logprobs * (tokens[:, -1] != self.eot)
 
+        tokens_probs = [t_p + [c_p.item()] for t_p, c_p in zip(tokens_probs, current_probs)]
         next_tokens[tokens[:, -1] == self.eot] = self.eot
         tokens = torch.cat([tokens, next_tokens[:, None]], dim=-1)
 
         completed = (tokens[:, -1] == self.eot).all()
-        return tokens, completed
+        
+        return tokens, tokens_probs, completed
 
-    def finalize(self, tokens: Tensor, sum_logprobs: Tensor):
+    def finalize(self, tokens: Tensor, tokens_probs: list, sum_logprobs: Tensor) -> tuple[Tensor, list, list]:
         # make sure each sequence has at least one EOT token at the end
         tokens = F.pad(tokens, (0, 1), value=self.eot)
-        return tokens, sum_logprobs.tolist()
+        # Pad the tokens_probs as the tokens with eot prob dummy value
+        tokens_probs = [[ t + [1.0] for t in s] for s in tokens_probs]
+
+        return tokens, tokens_probs, sum_logprobs.tolist()
 
 
 class BeamSearchDecoder(TokenDecoder):
@@ -287,7 +303,7 @@ class BeamSearchDecoder(TokenDecoder):
     def reset(self):
         self.finished_sequences = None
 
-    def update(self, tokens: Tensor, logits: Tensor, sum_logprobs: Tensor) -> Tuple[Tensor, bool]:
+    def update(self, tokens: Tensor, logits: Tensor, sum_logprobs: Tensor, tokens_probs: list) -> Tuple[Tensor, list, bool]:
         if tokens.shape[0] % self.beam_size != 0:
             raise ValueError(f"{tokens.shape}[0] % {self.beam_size} != 0")
 
@@ -298,25 +314,33 @@ class BeamSearchDecoder(TokenDecoder):
         logprobs = F.log_softmax(logits.float(), dim=-1)
         next_tokens, source_indices, finished_sequences = [], [], []
         for i in range(n_audio):
-            scores, sources, finished = {}, {}, {}
+            scores, sources, finished, probs = {}, {}, {}, {}
 
             # STEP 1: calculate the cumulative log probabilities for possible candidates
             for j in range(self.beam_size):
                 idx = i * self.beam_size + j
                 prefix = tokens[idx].tolist()
                 for logprob, token in zip(*logprobs[idx].topk(self.beam_size + 1)):
+                    # We keep the probs for each token
+                    prob = torch.exp(logprob).item()
                     new_logprob = (sum_logprobs[idx] + logprob).item()
                     sequence = tuple(prefix + [token.item()])
                     scores[sequence] = new_logprob
                     sources[sequence] = idx
 
+                    # Save tokens probs in order
+                    probs[sequence] = tokens_probs[idx] + [prob]
+
             # STEP 2: rank the candidates and keep the top beam_size sequences for each audio
             saved = 0
             for sequence in sorted(scores, key=scores.get, reverse=True):
                 if sequence[-1] == self.eot:
-                    finished[sequence] = scores[sequence]
+                    # We add both the score and the probs for each token
+                    finished[sequence] = (scores[sequence], probs[sequence])
                 else:
                     sum_logprobs[len(next_tokens)] = scores[sequence]
+                    # Update the tokens probs list (len(next_tokens) is order dependent)
+                    tokens_probs[len(next_tokens)] = probs[sequence]
                     next_tokens.append(sequence)
                     source_indices.append(sources[sequence])
 
@@ -341,16 +365,17 @@ class BeamSearchDecoder(TokenDecoder):
         completed = all(
             len(sequences) >= self.max_candidates for sequences in self.finished_sequences
         )
-        return tokens, completed
 
-    def finalize(self, preceding_tokens: Tensor, sum_logprobs: Tensor):
+        return tokens, tokens_probs, completed
+
+    def finalize(self, preceding_tokens: Tensor, preceding_tokens_prob: list, sum_logprobs: Tensor) -> tuple[list, list, list]:
         # collect all finished sequences, including patience, and add unfinished ones if not enough
         sum_logprobs = sum_logprobs.cpu()
         for i, sequences in enumerate(self.finished_sequences):
             if len(sequences) < self.beam_size:  # when not enough sequences are finished
                 for j in list(np.argsort(sum_logprobs[i]))[::-1]:
                     sequence = preceding_tokens[i, j].tolist() + [self.eot]
-                    sequences[tuple(sequence)] = sum_logprobs[i][j].item()
+                    sequences[tuple(sequence)] = (sum_logprobs[i][j].item(), preceding_tokens_prob[i][j] + [1.0]) # eot dummy prob
                     if len(sequences) >= self.beam_size:
                         break
 
@@ -358,9 +383,13 @@ class BeamSearchDecoder(TokenDecoder):
             [torch.tensor(seq) for seq in sequences.keys()] for sequences in self.finished_sequences
         ]
         sum_logprobs: List[List[float]] = [
-            list(sequences.values()) for sequences in self.finished_sequences
+            [v[0] for v in sequences.values()] for sequences in self.finished_sequences
         ]
-        return tokens, sum_logprobs
+        tokens_probs: list[list[list[float]]] = [
+            [v[1] for v in sequences.values()] for sequences in self.finished_sequences
+        ]
+
+        return tokens, tokens_probs, sum_logprobs
 
 
 class LogitFilter:
@@ -588,6 +617,8 @@ class DecodingTask:
         assert audio_features.shape[0] == tokens.shape[0]
         n_batch = tokens.shape[0]
         sum_logprobs: Tensor = torch.zeros(n_batch, device=audio_features.device)
+        # We keep track of tokens probs
+        tokens_probs: list[list[float]] = [[]] * n_batch
         no_speech_probs = [np.nan] * n_batch
 
         try:
@@ -606,14 +637,15 @@ class DecodingTask:
                     logit_filter.apply(logits, tokens)
 
                 # expand the tokens tensor with the selected next tokens
-                tokens, completed = self.decoder.update(tokens, logits, sum_logprobs)
+                tokens, tokens_probs, completed = self.decoder.update(tokens, logits, sum_logprobs, tokens_probs)
 
                 if completed or tokens.shape[-1] > self.n_ctx:
                     break
         finally:
             self.inference.cleanup_caching()
 
-        return tokens, sum_logprobs, no_speech_probs
+
+        return tokens, sum_logprobs, no_speech_probs, tokens_probs
 
     @torch.no_grad()
     def run(self, mel: Tensor) -> List[DecodingResult]:
@@ -637,7 +669,7 @@ class DecodingTask:
         tokens = tokens.repeat_interleave(self.n_group, dim=0).to(audio_features.device)
 
         # call the main sampling loop
-        tokens, sum_logprobs, no_speech_probs = self._main_loop(audio_features, tokens)
+        tokens, sum_logprobs, no_speech_probs, tokens_probs = self._main_loop(audio_features, tokens)
 
         # reshape the tensors to have (n_audio, n_group) as the first two dimensions
         audio_features = audio_features[:: self.n_group]
@@ -646,22 +678,32 @@ class DecodingTask:
 
         tokens = tokens.reshape(n_audio, self.n_group, -1)
         sum_logprobs = sum_logprobs.reshape(n_audio, self.n_group)
+        tokens_probs: list[list[list[float]]] = [
+            [tokens_probs[i * self.n_group + j] for j in range(self.n_group)] for i in range(n_audio)
+        ]
 
         # get the final candidates for each group, and slice between the first sampled token and EOT
-        tokens, sum_logprobs = self.decoder.finalize(tokens, sum_logprobs)
+        tokens, tokens_probs, sum_logprobs = self.decoder.finalize(tokens, tokens_probs, sum_logprobs)
+        
+        # Remove eot tokens
         tokens: List[List[Tensor]] = [
             [t[self.sample_begin : (t == tokenizer.eot).nonzero()[0, 0]] for t in s] for s in tokens
+        ]
+        # Remove eot tokens probs
+        tokens_probs: list[list[list[float]]] = [
+            [probs[:tokens.shape[0]]for probs, tokens in zip(s, t)] for s, t in zip(tokens_probs, tokens)
         ]
 
         # select the top-ranked sample in each group
         selected = self.sequence_ranker.rank(tokens, sum_logprobs)
         tokens: List[List[int]] = [t[i].tolist() for i, t in zip(selected, tokens)]
+        tokens_probs: list[list[float]] = [t_p[i] for i, t_p in zip(selected, tokens_probs)]
         texts: List[str] = [tokenizer.decode(t).strip() for t in tokens]
 
         sum_logprobs: List[float] = [lp[i] for i, lp in zip(selected, sum_logprobs)]
         avg_logprobs: List[float] = [lp / (len(t) + 1) for t, lp in zip(tokens, sum_logprobs)]
 
-        fields = (texts, languages, tokens, audio_features, avg_logprobs, no_speech_probs)
+        fields = (texts, languages, tokens, tokens_probs, audio_features, avg_logprobs, no_speech_probs)
         if len(set(map(len, fields))) != 1:
             raise RuntimeError(f"inconsistent result lengths: {list(map(len, fields))}")
 
@@ -670,13 +712,14 @@ class DecodingTask:
                 audio_features=features,
                 language=language,
                 tokens=tokens,
+                tokens_probs=tokens_probs,
                 text=text,
                 avg_logprob=avg_logprob,
                 no_speech_prob=no_speech_prob,
                 temperature=self.options.temperature,
                 compression_ratio=compression_ratio(text),
             )
-            for text, language, tokens, features, avg_logprob, no_speech_prob in zip(*fields)
+            for text, language, tokens, tokens_probs, features, avg_logprob, no_speech_prob in zip(*fields)
         ]
 
 
