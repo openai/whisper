@@ -256,10 +256,6 @@ def transcribe(
                 current_tokens.append(tokens.tolist())
                 seek += segment_size
 
-            if not condition_on_previous_text or result.temperature > 0.5:
-                # do not feed the prompt tokens if a high temperature was used
-                prompt_reset_since = len(all_tokens)
-
             if word_timestamps:
                 add_word_timestamps(
                     segments=current_segments,
@@ -292,6 +288,12 @@ def transcribe(
 
             all_segments.extend(current_segments)
             all_tokens.extend([token for segment in current_tokens for token in segment])
+
+            #Calculate the prompt_reset_since after all tokens have been extended to respect
+            #condition_on_previous_text
+            if not condition_on_previous_text or result.temperature > 0.5:
+                # do not feed the prompt tokens if a high temperature was used
+                prompt_reset_since = len(all_tokens)
 
             # update progress bar
             pbar.update(min(num_frames, seek) - previous_seek)
