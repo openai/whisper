@@ -88,7 +88,7 @@ The default setting (which selects the `small` model) works well for transcribin
 
 Adding `--task translate` will translate the speech into English:
 
-    whisper japanese.wav --language Japanese --task translate
+    whisper japanese.wav --language English --task translate
 
 Run the following to view all available options:
 
