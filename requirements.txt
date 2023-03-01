@@ -1,5 +1,4 @@
 numpy
---extra-index-url https://download.pytorch.org/whl/cu117
 torch
 tqdm
 more-itertools
