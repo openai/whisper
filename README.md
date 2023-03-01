@@ -90,6 +90,10 @@ Adding `--task translate` will translate the speech into English:
 
     whisper japanese.wav --language Japanese --task translate
 
+Adding `--task transliterate` will transliterate the speech into English:
+
+    whisper japanese.wav --language Japanese --task transliterate
+
 Run the following to view all available options:
 
     whisper --help
