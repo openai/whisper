@@ -1,7 +1,0 @@
-numpy
---extra-index-url https://download.pytorch.org/whl/cu117
-torch
-tqdm
-more-itertools
-transformers>=4.19.0
-ffmpeg-python==0.2.0
