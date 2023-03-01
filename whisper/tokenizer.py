@@ -267,6 +267,7 @@ def build_tokenizer(name: str = "gpt2"):
     specials = [
         "<|startoftranscript|>",
         *[f"<|{lang}|>" for lang in LANGUAGES.keys()],
+        "<|transliterate|>",
         "<|translate|>",
         "<|transcribe|>",
         "<|startoflm|>",
@@ -283,7 +284,7 @@ def build_tokenizer(name: str = "gpt2"):
 def get_tokenizer(
     multilingual: bool,
     *,
-    task: Optional[str] = None,  # Literal["transcribe", "translate", None]
+    task: Optional[str] = None,  # Literal["transcribe", "translate", "transliterate", None]
     language: Optional[str] = None,
 ) -> Tokenizer:
     if language is not None:
@@ -306,6 +307,7 @@ def get_tokenizer(
     tokenizer = build_tokenizer(name=tokenizer_name)
     all_special_ids: List[int] = tokenizer.all_special_ids
     sot: int = all_special_ids[1]
+    transliterate = all_special_ids[-7]
     translate: int = all_special_ids[-6]
     transcribe: int = all_special_ids[-5]
 
@@ -314,6 +316,13 @@ def get_tokenizer(
     if language is not None:
         sot_sequence.append(sot + 1 + langs.index(language))
     if task is not None:
-        sot_sequence.append(transcribe if task == "transcribe" else translate)
+        if task == "transcribe":
+            sot_sequence.append(transcribe)
+        elif task == "transliterate":
+            sot_sequence.append(transliterate)
+        else:
+            sot_sequence.append(translate)
+
+    sot_sequence.append(transcribe if task == "transcribe" else translate)
 
     return Tokenizer(tokenizer=tokenizer, language=language, sot_sequence=tuple(sot_sequence))
