@@ -323,6 +323,4 @@ def get_tokenizer(
         else:
             sot_sequence.append(translate)
 
-    sot_sequence.append(transcribe if task == "transcribe" else translate)
-
     return Tokenizer(tokenizer=tokenizer, language=language, sot_sequence=tuple(sot_sequence))
