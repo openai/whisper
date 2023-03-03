@@ -63,9 +63,13 @@ def transcribe(
         if True, the previous output of the model is provided as a prompt for the next window;
         disabling may make the text inconsistent across windows, but the model becomes less prone to
         getting stuck in a failure loop, such as repetition looping or timestamps going out of sync.
+    
+    progress_callback: Callable[[float], None]
+        If provided, a function that will be called during the transcription process
+        with float argument: current progress / total progress.      
 
     decode_options: dict
-        Keyword arguments to construct `DecodingOptions` instances
+        Keyword arguments to construct `DecodingOptions` instances  
 
     Returns
     -------
