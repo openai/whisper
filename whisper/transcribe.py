@@ -1,5 +1,6 @@
 import argparse
 import os
+import sys
 import warnings
 from typing import Optional, Tuple, Union, TYPE_CHECKING
 
@@ -96,6 +97,9 @@ def transcribe(
             if verbose is not None:
                 print(f"Detected language: {LANGUAGES[decode_options['language']].title()}")
 
+    if verbose:
+       sys.stdout.reconfigure(encoding='utf-8')
+       
     language = decode_options["language"]
     task = decode_options.get("task", "transcribe")
     tokenizer = get_tokenizer(model.is_multilingual, language=language, task=task)
