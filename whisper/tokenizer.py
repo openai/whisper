@@ -162,6 +162,14 @@ class Tokenizer:
         return self.tokenizer.eos_token_id
 
     @cached_property
+    def transcribe(self) -> int:
+        return self._get_single_token_id("<|transcribe|>")
+
+    @cached_property
+    def translate(self) -> int:
+        return self._get_single_token_id("<|translate|>")
+
+    @cached_property
     def sot(self) -> int:
         return self._get_single_token_id("<|startoftranscript|>")
 
