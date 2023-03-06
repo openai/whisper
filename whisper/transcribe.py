@@ -146,7 +146,7 @@ def transcribe(
         initial_prompt_tokens = []
 
     def add_segment(
-        *, start: float, end: float, text_tokens: torch.Tensor, result: DecodingResult
+        *, start: float, end: float, text_tokens: torch.Tensor, tokens_probs: list[list[float]], result: DecodingResult
     ):
         text = tokenizer.decode([token for token in text_tokens if token < tokenizer.eot])
         if len(text.strip()) == 0:  # skip empty text output
@@ -160,6 +160,7 @@ def transcribe(
                 "end": end,
                 "text": text,
                 "tokens": text_tokens.tolist(),
+                "tokens_probs": tokens_probs,
                 "temperature": result.temperature,
                 "avg_logprob": result.avg_logprob,
                 "compression_ratio": result.compression_ratio,
@@ -208,6 +209,7 @@ def transcribe(
                         start=timestamp_offset + start_timestamp_pos * time_precision,
                         end=timestamp_offset + end_timestamp_pos * time_precision,
                         text_tokens=sliced_tokens[1:-1],
+                        tokens_probs=result.tokens_probs[last_slice + 1:current_slice - 1],
                         result=result,
                     )
                     last_slice = current_slice
@@ -231,6 +233,7 @@ def transcribe(
                     start=timestamp_offset,
                     end=timestamp_offset + duration,
                     text_tokens=tokens,
+                    tokens_probs=result.tokens_probs,
                     result=result,
                 )
 
