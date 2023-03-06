@@ -200,7 +200,7 @@ class Tokenizer:
     def language_token(self) -> int:
         """Returns the token id corresponding to the value of the `language` field"""
         if self.language is None:
-            raise ValueError(f"This tokenizer does not have language token configured")
+            raise ValueError("This tokenizer does not have language token configured")
 
         additional_tokens = dict(
             zip(

@@ -1,5 +1,3 @@
-import math
-
 import numpy as np
 import torch
 from functools import lru_cache
@@ -51,14 +49,14 @@ def median_kernel(filter_width: int):
         offsets = tl.arange(0, BLOCK_SIZE)
         mask = offsets < y_stride
 
-        x_ptr = x + row_idx * x_stride
+        x_ptr = x + row_idx * x_stride  # noqa: F841
         y_ptr = y + row_idx * y_stride
 
-        LOAD_ALL_ROWS_HERE
+        LOAD_ALL_ROWS_HERE  # noqa: F821
 
-        BUBBLESORT_HERE
+        BUBBLESORT_HERE  # noqa: F821
 
-        tl.store(y_ptr + offsets, MIDDLE_ROW_HERE, mask=mask)
+        tl.store(y_ptr + offsets, MIDDLE_ROW_HERE, mask=mask)  # noqa: F821
 
     kernel = triton.JITFunction(kernel.fn)
     kernel.src = kernel.src.replace(

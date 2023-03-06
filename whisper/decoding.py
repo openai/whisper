@@ -38,7 +38,7 @@ def detect_language(
         or tokenizer.language_token not in tokenizer.sot_sequence
     ):
         raise ValueError(
-            f"This model doesn't have language tokens so it can't perform lang id"
+            "This model doesn't have language tokens so it can't perform lang id"
         )
 
     single = mel.ndim == 2
