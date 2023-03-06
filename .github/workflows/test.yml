@@ -21,6 +21,8 @@ jobs:
       - run: conda install -n test ffmpeg python=${{ matrix.python-version }} pytorch=${{ matrix.pytorch-version }} cpuonly -c pytorch
       - uses: actions/checkout@v2
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
-      - run: pip install pytest
-      - run: pip install .
-      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]'
+      - run: pip install .["dev"]
+      - run: black --check --diff -t py38 --include '(\.pyi?)$' .
+      - run: isort --check --diff .
+      - run: flake8 --ignore E203,W503,W504,E501,E731,E741 .
+      - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
