@@ -85,34 +85,63 @@ class WriteTXT(ResultWriter):
             print(segment['text'].strip(), file=file, flush=True)
 
 
-class WriteVTT(ResultWriter):
+class SubtitlesWriter(ResultWriter):
+    always_include_hours: bool
+    decimal_marker: str
+
+    def iterate_result(self, result: dict):
+        for segment in result["segments"]:
+            segment_start = self.format_timestamp(segment["start"])
+            segment_end = self.format_timestamp(segment["end"])
+            segment_text = segment['text'].strip().replace('-->', '->')
+
+            if word_timings := segment.get("words", None):
+                all_words = [timing["word"] for timing in word_timings]
+                all_words[0] = all_words[0].strip()  # remove the leading space, if any
+                last = segment_start
+                for i, this_word in enumerate(word_timings):
+                    start = self.format_timestamp(this_word["start"])
+                    end = self.format_timestamp(this_word["end"])
+                    if last != start:
+                        yield last, start, segment_text
+
+                    yield start, end, "".join(
+                        [f"<u>{word}</u>" if j == i else word for j, word in enumerate(all_words)]
+                    )
+                    last = end
+
+                if last != segment_end:
+                    yield last, segment_end, segment_text
+            else:
+                yield segment_start, segment_end, segment_text
+
+    def format_timestamp(self, seconds: float):
+        return format_timestamp(
+            seconds=seconds,
+            always_include_hours=self.always_include_hours,
+            decimal_marker=self.decimal_marker,
+        )
+
+
+class WriteVTT(SubtitlesWriter):
     extension: str = "vtt"
+    always_include_hours: bool = False
+    decimal_marker: str = '.'
 
     def write_result(self, result: dict, file: TextIO):
         print("WEBVTT\n", file=file)
-        for segment in result["segments"]:
-            print(
-                f"{format_timestamp(segment['start'])} --> {format_timestamp(segment['end'])}\n"
-                f"{segment['text'].strip().replace('-->', '->')}\n",
-                file=file,
-                flush=True,
-            )
+        for start, end, text in self.iterate_result(result):
+            print(f"{start} --> {end}\n{text}\n", file=file, flush=True)
 
 
-class WriteSRT(ResultWriter):
+class WriteSRT(SubtitlesWriter):
     extension: str = "srt"
+    always_include_hours: bool = True
+    decimal_marker: str = ','
 
     def write_result(self, result: dict, file: TextIO):
-        for i, segment in enumerate(result["segments"], start=1):
-            # write srt lines
-            print(
-                f"{i}\n"
-                f"{format_timestamp(segment['start'], always_include_hours=True, decimal_marker=',')} --> "
-                f"{format_timestamp(segment['end'], always_include_hours=True, decimal_marker=',')}\n"
-                f"{segment['text'].strip().replace('-->', '->')}\n",
-                file=file,
-                flush=True,
-            )
+        for i, (start, end, text) in enumerate(self.iterate_result(result), start=1):
+            print(f"{i}\n{start} --> {end}\n{text}\n", file=file, flush=True)
 
 
 class WriteTSV(ResultWriter):

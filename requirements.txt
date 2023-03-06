@@ -1,3 +1,4 @@
+numba
 numpy
 torch
 tqdm
