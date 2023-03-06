@@ -16,7 +16,10 @@ if sys.platform.startswith("linux"):
     try:
         import re
         import subprocess
-        version_line = subprocess.check_output(["nvcc", "--version"]).strip().split(b"\n")[-1]
+
+        version_line = (
+            subprocess.check_output(["nvcc", "--version"]).strip().split(b"\n")[-1]
+        )
         major, minor = re.findall(rb"([\d]+)\.([\d]+)", version_line)[0]
         if (int(major), int(minor)) < (11, 4):
             # the last version supporting CUDA < 11.4
@@ -38,7 +41,8 @@ setup(
     url="https://github.com/openai/whisper",
     license="MIT",
     packages=find_packages(exclude=["tests*"]),
-    install_requires=requirements + [
+    install_requires=requirements
+    + [
         str(r)
         for r in pkg_resources.parse_requirements(
             open(os.path.join(os.path.dirname(__file__), "requirements.txt"))
@@ -48,5 +52,5 @@ setup(
         "console_scripts": ["whisper=whisper.transcribe:cli"],
     },
     include_package_data=True,
-    extras_require={"dev": ["pytest", "scipy"]},
+    extras_require={"dev": ["pytest", "scipy", "black"]},
 )

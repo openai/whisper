@@ -13,7 +13,9 @@ def test_transcribe(model_name: str):
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
 
     language = "en" if model_name.endswith(".en") else None
-    result = model.transcribe(audio_path, language=language, temperature=0.0, word_timestamps=True)
+    result = model.transcribe(
+        audio_path, language=language, temperature=0.0, word_timestamps=True
+    )
     assert result["language"] == "en"
 
     transcription = result["text"].lower()
