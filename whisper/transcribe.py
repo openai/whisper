@@ -235,7 +235,7 @@ def transcribe(
 
                 if ended_with_single_timestamp:
                     # single timestamp at the end means no speech after the last timestamp.
-                    seek += segment.shape[-1]
+                    seek += segment_size
                 else:
                     # otherwise, ignore the unfinished segment and seek to the last timestamp
                     last_timestamp_pos = tokens[last_slice - 1].item() - tokenizer.timestamp_begin
