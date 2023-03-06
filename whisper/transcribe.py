@@ -1,32 +1,19 @@
 import argparse
 import os
 import warnings
-from typing import Optional, Tuple, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import tqdm
 
-from .audio import (
-    HOP_LENGTH,
-    N_FRAMES,
-    SAMPLE_RATE,
-    FRAMES_PER_SECOND,
-    log_mel_spectrogram,
-    pad_or_trim,
-)
+from .audio import (FRAMES_PER_SECOND, HOP_LENGTH, N_FRAMES, SAMPLE_RATE,
+                    log_mel_spectrogram, pad_or_trim)
 from .decoding import DecodingOptions, DecodingResult
 from .timing import add_word_timestamps
 from .tokenizer import LANGUAGES, TO_LANGUAGE_CODE, get_tokenizer
-from .utils import (
-    exact_div,
-    format_timestamp,
-    make_safe,
-    optional_int,
-    optional_float,
-    str2bool,
-    get_writer,
-)
+from .utils import (exact_div, format_timestamp, get_writer, make_safe,
+                    optional_float, optional_int, str2bool)
 
 if TYPE_CHECKING:
     from .model import Whisper

@@ -2,7 +2,7 @@ import os
 import sys
 
 import pkg_resources
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 
 def read_version(fname="whisper/version.py"):
@@ -52,5 +52,5 @@ setup(
         "console_scripts": ["whisper=whisper.transcribe:cli"],
     },
     include_package_data=True,
-    extras_require={"dev": ["pytest", "scipy", "black", "flake8"]},
+    extras_require={"dev": ["pytest", "scipy", "black", "flake8", "isort"]},
 )

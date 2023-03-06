@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple, Iterable, Optional, Sequence, Union, TYPE_CHECKING
+from typing import (TYPE_CHECKING, Dict, Iterable, List, Optional, Sequence,
+                    Tuple, Union)
 
 import numpy as np
 import torch

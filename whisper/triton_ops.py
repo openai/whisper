@@ -1,6 +1,7 @@
+from functools import lru_cache
+
 import numpy as np
 import torch
-from functools import lru_cache
 
 try:
     import triton

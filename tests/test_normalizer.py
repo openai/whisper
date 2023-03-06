@@ -1,10 +1,8 @@
 import pytest
 
 from whisper.normalizers import EnglishTextNormalizer
-from whisper.normalizers.english import (
-    EnglishNumberNormalizer,
-    EnglishSpellingNormalizer,
-)
+from whisper.normalizers.english import (EnglishNumberNormalizer,
+                                         EnglishSpellingNormalizer)
 
 
 @pytest.mark.parametrize("std", [EnglishNumberNormalizer(), EnglishTextNormalizer()])

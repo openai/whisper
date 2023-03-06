@@ -1,10 +1,9 @@
-import pytest
 import numpy as np
+import pytest
 import scipy.ndimage
 import torch
 
 from whisper.timing import dtw_cpu, dtw_cuda, median_filter
-
 
 sizes = [
     (10, 20),
