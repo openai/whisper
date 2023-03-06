@@ -549,7 +549,13 @@ class DecodingTask:
             assert isinstance(suppress_tokens, list), "suppress_tokens must be a list"
 
         suppress_tokens.extend(
-            [self.tokenizer.sot, self.tokenizer.sot_prev, self.tokenizer.sot_lm]
+            [
+                self.tokenizer.transcribe,
+                self.tokenizer.translate,
+                self.tokenizer.sot,
+                self.tokenizer.sot_prev,
+                self.tokenizer.sot_lm
+            ]
         )
         if self.tokenizer.no_speech is not None:
             # no-speech probability is collected separately
