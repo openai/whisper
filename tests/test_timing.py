@@ -1,16 +1,21 @@
-import pytest
 import numpy as np
+import pytest
 import scipy.ndimage
 import torch
 
 from whisper.timing import dtw_cpu, dtw_cuda, median_filter
 
-
 sizes = [
-    (10, 20), (32, 16), (123, 1500), (234, 189),
+    (10, 20),
+    (32, 16),
+    (123, 1500),
+    (234, 189),
 ]
 shapes = [
-    (10,), (1, 15),  (4, 5, 345), (6, 12, 240, 512),
+    (10,),
+    (1, 15),
+    (4, 5, 345),
+    (6, 12, 240, 512),
 ]
 
 
@@ -68,8 +73,12 @@ def test_median_filter(shape):
 
         # using np.pad to reflect-pad, because Scipy's behavior is different near the edges.
         pad_width = filter_width // 2
-        padded_x = np.pad(x, [(0, 0)] * (x.ndim - 1) + [(pad_width, pad_width)], mode="reflect")
-        scipy_filtered = scipy.ndimage.median_filter(padded_x, [1] * (x.ndim - 1) + [filter_width])
+        padded_x = np.pad(
+            x, [(0, 0)] * (x.ndim - 1) + [(pad_width, pad_width)], mode="reflect"
+        )
+        scipy_filtered = scipy.ndimage.median_filter(
+            padded_x, [1] * (x.ndim - 1) + [filter_width]
+        )
         scipy_filtered = scipy_filtered[..., pad_width:-pad_width]
 
         assert np.allclose(filtered, scipy_filtered)
