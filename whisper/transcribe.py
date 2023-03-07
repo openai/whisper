@@ -246,20 +246,18 @@ def transcribe(
             current_tokens = []
 
             timestamp_tokens: torch.Tensor = tokens.ge(tokenizer.timestamp_begin)
-            consecutive = torch.where(timestamp_tokens[:-1] & timestamp_tokens[1:])[
-                0
-            ].add_(1)
-            if (
-                len(consecutive) > 0
-            ):  # if the output contains two consecutive timestamp tokens
-                if ended_with_single_timestamp := timestamp_tokens[-2:].tolist() == [
-                    False,
-                    True,
-                ]:
-                    consecutive = consecutive.tolist() + [len(tokens)]
+            single_timestamp_ending = timestamp_tokens[-2:].tolist() == [False, True]
+
+            consecutive = torch.where(timestamp_tokens[:-1] & timestamp_tokens[1:])[0]
+            consecutive.add_(1)
+            if len(consecutive) > 0:
+                # if the output contains two consecutive timestamp tokens
+                slices = consecutive.tolist()
+                if single_timestamp_ending:
+                    slices.append(len(tokens))
 
                 last_slice = 0
-                for current_slice in consecutive:
+                for current_slice in slices:
                     sliced_tokens = tokens[last_slice:current_slice]
                     start_timestamp_pos = (
                         sliced_tokens[0].item() - tokenizer.timestamp_begin
@@ -278,7 +276,7 @@ def transcribe(
                     current_tokens.append(sliced_tokens.tolist())
                     last_slice = current_slice
 
-                if ended_with_single_timestamp:
+                if single_timestamp_ending:
                     # single timestamp at the end means no speech after the last timestamp.
                     seek += segment_size
                 else:
@@ -329,7 +327,7 @@ def transcribe(
                 word_end_timestamps = [
                     w["end"] for s in current_segments for w in s["words"]
                 ]
-                if len(consecutive) > 0 and len(word_end_timestamps) > 0:
+                if not single_timestamp_ending and len(word_end_timestamps) > 0:
                     seek_shift = round(
                         (word_end_timestamps[-1] - time_offset) * FRAMES_PER_SECOND
                     )
