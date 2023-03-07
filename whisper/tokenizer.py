@@ -129,14 +129,14 @@ TO_LANGUAGE_CODE = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass
 class Tokenizer:
     """A thin wrapper around `GPT2TokenizerFast` providing quick access to special tokens"""
 
     encoding: tiktoken.Encoding
     language: Optional[str] = None
     task: Optional[str] = None
-    sot_sequence: List[int] = field(default_factory=list)
+    sot_sequence: Tuple[int] = ()
     special_tokens: Dict[str, int] = field(default_factory=dict)
 
     def __post_init__(self):
@@ -149,12 +149,14 @@ class Tokenizer:
         transcribe: int = self.special_tokens["<|transcribe|>"]
 
         langs = tuple(LANGUAGES.keys())
-        self.sot_sequence.append(sot)
+        sot_sequence = [sot]
         if self.language is not None:
-            self.sot_sequence.append(sot + 1 + langs.index(self.language))
+            sot_sequence.append(sot + 1 + langs.index(self.language))
         if self.task is not None:
             task_token: int = transcribe if self.task == "transcribe" else translate
-            self.sot_sequence.append(task_token)
+            sot_sequence.append(task_token)
+
+        self.sot_sequence = tuple(sot_sequence)
 
     def encode(self, text, **kwargs):
         return self.encoding.encode(text, **kwargs)
