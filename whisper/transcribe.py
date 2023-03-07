@@ -555,6 +555,7 @@ def cli():
     output_format: str = args.pop("output_format")
     device: str = args.pop("device")
     os.makedirs(output_dir, exist_ok=True)
+    writer = get_writer(output_format, output_dir)
 
     if model_name.endswith(".en") and args["language"] not in {"en", "English"}:
         if args["language"] is not None:
@@ -576,7 +577,6 @@ def cli():
 
     model = load_model(model_name, device=device, download_root=model_dir)
 
-    writer = get_writer(output_format, output_dir)
     word_options = [
         "highlight_words",
         "max_line_count",
