@@ -134,8 +134,8 @@ class Tokenizer:
     """A thin wrapper around `GPT2TokenizerFast` providing quick access to special tokens"""
 
     encoding: tiktoken.Encoding
-    task: str
-    language: Optional[str]
+    language: Optional[str] = None
+    task: Optional[str] = None
     sot_sequence: List[int] = field(default_factory=list)
     special_tokens: Dict[str, int] = field(default_factory=dict)
 
@@ -364,8 +364,8 @@ def get_encoding(name: str = "gpt2"):
 def get_tokenizer(
     multilingual: bool,
     *,
-    task: Optional[str] = None,  # Literal["transcribe", "translate", None]
     language: Optional[str] = None,
+    task: Optional[str] = None,  # Literal["transcribe", "translate", None]
 ) -> Tokenizer:
     if language is not None:
         language = language.lower()
@@ -377,17 +377,13 @@ def get_tokenizer(
 
     if multilingual:
         encoding_name = "multilingual"
-        task = task or "transcribe"
         language = language or "en"
+        task = task or "transcribe"
     else:
         encoding_name = "gpt2"
-        task = None
         language = None
+        task = None
 
     encoding = get_encoding(name=encoding_name)
 
-    return Tokenizer(
-        encoding=encoding,
-        task=task,
-        language=language,
-    )
+    return Tokenizer(encoding=encoding, language=language, task=task)
