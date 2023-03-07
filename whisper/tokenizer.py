@@ -1,12 +1,14 @@
 import os
 import string
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cached_property, lru_cache
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
+import tiktoken
 import torch
-from transformers import GPT2TokenizerFast
+from tiktoken.load import load_tiktoken_bpe
+from tiktoken_ext.openai_public import gpt2
 
 LANGUAGES = {
     "en": "english",
@@ -131,17 +133,41 @@ TO_LANGUAGE_CODE = {
 class Tokenizer:
     """A thin wrapper around `GPT2TokenizerFast` providing quick access to special tokens"""
 
-    tokenizer: "GPT2TokenizerFast"
+    encoding: tiktoken.Encoding
+    task: str
     language: Optional[str]
-    sot_sequence: Tuple[int]
+    sot_sequence: List[int] = field(default_factory=list)
+    special_tokens: Dict[str, int] = field(default_factory=dict)
+
+    def __post_init__(self):
+        for special in self.encoding.special_tokens_set:
+            special_token = self.encoding.encode_single_token(special)
+            self.special_tokens[special] = special_token
+
+        sot: int = self.special_tokens["<|startoftranscript|>"]
+        translate: int = self.special_tokens["<|translate|>"]
+        transcribe: int = self.special_tokens["<|transcribe|>"]
+
+        langs = tuple(LANGUAGES.keys())
+        self.sot_sequence.append(sot)
+        if self.language is not None:
+            self.sot_sequence.append(sot + 1 + langs.index(self.language))
+        if self.task is not None:
+            task_token: int = transcribe if self.task == "transcribe" else translate
+            self.sot_sequence.append(task_token)
 
     def encode(self, text, **kwargs):
-        return self.tokenizer.encode(text, **kwargs)
+        return self.encoding.encode(text, **kwargs)
 
     def decode(
         self, token_ids: Union[int, List[int], np.ndarray, torch.Tensor], **kwargs
     ):
-        return self.tokenizer.decode(token_ids, **kwargs)
+        if isinstance(token_ids, int):
+            token_ids = [token_ids]
+        if isinstance(token_ids, (torch.Tensor, np.ndarray)):
+            token_ids = token_ids.tolist()
+        token_ids = [t for t in token_ids if t < self.timestamp_begin]
+        return self.encoding.decode(token_ids, **kwargs)
 
     def decode_with_timestamps(self, tokens) -> str:
         """
@@ -157,44 +183,44 @@ class Tokenizer:
             else:
                 outputs[-1].append(token)
         return "".join(
-            [s if isinstance(s, str) else self.tokenizer.decode(s) for s in outputs]
+            [s if isinstance(s, str) else self.encoding.decode(s) for s in outputs]
         )
 
     @cached_property
     def eot(self) -> int:
-        return self.tokenizer.eos_token_id
+        return self.encoding.eot_token
 
     @cached_property
     def transcribe(self) -> int:
-        return self._get_single_token_id("<|transcribe|>")
+        return self.special_tokens["<|transcribe|>"]
 
     @cached_property
     def translate(self) -> int:
-        return self._get_single_token_id("<|translate|>")
+        return self.special_tokens["<|translate|>"]
 
     @cached_property
     def sot(self) -> int:
-        return self._get_single_token_id("<|startoftranscript|>")
+        return self.special_tokens["<|startoftranscript|>"]
 
     @cached_property
     def sot_lm(self) -> int:
-        return self._get_single_token_id("<|startoflm|>")
+        return self.special_tokens["<|startoflm|>"]
 
     @cached_property
     def sot_prev(self) -> int:
-        return self._get_single_token_id("<|startofprev|>")
+        return self.special_tokens["<|startofprev|>"]
 
     @cached_property
     def no_speech(self) -> int:
-        return self._get_single_token_id("<|nospeech|>")
+        return self.special_tokens["<|nospeech|>"]
 
     @cached_property
     def no_timestamps(self) -> int:
-        return self._get_single_token_id("<|notimestamps|>")
+        return self.special_tokens["<|notimestamps|>"]
 
     @cached_property
     def timestamp_begin(self) -> int:
-        return self.tokenizer.all_special_ids[-1] + 1
+        return self.encoding.max_token_value + 1
 
     @cached_property
     def language_token(self) -> int:
@@ -202,25 +228,15 @@ class Tokenizer:
         if self.language is None:
             raise ValueError("This tokenizer does not have language token configured")
 
-        additional_tokens = dict(
-            zip(
-                self.tokenizer.additional_special_tokens,
-                self.tokenizer.additional_special_tokens_ids,
-            )
-        )
-        candidate = f"<|{self.language}|>"
-        if candidate in additional_tokens:
-            return additional_tokens[candidate]
+        if token := self.special_tokens.get(f"<|{self.language}|>", None):
+            return token
 
         raise KeyError(f"Language {self.language} not found in tokenizer.")
 
     @cached_property
     def all_language_tokens(self) -> Tuple[int]:
         result = []
-        for token, token_id in zip(
-            self.tokenizer.additional_special_tokens,
-            self.tokenizer.additional_special_tokens_ids,
-        ):
+        for token, token_id in self.special_tokens.items():
             if token.strip("<|>") in LANGUAGES:
                 result.append(token_id)
         return tuple(result)
@@ -258,21 +274,16 @@ class Tokenizer:
         assert all(0x2640 <= ord(c) <= 0x267F for c in miscellaneous)
 
         # allow hyphens "-" and single quotes "'" between words, but not at the beginning of a word
-        result = {self.tokenizer.encode(" -")[0], self.tokenizer.encode(" '")[0]}
+        result = {self.encoding.encode(" -")[0], self.encoding.encode(" '")[0]}
         for symbol in symbols + list(miscellaneous):
             for tokens in [
-                self.tokenizer.encode(symbol),
-                self.tokenizer.encode(" " + symbol),
+                self.encoding.encode(symbol),
+                self.encoding.encode(" " + symbol),
             ]:
                 if len(tokens) == 1 or symbol in miscellaneous:
                     result.add(tokens[0])
 
         return tuple(sorted(result))
-
-    def _get_single_token_id(self, text) -> int:
-        tokens = self.tokenizer.encode(text)
-        assert len(tokens) == 1, f"{text} is not encoded as a single token"
-        return tokens[0]
 
     def split_to_word_tokens(self, tokens: List[int]):
         if self.language in {"zh", "ja", "th", "lo", "my"}:
@@ -318,12 +329,14 @@ class Tokenizer:
 
 
 @lru_cache(maxsize=None)
-def build_tokenizer(name: str = "gpt2"):
-    os.environ["TOKENIZERS_PARALLELISM"] = "false"
-    path = os.path.join(os.path.dirname(__file__), "assets", name)
-    tokenizer = GPT2TokenizerFast.from_pretrained(path)
+def get_encoding(name: str = "gpt2"):
+    vocab_path = os.path.join(os.path.dirname(__file__), "assets", f"{name}.tiktoken")
+    ranks = load_tiktoken_bpe(vocab_path)
+    n_vocab = len(ranks)
+    special_tokens = {}
 
     specials = [
+        "<|endoftext|>",
         "<|startoftranscript|>",
         *[f"<|{lang}|>" for lang in LANGUAGES.keys()],
         "<|translate|>",
@@ -334,8 +347,17 @@ def build_tokenizer(name: str = "gpt2"):
         "<|notimestamps|>",
     ]
 
-    tokenizer.add_special_tokens(dict(additional_special_tokens=specials))
-    return tokenizer
+    for token in specials:
+        special_tokens[token] = n_vocab
+        n_vocab += 1
+
+    return tiktoken.Encoding(
+        name=os.path.basename(vocab_path),
+        explicit_n_vocab=n_vocab,
+        pat_str=gpt2()["pat_str"],
+        mergeable_ranks=ranks,
+        special_tokens=special_tokens,
+    )
 
 
 @lru_cache(maxsize=None)
@@ -354,27 +376,18 @@ def get_tokenizer(
                 raise ValueError(f"Unsupported language: {language}")
 
     if multilingual:
-        tokenizer_name = "multilingual"
+        encoding_name = "multilingual"
         task = task or "transcribe"
         language = language or "en"
     else:
-        tokenizer_name = "gpt2"
+        encoding_name = "gpt2"
         task = None
         language = None
 
-    tokenizer = build_tokenizer(name=tokenizer_name)
-    all_special_ids: List[int] = tokenizer.all_special_ids
-    sot: int = all_special_ids[1]
-    translate: int = all_special_ids[-6]
-    transcribe: int = all_special_ids[-5]
-
-    langs = tuple(LANGUAGES.keys())
-    sot_sequence = [sot]
-    if language is not None:
-        sot_sequence.append(sot + 1 + langs.index(language))
-    if task is not None:
-        sot_sequence.append(transcribe if task == "transcribe" else translate)
+    encoding = get_encoding(name=encoding_name)
 
     return Tokenizer(
-        tokenizer=tokenizer, language=language, sot_sequence=tuple(sot_sequence)
+        encoding=encoding,
+        task=task,
+        language=language,
     )
