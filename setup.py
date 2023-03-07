@@ -1,4 +1,5 @@
 import os
+import platform
 import sys
 
 import pkg_resources
@@ -11,8 +12,8 @@ def read_version(fname="whisper/version.py"):
 
 
 requirements = []
-if sys.platform.startswith("linux"):
-    triton_requirement = "triton>=2.0.0.dev20221202"
+if sys.platform.startswith("linux") and platform.machine() == "x86_64":
+    triton_requirement = "triton==2.0.0"
     try:
         import re
         import subprocess
