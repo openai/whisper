@@ -540,7 +540,7 @@ def cli():
     parser.add_argument("--suppress_tokens", type=str, default="-1", help="comma-separated list of token ids to suppress during sampling; '-1' will suppress most special characters except common punctuations")
     parser.add_argument("--initial_prompt", type=str, default=None, help="optional text to provide as a prompt for the first window.")
     parser.add_argument("--condition_on_previous_text", type=str2bool, default=True, help="if True, provide the previous output of the model as a prompt for the next window; disabling may make the text inconsistent across windows, but the model becomes less prone to getting stuck in a failure loop")
-    parser.add_argument("--always_use_initial_prompt", type=str2bool, default=False, help="if True, the initial_prompt will be used to all windows, and condition_on_previous_text will be ignored. Enabling this may make the text more consistent if if the audio is long and you set the initial_prompt properly.")
+    parser.add_argument("--always_use_initial_prompt", type=str2bool, default=False, help="if True, the initial_prompt will be used to all windows, and condition_on_previous_text will be ignored. Enabling this may make the text more consistent if the audio is long and you set the initial_prompt properly.")
     parser.add_argument("--fp16", type=str2bool, default=True, help="whether to perform inference in fp16; True by default")
 
     parser.add_argument("--temperature_increment_on_fallback", type=optional_float, default=0.2, help="temperature to increase when falling back when the decoding fails to meet either of the thresholds below")
