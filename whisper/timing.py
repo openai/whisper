@@ -290,7 +290,7 @@ def add_word_timestamps(
     if len(segments) == 0:
         return
 
-    text_tokens = [t for segment in segments for t in segment["tokens"]]
+    text_tokens = [t for s in segments for t in s["tokens"] if t < tokenizer.eot]
     alignment = find_alignment(model, tokenizer, text_tokens, mel, num_frames, **kwargs)
     merge_punctuations(alignment, prepend_punctuations, append_punctuations)
 
