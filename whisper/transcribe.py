@@ -11,6 +11,7 @@ from .audio import (
     FRAMES_PER_SECOND,
     HOP_LENGTH,
     N_FRAMES,
+    N_SAMPLES,
     SAMPLE_RATE,
     log_mel_spectrogram,
     pad_or_trim,
@@ -116,7 +117,9 @@ def transcribe(
     if dtype == torch.float32:
         decode_options["fp16"] = False
 
-    mel = log_mel_spectrogram(audio)
+    # Pad 30-seconds of silence to the input audio, for slicing
+    mel = log_mel_spectrogram(audio, padding=N_SAMPLES)
+    content_frames = mel.shape[-1] - N_FRAMES
 
     if decode_options.get("language", None) is None:
         if not model.is_multilingual:
@@ -212,19 +215,19 @@ def transcribe(
         }
 
     # show the progress bar when verbose is False (if True, transcribed text will be printed)
-    num_frames = mel.shape[-1]
     with tqdm.tqdm(
-        total=num_frames, unit="frames", disable=verbose is not False
+        total=content_frames, unit="frames", disable=verbose is not False
     ) as pbar:
-        while seek < num_frames:
+        while seek < content_frames:
             time_offset = float(seek * HOP_LENGTH / SAMPLE_RATE)
-            mel_segment = mel[:, seek:]
-            segment_size = min(mel_segment.shape[-1], N_FRAMES)
+            mel_segment = mel[:, seek:seek + N_FRAMES]
+            segment_size = min(N_FRAMES, content_frames - seek)
             segment_duration = segment_size * HOP_LENGTH / SAMPLE_RATE
             mel_segment = pad_or_trim(mel_segment, N_FRAMES).to(model.device).to(dtype)
 
             decode_options["prompt"] = all_tokens[prompt_reset_since:]
             result: DecodingResult = decode_with_fallback(mel_segment)
+            print(f"{tokenizer.decode_with_timestamps(result.tokens)}")
             tokens = torch.tensor(result.tokens)
 
             if no_speech_threshold is not None:
@@ -354,7 +357,7 @@ def transcribe(
             )
 
             # update progress bar
-            pbar.update(min(num_frames, seek) - previous_seek)
+            pbar.update(min(content_frames, seek) - previous_seek)
 
     return dict(
         text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
