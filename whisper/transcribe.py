@@ -227,7 +227,6 @@ def transcribe(
 
             decode_options["prompt"] = all_tokens[prompt_reset_since:]
             result: DecodingResult = decode_with_fallback(mel_segment)
-            print(f"{tokenizer.decode_with_timestamps(result.tokens)}")
             tokens = torch.tensor(result.tokens)
 
             if no_speech_threshold is not None:
