@@ -220,7 +220,7 @@ def transcribe(
     ) as pbar:
         while seek < content_frames:
             time_offset = float(seek * HOP_LENGTH / SAMPLE_RATE)
-            mel_segment = mel[:, seek:seek + N_FRAMES]
+            mel_segment = mel[:, seek : seek + N_FRAMES]
             segment_size = min(N_FRAMES, content_frames - seek)
             segment_duration = segment_size * HOP_LENGTH / SAMPLE_RATE
             mel_segment = pad_or_trim(mel_segment, N_FRAMES).to(model.device).to(dtype)
