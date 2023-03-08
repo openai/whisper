@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [v20230308](https://github.com/openai/whisper/releases/tag/v20230308)
+
+* kwargs in decode() for convenience ([#1061](https://github.com/openai/whisper/pull/1061))
+* fix all_tokens handling that caused more repetitions and discrepancy in JSON ([#1060](https://github.com/openai/whisper/pull/1060))
+* fix typo in CHANGELOG.md
+
 ## [v20230307](https://github.com/openai/whisper/releases/tag/v20230307)
 
 * Fix the repetition/hallucination issue identified in #1046 ([#1052](https://github.com/openai/whisper/pull/1052))
