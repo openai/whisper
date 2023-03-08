@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## [v20230307](https://github.com/openai/whisper/releases/tag/v202303067)
+## [v20230307](https://github.com/openai/whisper/releases/tag/v20230307)
 
 * Fix the repetition/hallucination issue identified in #1046 ([#1052](https://github.com/openai/whisper/pull/1052))
 * Use triton==2.0.0 ([#1053](https://github.com/openai/whisper/pull/1053))
