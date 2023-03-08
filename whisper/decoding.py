@@ -778,7 +778,10 @@ class DecodingTask:
 
 @torch.no_grad()
 def decode(
-    model: "Whisper", mel: Tensor, options: DecodingOptions = DecodingOptions(), **kwargs,
+    model: "Whisper",
+    mel: Tensor,
+    options: DecodingOptions = DecodingOptions(),
+    **kwargs,
 ) -> Union[DecodingResult, List[DecodingResult]]:
     """
     Performs decoding of 30-second audio segment(s), provided as Mel spectrogram(s).
