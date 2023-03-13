@@ -307,7 +307,7 @@ def add_word_timestamps(
         saved_tokens = 0
         words = []
 
-        while saved_tokens < len(text_tokens):
+        while word_index < len(alignment) and saved_tokens < len(text_tokens):
             timing = alignment[word_index]
 
             if timing.word:
