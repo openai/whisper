@@ -131,7 +131,7 @@ TO_LANGUAGE_CODE = {
 
 @dataclass
 class Tokenizer:
-    """A thin wrapper around `GPT2TokenizerFast` providing quick access to special tokens"""
+    """A thin wrapper around `tiktoken` providing quick access to special tokens"""
 
     encoding: tiktoken.Encoding
     language: Optional[str] = None
