@@ -1,3 +1,4 @@
+import base64
 import os
 import string
 from dataclasses import dataclass, field
@@ -5,7 +6,6 @@ from functools import cached_property, lru_cache
 from typing import Dict, List, Optional, Tuple
 
 import tiktoken
-from tiktoken.load import load_tiktoken_bpe
 from tiktoken_ext.openai_public import gpt2
 
 LANGUAGES = {
@@ -315,7 +315,10 @@ class Tokenizer:
 @lru_cache(maxsize=None)
 def get_encoding(name: str = "gpt2"):
     vocab_path = os.path.join(os.path.dirname(__file__), "assets", f"{name}.tiktoken")
-    ranks = load_tiktoken_bpe(vocab_path)
+    ranks = {
+        base64.b64decode(token): int(rank)
+        for token, rank in (line.split() for line in open(vocab_path) if line)
+    }
     n_vocab = len(ranks)
     special_tokens = {}
 
