@@ -1,25 +1,37 @@
 # CHANGELOG
 
+## [v20230308](https://github.com/openai/whisper/releases/tag/v20230308)
+
+* kwargs in decode() for convenience ([#1061](https://github.com/openai/whisper/pull/1061))
+* fix all_tokens handling that caused more repetitions and discrepancy in JSON ([#1060](https://github.com/openai/whisper/pull/1060))
+* fix typo in CHANGELOG.md
+
+## [v20230307](https://github.com/openai/whisper/releases/tag/v20230307)
+
+* Fix the repetition/hallucination issue identified in #1046 ([#1052](https://github.com/openai/whisper/pull/1052))
+* Use triton==2.0.0 ([#1053](https://github.com/openai/whisper/pull/1053))
+* Install triton in x86_64 linux only ([#1051](https://github.com/openai/whisper/pull/1051))
+* update setup.py to specify python >= 3.8 requirement
 
 ## [v20230306](https://github.com/openai/whisper/releases/tag/v20230306)
 
-* #1021: remove auxiliary audio extension
-* #1038: apply formatting with `black`, `isort`, and `flake8`
-* #869: word-level timestamps in `transcribe()`
-* #1033: Decoding improvements
-* #894: Update README.md
-* #914: Fix infinite loop caused by incorrect timestamp tokens prediction
-* #889: drop python 3.7 support
+* remove auxiliary audio extension ([#1021](https://github.com/openai/whisper/pull/1021))
+* apply formatting with `black`, `isort`, and `flake8` ([#1038](https://github.com/openai/whisper/pull/1038))
+* word-level timestamps in `transcribe()` ([#869](https://github.com/openai/whisper/pull/869))
+* Decoding improvements ([#1033](https://github.com/openai/whisper/pull/1033))
+* Update README.md ([#894](https://github.com/openai/whisper/pull/894))
+* Fix infinite loop caused by incorrect timestamp tokens prediction ([#914](https://github.com/openai/whisper/pull/914))
+* drop python 3.7 support ([#889](https://github.com/openai/whisper/pull/889))
 
 ## [v20230124](https://github.com/openai/whisper/releases/tag/v20230124)
 
-* #887: handle printing even if sys.stdout.buffer is not available
-* #228: Add TSV formatted output in transcript, using integer start/end time in milliseconds
-* #333: Added `--output_format` option
-* #864: Handle `XDG_CACHE_HOME` properly for `download_root`
-* #867: use stdout for printing transcription progress
-* #659: Fix bug where mm is mistakenly replaced with hmm in e.g. 20mm
-* #859: print '?' if a letter can't be encoded using the system default encoding
+* handle printing even if sys.stdout.buffer is not available ([#887](https://github.com/openai/whisper/pull/887))
+* Add TSV formatted output in transcript, using integer start/end time in milliseconds ([#228](https://github.com/openai/whisper/pull/228))
+* Added `--output_format` option ([#333](https://github.com/openai/whisper/pull/333))
+* Handle `XDG_CACHE_HOME` properly for `download_root` ([#864](https://github.com/openai/whisper/pull/864))
+* use stdout for printing transcription progress ([#867](https://github.com/openai/whisper/pull/867))
+* Fix bug where mm is mistakenly replaced with hmm in e.g. 20mm ([#659](https://github.com/openai/whisper/pull/659))
+* print '?' if a letter can't be encoded using the system default encoding ([#859](https://github.com/openai/whisper/pull/859))
 
 ## [v20230117](https://github.com/openai/whisper/releases/tag/v20230117)
 

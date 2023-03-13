@@ -17,6 +17,7 @@ def test_transcribe(model_name: str):
         audio_path, language=language, temperature=0.0, word_timestamps=True
     )
     assert result["language"] == "en"
+    assert result["text"] == "".join([s["text"] for s in result["segments"]])
 
     transcription = result["text"].lower()
     assert "my fellow americans" in transcription

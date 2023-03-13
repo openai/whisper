@@ -1,6 +1,6 @@
 import os
 from functools import lru_cache
-from typing import Union
+from typing import Optional, Union
 
 import ffmpeg
 import numpy as np
@@ -15,10 +15,8 @@ N_FFT = 400
 N_MELS = 80
 HOP_LENGTH = 160
 CHUNK_LENGTH = 30
-N_SAMPLES = CHUNK_LENGTH * SAMPLE_RATE  # 480000: number of samples in a chunk
-N_FRAMES = exact_div(
-    N_SAMPLES, HOP_LENGTH
-)  # 3000: number of frames in a mel spectrogram input
+N_SAMPLES = CHUNK_LENGTH * SAMPLE_RATE  # 480000 samples in a 30-second chunk
+N_FRAMES = exact_div(N_SAMPLES, HOP_LENGTH)  # 3000 frames in a mel spectrogram input
 
 N_SAMPLES_PER_TOKEN = HOP_LENGTH * 2  # the initial convolutions has stride 2
 FRAMES_PER_SECOND = exact_div(SAMPLE_RATE, HOP_LENGTH)  # 10ms per audio frame
@@ -100,7 +98,10 @@ def mel_filters(device, n_mels: int = N_MELS) -> torch.Tensor:
 
 
 def log_mel_spectrogram(
-    audio: Union[str, np.ndarray, torch.Tensor], n_mels: int = N_MELS
+    audio: Union[str, np.ndarray, torch.Tensor],
+    n_mels: int = N_MELS,
+    padding: int = 0,
+    device: Optional[Union[str, torch.device]] = None,
 ):
     """
     Compute the log-Mel spectrogram of
@@ -113,6 +114,12 @@ def log_mel_spectrogram(
     n_mels: int
         The number of Mel-frequency filters, only 80 is supported
 
+    padding: int
+        Number of zero samples to pad to the right
+
+    device: Optional[Union[str, torch.device]]
+        If given, the audio tensor is moved to this device before STFT
+
     Returns
     -------
     torch.Tensor, shape = (80, n_frames)
@@ -123,6 +130,10 @@ def log_mel_spectrogram(
             audio = load_audio(audio)
         audio = torch.from_numpy(audio)
 
+    if device is not None:
+        audio = audio.to(device)
+    if padding > 0:
+        audio = F.pad(audio, (0, padding))
     window = torch.hann_window(N_FFT).to(audio.device)
     stft = torch.stft(audio, N_FFT, HOP_LENGTH, window=window, return_complex=True)
     magnitudes = stft[..., :-1].abs() ** 2
