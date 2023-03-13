@@ -2,11 +2,9 @@ import os
 import string
 from dataclasses import dataclass, field
 from functools import cached_property, lru_cache
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
-import numpy as np
 import tiktoken
-import torch
 from tiktoken.load import load_tiktoken_bpe
 from tiktoken_ext.openai_public import gpt2
 
@@ -331,7 +329,7 @@ def get_encoding(name: str = "gpt2"):
         "<|startofprev|>",
         "<|nospeech|>",
         "<|notimestamps|>",
-        *[f"<|{i * 0.02:.2f}|>" for i in range(1501)]
+        *[f"<|{i * 0.02:.2f}|>" for i in range(1501)],
     ]
 
     for token in specials:
