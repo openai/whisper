@@ -161,32 +161,16 @@ class Tokenizer:
     def encode(self, text, **kwargs):
         return self.encoding.encode(text, **kwargs)
 
-    def decode(
-        self, token_ids: Union[int, List[int], np.ndarray, torch.Tensor], **kwargs
-    ):
-        if isinstance(token_ids, int):
-            token_ids = [token_ids]
-        if isinstance(token_ids, (torch.Tensor, np.ndarray)):
-            token_ids = token_ids.tolist()
+    def decode(self, token_ids: List[int], **kwargs) -> str:
         token_ids = [t for t in token_ids if t < self.timestamp_begin]
         return self.encoding.decode(token_ids, **kwargs)
 
-    def decode_with_timestamps(self, tokens) -> str:
+    def decode_with_timestamps(self, token_ids: List[int], **kwargs) -> str:
         """
-        Timestamp tokens are above the special tokens' id range and are ignored by `decode()`.
+        Timestamp tokens are above other special tokens' id range and are ignored by `decode()`.
         This method decodes given tokens with timestamps tokens annotated, e.g. "<|1.08|>".
         """
-        outputs = [[]]
-        for token in tokens:
-            if token >= self.timestamp_begin:
-                timestamp = f"<|{(token - self.timestamp_begin) * 0.02:.2f}|>"
-                outputs.append(timestamp)
-                outputs.append([])
-            else:
-                outputs[-1].append(token)
-        return "".join(
-            [s if isinstance(s, str) else self.encoding.decode(s) for s in outputs]
-        )
+        return self.encoding.decode(token_ids, **kwargs)
 
     @cached_property
     def eot(self) -> int:
@@ -222,7 +206,7 @@ class Tokenizer:
 
     @cached_property
     def timestamp_begin(self) -> int:
-        return self.encoding.max_token_value + 1
+        return self.special_tokens["<|0.00|>"]
 
     @cached_property
     def language_token(self) -> int:
@@ -347,6 +331,7 @@ def get_encoding(name: str = "gpt2"):
         "<|startofprev|>",
         "<|nospeech|>",
         "<|notimestamps|>",
+        *[f"<|{i * 0.02:.2f}|>" for i in range(1501)]
     ]
 
     for token in specials:
