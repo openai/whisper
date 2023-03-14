@@ -3,5 +3,5 @@ numpy
 torch
 tqdm
 more-itertools
-transformers>=4.19.0
+tiktoken==0.3.1
 ffmpeg-python==0.2.0
