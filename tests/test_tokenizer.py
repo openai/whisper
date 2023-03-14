@@ -12,3 +12,13 @@ def test_tokenizer():
     assert gpt2_tokenizer.decode(gpt2_tokens) == text
     assert multilingual_tokenizer.decode(multilingual_tokens) == text
     assert len(gpt2_tokens) > len(multilingual_tokens)
+
+
+def test_split_on_unicode():
+    multilingual_tokenizer = get_tokenizer(multilingual=True)
+
+    tokens = [8404, 871, 287, 6, 246, 526, 3210, 20378]
+    words, word_tokens = multilingual_tokenizer.split_tokens_on_unicode(tokens)
+
+    assert words == [" elle", " est", " l", "'", "�", "é", "rit", "oire"]
+    assert word_tokens == [[8404], [871], [287], [6], [246], [526], [3210], [20378]]
