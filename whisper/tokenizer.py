@@ -279,17 +279,27 @@ class Tokenizer:
         return self.split_tokens_on_spaces(tokens)
 
     def split_tokens_on_unicode(self, tokens: List[int]):
+        decoded_full = self.decode_with_timestamps(tokens)
+        replacement_char = "\ufffd"
+
         words = []
         word_tokens = []
         current_tokens = []
+        unicode_offset = 0
 
         for token in tokens:
             current_tokens.append(token)
             decoded = self.decode_with_timestamps(current_tokens)
-            if "\ufffd" not in decoded:
+
+            if (
+                replacement_char not in decoded
+                or decoded_full[unicode_offset + decoded.index(replacement_char)]
+                == replacement_char
+            ):
                 words.append(decoded)
                 word_tokens.append(current_tokens)
                 current_tokens = []
+                unicode_offset += len(decoded)
 
         return words, word_tokens
 
