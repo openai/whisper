@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## [v20230314](https://github.com/openai/whisper/releases/tag/v20230314)
+
+* abort find_alignment on empty input ([#1090](https://github.com/openai/whisper/pull/1090))
+* Fix truncated words list when the replacement character is decoded ([#1089](https://github.com/openai/whisper/pull/1089))
+* fix github language stats getting dominated by jupyter notebook ([#1076](https://github.com/openai/whisper/pull/1076))
+* Fix alignment between the segments and the list of words ([#1087](https://github.com/openai/whisper/pull/1087))
+* Use tiktoken ([#1044](https://github.com/openai/whisper/pull/1044))
+
 ## [v20230308](https://github.com/openai/whisper/releases/tag/v20230308)
 
 * kwargs in decode() for convenience ([#1061](https://github.com/openai/whisper/pull/1061))
