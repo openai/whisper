@@ -1,3 +1,17 @@
+# Sinan:
+
+Install:
+
+    pip install git+https://github.com/SinanAkkoyun/openai-whisper.git
+
+To update the package to the latest version of this repository, please run:
+
+    pip install --upgrade --no-deps --force-reinstall git+https://github.com/SinanAkkoyun/openai-whisper.git
+
+
+
+
+# OpenAI:
 # Whisper
 
 [[Blog]](https://openai.com/blog/whisper)
