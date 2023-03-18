@@ -340,7 +340,10 @@ def add_word_timestamps(
             segment["start"] = words[0]["start"]
             # hack: prefer the segment-level end timestamp if the last word is too long
             # a better segmentation algorithm based on VAD should be able to replace this.
-            if segment["end"] > segment["start"] and segment["end"] + 0.5 < words[-1]["end"]:
+            if (
+                segment["end"] > segment["start"]
+                and segment["end"] + 0.5 < words[-1]["end"]
+            ):
                 words[-1]["end"] = segment["end"]
             else:
                 segment["end"] = words[-1]["end"]
