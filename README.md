@@ -1,4 +1,5 @@
 # Sinan:
+    pip install --upgrade pip
 
 Install:
 
