@@ -233,7 +233,7 @@ def find_alignment(
         median_duration = np.median(word_durations)
         max_duration = median_duration * 2
         sentence_end_marks = ".。!！?？"
-        # ensure the first word of a sentence is not longer than twice the median word duration.
+        # ensure words at sentence boundaries are not longer than twice the median word duration.
         for i in range(1, len(start_times)):
             if end_times[i] - start_times[i] > max_duration:
                 if words[i] in sentence_end_marks:
@@ -243,7 +243,7 @@ def find_alignment(
         # ensure the first and second word is not longer than twice the median word duration.
         if len(start_times) > 0 and end_times[0] - start_times[0] > max_duration:
             if len(start_times) > 1 and end_times[1] - start_times[1] > max_duration:
-                boundary = max(end_times[2] / 2, end_times[2] - max_duration)
+                boundary = max(end_times[1] / 2, end_times[1] - max_duration)
                 end_times[0] = start_times[1] = boundary
             start_times[0] = max(0, end_times[0] - max_duration)
 
@@ -336,16 +336,17 @@ def add_word_timestamps(
             word_index += 1
 
         if len(words) > 0:
-            # adjust the segment-level timestamps based on the word-level timestamps
             segment["start"] = words[0]["start"]
-            # hack: prefer the segment-level end timestamp if the last word is too long
+            # hack: prefer the segment-level end timestamp if the last word is too long.
             # a better segmentation algorithm based on VAD should be able to replace this.
             if (
-                segment["end"] > segment["start"]
+                segment["end"] > words[-1]["start"]
                 and segment["end"] + 0.5 < words[-1]["end"]
             ):
+                # adjust the word-level timestamps based on the segment-level timestamps
                 words[-1]["end"] = segment["end"]
             else:
+                # adjust the segment-level timestamps based on the word-level timestamps
                 segment["end"] = words[-1]["end"]
 
         segment["words"] = words
