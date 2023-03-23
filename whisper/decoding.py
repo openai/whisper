@@ -750,9 +750,6 @@ class DecodingTask:
             for s in tokens
         ]
 
-        # fix token_probs length
-        token_probs = token_probs[-len(tokens):]
-
         # select the top-ranked sample in each group
         selected = self.sequence_ranker.rank(tokens, sum_logprobs)
         tokens: List[List[int]] = [t[i].tolist() for i, t in zip(selected, tokens)]
@@ -785,7 +782,7 @@ class DecodingTask:
                 no_speech_prob=no_speech_prob,
                 temperature=self.options.temperature,
                 compression_ratio=compression_ratio(text),
-                token_probs=token_probs
+                token_probs=token_probs[-len(tokens):]
             )
             for text, language, tokens, features, avg_logprob, no_speech_prob, token_probs in zip(
                 *fields

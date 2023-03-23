@@ -40,7 +40,6 @@ result = whisper.decode(model, mel, options)
 def get_colored_text(tokens: List[int], token_probs: List[float], tokenizer, prompt: str=""):
     init(autoreset=True)  # Initialize colorama
     text_tokens = [tokenizer.decode([t]) for t in tokens]
-    # token_probs = token_probs[-len(text_tokens):]
 
     output_text = ""
     for i, (token, prob) in enumerate(zip(text_tokens, token_probs)):
