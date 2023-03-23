@@ -37,21 +37,24 @@ options = whisper.DecodingOptions()
 result = whisper.decode(model, mel, options)
 
 
-def print_colored_text(tokens: List[int], token_probs: List[float], tokenizer):
+def get_colored_text(tokens: List[int], token_probs: List[float], tokenizer, prompt: str=""):
     init(autoreset=True)  # Initialize colorama
     text_tokens = [tokenizer.decode([t]) for t in tokens]
+    token_probs = token_probs[-len(text_tokens):]
 
-    for token, prob in zip(text_tokens, token_probs):
+    output_text = ""
+    for i, (token, prob) in enumerate(zip(text_tokens, token_probs)):
         # Interpolate between red and green in the HSV color space
         r, g, b = colorsys.hsv_to_rgb(prob * (1/3), 1, 1)
         r, g, b = int(r * 255), int(g * 255), int(b * 255)
         color_code = f"\033[38;2;{r};{g};{b}m"
 
         colored_token = f"{color_code}{Style.BRIGHT}{token}{Style.RESET_ALL}"
-        print(colored_token, end="")
+        output_text += colored_token
 
-    print()
+    return output_text
 
 
 tokenizer = get_tokenizer(multilingual=model.is_multilingual, language=language, task=options.task)
-print_colored_text(result.tokens, result.token_probs, tokenizer)  # print text with fancy confidence colors
+print(get_colored_text(result.tokens, result.token_probs, tokenizer))  # print text with fancy confidence colors
+# HINT: when using a prompt, you must provide it in the get_colored_text as well
