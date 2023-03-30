@@ -3,7 +3,5 @@ numpy
 torch
 tqdm
 more-itertools
-soundfile
-librosa
 tiktoken==0.3.3
 ffmpeg-python==0.2.0
