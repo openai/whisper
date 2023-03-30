@@ -23,7 +23,7 @@ jobs:
     steps:
       - uses: conda-incubator/setup-miniconda@v2
       - run: conda install -n test ffmpeg python=${{ matrix.python-version }} pytorch=${{ matrix.pytorch-version }} cpuonly -c pytorch
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip install .["dev"]
       - run: black --check --diff -t py38 --include '(\.pyi?)$' .
