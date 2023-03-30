@@ -14,7 +14,6 @@ from .utils import compression_ratio
 if TYPE_CHECKING:
     from .model import Whisper
 
-
 @torch.no_grad()
 def detect_language(
     model: "Whisper", mel: Tensor, tokenizer: Tokenizer = None
@@ -470,7 +469,7 @@ class ApplyTimestampRules(LogitFilter):
             if timestamps.numel() > 0:
                 # timestamps shouldn't decrease; forbid timestamp tokens smaller than the last
                 logits[k, self.tokenizer.timestamp_begin : timestamps[-1]] = -np.inf
-                
+
                 # to force that timestamps are strictly increasing
                 if last_was_timestamp and not penultimate_was_timestamp:
                     timestamp_last = timestamps[-1]
