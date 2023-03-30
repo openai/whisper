@@ -2,8 +2,7 @@ import os
 from functools import lru_cache
 from typing import Optional, Union
 
-import soundfile as sf
-import librosa
+import ffmpeg
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -41,15 +40,17 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
     A NumPy array containing the audio waveform, in float32 dtype.
     """
     try:
-        # Load the audio file and resample it as necessary.
-        # Requires the `soundfile` package to be installed.
-        audio, original_sr = sf.read(file)
-        if original_sr != sr:
-            audio = librosa.resample(audio, original_sr, sr)
-    except Exception as e:
-        raise RuntimeError(f"Failed to load audio: {str(e)}") from e
+        # This launches a subprocess to decode audio while down-mixing and resampling as necessary.
+        # Requires the ffmpeg CLI and `ffmpeg-python` package to be installed.
+        out, _ = (
+            ffmpeg.input(file, threads=0)
+            .output("-", format="s16le", acodec="pcm_s16le", ac=1, ar=sr)
+            .run(cmd=["ffmpeg", "-nostdin"], capture_stdout=True, capture_stderr=True)
+        )
+    except ffmpeg.Error as e:
+        raise RuntimeError(f"Failed to load audio: {e.stderr.decode()}") from e
 
-    return audio.astype(np.float32)
+    return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
 
 
 def pad_or_trim(array, length: int = N_SAMPLES, *, axis: int = -1):
