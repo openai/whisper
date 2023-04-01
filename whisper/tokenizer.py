@@ -107,6 +107,7 @@ LANGUAGES = {
     "ba": "bashkir",
     "jw": "javanese",
     "su": "sundanese",
+    "yue": "cantonese"
 }
 
 # language code lookup by name, with a few language aliases
@@ -269,7 +270,7 @@ class Tokenizer:
         return tuple(sorted(result))
 
     def split_to_word_tokens(self, tokens: List[int]):
-        if self.language in {"zh", "ja", "th", "lo", "my"}:
+        if self.language in {"zh", "ja", "th", "lo", "my", "yue"}:
             # These languages don't typically use spaces, so it is difficult to split words
             # without morpheme analysis. Here, we instead split words at any
             # position where the tokens are decoded as valid unicode points
