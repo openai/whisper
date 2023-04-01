@@ -10,6 +10,7 @@ import tiktoken
 LANGUAGES = {
     "en": "english",
     "zh": "chinese",
+    "yue": "cantonese",    
     "de": "german",
     "es": "spanish",
     "ru": "russian",
@@ -269,7 +270,7 @@ class Tokenizer:
         return tuple(sorted(result))
 
     def split_to_word_tokens(self, tokens: List[int]):
-        if self.language in {"zh", "ja", "th", "lo", "my"}:
+        if self.language in {"zh", "yue", "ja", "th", "lo", "my"}:
             # These languages don't typically use spaces, so it is difficult to split words
             # without morpheme analysis. Here, we instead split words at any
             # position where the tokens are decoded as valid unicode points
