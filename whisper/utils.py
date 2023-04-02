@@ -3,7 +3,7 @@ import os
 import re
 import sys
 import zlib
-from typing import Callable, TextIO, Union
+from typing import Callable, Optional, TextIO
 
 system_encoding = sys.getdefaultencoding()
 
@@ -101,36 +101,35 @@ class SubtitlesWriter(ResultWriter):
     decimal_marker: str
 
     def iterate_result(self, result: dict, options: dict):
-        word_timestamps: bool = "words" in result["segments"][0]
+        raw_max_line_width: Optional[int] = options["max_line_width"]
+        max_line_count: Optional[int] = options["max_line_count"]
         highlight_words: bool = options["highlight_words"]
-        max_line_width: int = options.get("max_line_width", 1000)
-        max_line_count: Union[int, None] = options["max_line_count"]
+        max_line_width = 1000 if raw_max_line_width is None else raw_max_line_width
+        preserve_segments = max_line_count is None or raw_max_line_width is None
 
-        def iterate_wrapped_subtitles():
+        def iterate_subtitles():
             line_len = 0
             line_count = 1
-            subtitle: list = []
-            last_word_start = result["segments"][0]["words"][0].get("start", 0.0)
+            # the next subtitle to yield (a list of word timings with whitespace)
+            subtitle: list[dict] = []
+            last = result["segments"][0]["words"][0]["start"]
             for segment in result["segments"]:
-                for timing in segment["words"]:
-                    wrapped_timing = timing.copy()
-                    long_pause = (
-                        max_line_count is not None
-                        and wrapped_timing.get("start", 0.0) - last_word_start > 3.0
-                    )
-                    can_continue = (
-                        line_len + len(wrapped_timing["word"]) <= max_line_width
-                    )
-                    if line_len > 0 and can_continue and not long_pause:
-                        # continuation on same subtitle
-                        line_len += len(wrapped_timing["word"])
-                        subtitle.append(wrapped_timing)
+                for i, original_timing in enumerate(segment["words"]):
+                    timing = original_timing.copy()
+                    long_pause = not preserve_segments and timing["start"] - last > 3.0
+                    has_room = line_len + len(timing["word"]) <= max_line_width
+                    seg_break = i == 0 and len(subtitle) > 0 and preserve_segments
+                    if line_len > 0 and has_room and not long_pause and not seg_break:
+                        # line continuation
+                        line_len += len(timing["word"])
                     else:
-                        line_break = ""
+                        # new line
+                        timing["word"] = timing["word"].strip()
                         if (
                             len(subtitle) > 0
                             and max_line_count is not None
                             and (long_pause or line_count >= max_line_count)
+                            or seg_break
                         ):
                             # subtitle break
                             yield subtitle
@@ -138,25 +137,16 @@ class SubtitlesWriter(ResultWriter):
                             line_count = 1
                         elif line_len > 0:
                             # line break
-                            line_break = "\n"
                             line_count += 1
-                        wrapped_timing["word"] = (
-                            line_break + wrapped_timing["word"].strip()
-                        )
-                        line_len = len(wrapped_timing["word"])
-                        subtitle.append(wrapped_timing)
-                    last_word_start = wrapped_timing.get("start", 0.0)
-                if max_line_count is None:
-                    yield subtitle
-                    subtitle = []
-                    line_count = 1
-                    line_len = 0
-
-            if max_line_count is not None and len(subtitle) > 0:
+                            timing["word"] = "\n" + timing["word"]
+                        line_len = len(timing["word"].strip())
+                    subtitle.append(timing)
+                    last = timing["start"]
+            if len(subtitle) > 0:
                 yield subtitle
 
-        if word_timestamps and (highlight_words or max_line_width):
-            for subtitle in iterate_wrapped_subtitles():
+        if "words" in result["segments"][0]:
+            for subtitle in iterate_subtitles():
                 subtitle_start = self.format_timestamp(subtitle[0]["start"])
                 subtitle_end = self.format_timestamp(subtitle[-1]["end"])
                 subtitle_text = "".join([word["word"] for word in subtitle])
