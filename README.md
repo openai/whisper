@@ -48,6 +48,19 @@ choco install ffmpeg
 scoop install ffmpeg
 ```
 
+Set PATH variables as suggested here: https://github.com/openai/whisper/discussions/899
+
+For Windows:
+1. Type **System Variables** into the search bar and click the **Edit the system environment variables** option.
+
+2. Under the **User variables** section, select **Path** and click the **Edit** button.
+
+3. Choose **New** from the side menu.
+
+4. Add **C:\ffmpeg\bin** or **{Dir}:\{InstallationPath}\ffmpeg\bin** to the empty field and confirm changes with OK.
+
+5. Reboot the system
+
 You may need [`rust`](http://rust-lang.org) installed as well, in case [tokenizers](https://pypi.org/project/tokenizers/) does not provide a pre-built wheel for your platform. If you see installation errors during the `pip install` command above, please follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install Rust development environment. Additionally, you may need to configure the `PATH` environment variable, e.g. `export PATH="$HOME/.cargo/bin:$PATH"`. If the installation fails with `No module named 'setuptools_rust'`, you need to install `setuptools_rust`, e.g. by running:
 
 ```bash
