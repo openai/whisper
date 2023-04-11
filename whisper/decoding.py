@@ -14,6 +14,7 @@ from .utils import compression_ratio
 if TYPE_CHECKING:
     from .model import Whisper
 
+
 @torch.no_grad()
 def detect_language(
     model: "Whisper", mel: Tensor, tokenizer: Tokenizer = None
@@ -475,7 +476,7 @@ class ApplyTimestampRules(LogitFilter):
                     timestamp_last = timestamps[-1]
                 else:
                     timestamp_last = timestamps[-1] + 1
-                logits[k, self.tokenizer.timestamp_begin: timestamp_last] = -np.inf
+                logits[k, self.tokenizer.timestamp_begin : timestamp_last] = -np.inf
 
         if tokens.shape[1] == self.sample_begin:
             # suppress generating non-timestamp tokens at the beginning
