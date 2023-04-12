@@ -37,7 +37,7 @@ def transcribe(
     model: "Whisper",
     audio: Union[str, np.ndarray, torch.Tensor],
     *,
-    model_name: str = "small",
+    model_name: Optional[str] = None,
     verbose: Optional[bool] = None,
     temperature: Union[float, Tuple[float, ...]] = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
     compression_ratio_threshold: Optional[float] = 2.4,
