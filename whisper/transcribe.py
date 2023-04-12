@@ -37,6 +37,7 @@ def transcribe(
     model: "Whisper",
     audio: Union[str, np.ndarray, torch.Tensor],
     *,
+    model_name: str = "small",
     verbose: Optional[bool] = None,
     temperature: Union[float, Tuple[float, ...]] = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
     compression_ratio_threshold: Optional[float] = 2.4,
@@ -360,7 +361,13 @@ def transcribe(
             # update progress bar
             pbar.update(min(content_frames, seek) - previous_seek)
 
+    # Include details about the job that just ran
+    job_details = dict(
+        model=model_name
+    )
+
     return dict(
+        job_details=job_details,
         text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
         segments=all_segments,
         language=language,
@@ -445,7 +452,7 @@ def cli():
         warnings.warn("--max_line_count has no effect without --max_line_width")
     writer_args = {arg: args.pop(arg) for arg in word_options}
     for audio_path in args.pop("audio"):
-        result = transcribe(model, audio_path, temperature=temperature, **args)
+        result = transcribe(model, audio_path, model_name=model_name, temperature=temperature, **args)
         writer(result, audio_path, writer_args)
 
 
