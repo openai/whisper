@@ -54,7 +54,7 @@ def median_filter(x: torch.Tensor, filter_width: int):
     return result
 
 
-@numba.jit
+@numba.jit(nopython=True)
 def backtrace(trace: np.ndarray):
     i = trace.shape[0] - 1
     j = trace.shape[1] - 1
