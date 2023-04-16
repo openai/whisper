@@ -106,6 +106,12 @@ def transcribe(
     A dictionary containing the resulting text ("text") and segment-level details ("segments"), and
     the spoken language ("language"), which is detected when `decode_options["language"]` is None.
     """
+    def warning_on_one_line(message, category, filename, lineno, file=None, line=None):
+        """This formats the output of the warnings removing the self print and enhancing readability."""
+        return '%s:%s: %s: %s\n' % (filename, lineno, category.__name__, message)
+
+    warnings.formatwarning = warning_on_one_line
+
     dtype = torch.float16 if decode_options.get("fp16", True) else torch.float32
     if model.device == torch.device("cpu"):
         if torch.cuda.is_available():
