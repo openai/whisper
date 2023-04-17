@@ -95,7 +95,6 @@ class WriteTXT(ResultWriter):
         for segment in result["segments"]:
             print(segment["text"].strip(), file=file, flush=True)
 
-
 class SubtitlesWriter(ResultWriter):
     always_include_hours: bool
     decimal_marker: str
@@ -235,6 +234,66 @@ class WriteJSON(ResultWriter):
         json.dump(result, file)
 
 
+class WriteTextGrid(ResultWriter):
+    extension: str = "TextGrid"
+
+    def write_result(self, result: dict, file: TextIO, options: dict):
+        word_count = 0
+        for segment in result["segments"]:
+            if ("words" in segment): word_count = word_count + len(segment["words"])
+        
+        print("File type = \"ooTextFile\"", file=file, flush=True)
+        print("Object class = \"TextGrid\"", file=file, flush=True)
+        print("", file=file, flush=True)
+        print("xmin = 0.00", file=file, flush=True)
+        print("xmax =", result["segments"][-1]["end"], file=file, flush=True)
+        print("tiers? <exists>", file=file, flush=True)
+        if (word_count > 0): print("size = 2", file=file, flush=True)
+        else: print("size = 1", file=file, flush=True)
+        print("item []:", file=file, flush=True)
+        
+        print("\titem [1]:", file=file, flush=True)
+        print("\t\tclass = \"IntervalTier\"", file=file, flush=True)
+        print("\t\tname = \"Text\"", file=file, flush=True)
+        print("\t\txmin = 0.00", file=file, flush=True)
+        print("\t\txmax =", result["segments"][-1]["end"], file=file, flush=True)
+        print("\t\tintervals: size =", len(result["segments"]), file=file, flush=True)
+
+        
+        previous_max = 0
+        for i in range (0, len(result["segments"])):
+            segment = result["segments"][i]
+            print("\t\t\tintervals [", (i + 1), "]:", sep="", file=file, flush=True)
+            print("\t\t\t\txmin =", previous_max, file=file, flush=True)
+            previous_max = segment["end"]
+            if (i == len(result["segments"])): print("\t\t\t\txmax =", result["segments"][-1]["end"], file=file, flush=True)
+            else: print("\t\t\t\txmax =", previous_max, file=file, flush=True)
+            print("\t\t\t\ttext = \"", segment["text"].strip(), "\"", sep="", file=file, flush=True)
+        
+        if (word_count > 0):
+            print("\titem [2]:", file=file, flush=True)
+            print("\t\tclass = \"IntervalTier\"", file=file, flush=True)
+            print("\t\tname = \"Words\"", file=file, flush=True)
+            print("\t\txmin = 0", file=file, flush=True)
+            print("\t\txmax =", result["segments"][-1]["end"], file=file, flush=True)
+            print("\t\tintervals: size =", word_count, file=file, flush=True) 
+
+            word_counter = 0
+            previous_max = 0
+            for i in range (0, len(result["segments"])):
+                segment = result["segments"][i]
+                if ("words" in segment):
+                    for j in range (0, len(segment["words"])):            
+                        word = segment["words"][j]
+                        word_counter = word_counter + 1
+                        print("\t\t\tintervals [", word_counter, "]:", sep="", file=file, flush=True)
+                        print("\t\t\t\txmin =", previous_max, file=file, flush=True)
+                        previous_max = word["end"]
+                        if ((j == len(result["segments"])) and (i == len(segment["words"]))): print("\t\t\t\txmax =", result["segments"][-1]["end"], file=file, flush=True)
+                        else: print("\t\t\t\txmax =", previous_max, file=file, flush=True)
+                        print("\t\t\t\ttext = \"", word["word"].strip(), "\"", sep="", file=file, flush=True)
+
+
 def get_writer(
     output_format: str, output_dir: str
 ) -> Callable[[dict, TextIO, dict], None]:
@@ -244,6 +303,7 @@ def get_writer(
         "srt": WriteSRT,
         "tsv": WriteTSV,
         "json": WriteJSON,
+        "textgrid": WriteTextGrid,
     }
 
     if output_format == "all":
