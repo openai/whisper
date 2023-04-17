@@ -95,6 +95,7 @@ class WriteTXT(ResultWriter):
         for segment in result["segments"]:
             print(segment["text"].strip(), file=file, flush=True)
 
+
 class SubtitlesWriter(ResultWriter):
     always_include_hours: bool
     decimal_marker: str
