@@ -360,7 +360,7 @@ def transcribe(
                 [token for segment in current_segments for token in segment["tokens"]]
             )
 
-            for i, segment in enumerate(current_segments):
+            for i, segment in enumerate(current_segments, start=len(all_segments)):
                 if not segment['text'].strip():
                     continue
                 if len(all_prompts_segments) > 0 and all_prompts_segments[-1]['text'].strip() == segment['text'].strip():
