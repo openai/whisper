@@ -361,12 +361,17 @@ def transcribe(
             )
 
             for i, segment in enumerate(current_segments, start=len(all_segments)):
-                if not segment['text'].strip():
+                if not segment["text"].strip():
                     continue
                 check_prompt_num = 1
-                if any([prev['text'].strip() == segment['text'].strip() for prev in all_prompts_segments[-check_prompt_num:]]):
+                if any(
+                    [
+                        prev["text"].strip() == segment["text"].strip()
+                        for prev in all_prompts_segments[-check_prompt_num:]
+                    ]
+                ):
                     continue
-                all_prompts_tokens.extend(segment['tokens'])
+                all_prompts_tokens.extend(segment["tokens"])
                 all_prompts_segments.append({"id": i, **segment})
 
             # update progress bar
