@@ -11,15 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10']
-        pytorch-version: [1.10.2, 1.13.1]
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+        pytorch-version: [1.13.1, 2.0.0]
         exclude:
-          - python-version: '3.10'
-            pytorch-version: 1.10.2
+          - python-version: '3.11'
+            pytorch-version: 1.13.1
     steps:
       - uses: conda-incubator/setup-miniconda@v2
-      - run: conda install -n test ffmpeg python=${{ matrix.python-version }} pytorch=${{ matrix.pytorch-version }} cpuonly -c pytorch
-      - uses: actions/checkout@v2
+      - run: conda install -n test ffmpeg python=${{ matrix.python-version }}
+      - run: pip3 install torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu
+      - uses: actions/checkout@v3
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip install .["dev"]
       - run: black --check --diff -t py38 --include '(\.pyi?)$' .
