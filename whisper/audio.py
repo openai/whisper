@@ -1,6 +1,6 @@
 import os
 from functools import lru_cache
-from subprocess import run, PIPE, DEVNULL
+from subprocess import DEVNULL, PIPE, run
 from typing import Optional, Union
 
 import numpy as np
