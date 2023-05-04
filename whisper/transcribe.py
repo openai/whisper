@@ -173,13 +173,12 @@ def transcribe(
                 logprob_threshold is not None
                 and decode_result.avg_logprob < logprob_threshold
             ):
-                if (
-                    no_speech_threshold is not None
-                    and decode_result.no_speech_prob > no_speech_threshold
-                ):
-                    break  # silence
                 needs_fallback = True  # average log probability is too low
-
+            if (
+                no_speech_threshold is not None
+                and decode_result.no_speech_prob > no_speech_threshold
+            ):
+                needs_fallback = False  # silence
             if not needs_fallback:
                 break
 
