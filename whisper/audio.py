@@ -42,17 +42,21 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
 
     # This launches a subprocess to decode audio while down-mixing
     # and resampling as necessary.  Requires the ffmpeg CLI in PATH.
-    cmd = ['ffmpeg',
-           '-nostdin',
-           '-threads', '0',
-           '-i', file,
-           '-f', 's16le',
-           '-ac', '1',
-           '-acodec', 'pcm_s16le',
-           '-ar', str(sr),
-           '-']
-    return np.frombuffer(run(cmd, stdout=PIPE, stderr=DEVNULL).stdout,
-                         np.int16).flatten().astype(np.float32) / 32768.0
+    # fmt: off
+    cmd = [
+        "ffmpeg",
+        "-nostdin",
+        "-threads", "0",
+        "-i", file,
+        "-f", "s16le",
+        "-ac", "1",
+        "-acodec", "pcm_s16le",
+        "-ar", str(sr),
+        "-"
+    ]
+    # fmt: on
+    output = run(cmd, stdout=PIPE, stderr=DEVNULL).stdout
+    return np.frombuffer(output, np.int16).flatten().astype(np.float32) / 32768.0
 
 def pad_or_trim(array, length: int = N_SAMPLES, *, axis: int = -1):
     """
