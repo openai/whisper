@@ -1,6 +1,6 @@
 import os
 from functools import lru_cache
-from subprocess import DEVNULL, PIPE, run
+from subprocess import CalledProcessError, DEVNULL, PIPE, run
 from typing import Optional, Union
 
 import numpy as np
@@ -55,7 +55,11 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
         "-"
     ]
     # fmt: on
-    output = run(cmd, stdout=PIPE, stderr=DEVNULL).stdout
+    try:
+        output = run(cmd, capture_output=True, check=True).stdout
+    except CalledProcessError as e:
+        raise RuntimeError(f"Failed to load Audio: {e.stderr.decode()}") from e
+
     return np.frombuffer(output, np.int16).flatten().astype(np.float32) / 32768.0
 
 
