@@ -58,6 +58,7 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
     output = run(cmd, stdout=PIPE, stderr=DEVNULL).stdout
     return np.frombuffer(output, np.int16).flatten().astype(np.float32) / 32768.0
 
+
 def pad_or_trim(array, length: int = N_SAMPLES, *, axis: int = -1):
     """
     Pad or trim the audio array to N_SAMPLES, as expected by the encoder.
