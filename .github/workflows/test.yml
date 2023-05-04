@@ -22,7 +22,8 @@ jobs:
             pytorch-version: 1.13.1
     steps:
       - uses: conda-incubator/setup-miniconda@v2
-      - run: conda install -n test ffmpeg python=${{ matrix.python-version }} pytorch=${{ matrix.pytorch-version }} cpuonly -c pytorch
+      - run: conda install -n test ffmpeg python=${{ matrix.python-version }}
+      - run: pip3 install torch==${{ matrix.pytorch-version }} --index-url https://download.pytorch.org/whl/cpu
       - uses: actions/checkout@v3
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
       - run: pip install .["dev"]
