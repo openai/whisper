@@ -192,12 +192,15 @@ def transcribe(
         input_stride * HOP_LENGTH / SAMPLE_RATE
     )  # time per output token: 0.02 (seconds)
     all_tokens = []
+    all_prompts_tokens = []
+    all_prompts_segments = []
     all_segments = []
     prompt_reset_since = 0
 
     if initial_prompt is not None:
         initial_prompt_tokens = tokenizer.encode(" " + initial_prompt.strip())
         all_tokens.extend(initial_prompt_tokens)
+        all_prompts_tokens.extend(initial_prompt_tokens)
     else:
         initial_prompt_tokens = []
 
@@ -229,7 +232,7 @@ def transcribe(
             segment_duration = segment_size * HOP_LENGTH / SAMPLE_RATE
             mel_segment = pad_or_trim(mel_segment, N_FRAMES).to(model.device).to(dtype)
 
-            decode_options["prompt"] = all_tokens[prompt_reset_since:]
+            decode_options["prompt"] = all_prompts_tokens[prompt_reset_since:]
             result: DecodingResult = decode_with_fallback(mel_segment)
             tokens = torch.tensor(result.tokens)
 
@@ -314,7 +317,7 @@ def transcribe(
 
             if not condition_on_previous_text or result.temperature > 0.5:
                 # do not feed the prompt tokens if a high temperature was used
-                prompt_reset_since = len(all_tokens)
+                prompt_reset_since = len(all_prompts_tokens)
 
             if word_timestamps:
                 add_word_timestamps(
@@ -360,6 +363,20 @@ def transcribe(
             all_tokens.extend(
                 [token for segment in current_segments for token in segment["tokens"]]
             )
+
+            for i, segment in enumerate(current_segments, start=len(all_segments)):
+                if not segment["text"].strip():
+                    continue
+                check_prompt_num = 1
+                if any(
+                    [
+                        prev["text"].strip() == segment["text"].strip()
+                        for prev in all_prompts_segments[-check_prompt_num:]
+                    ]
+                ):
+                    continue
+                all_prompts_tokens.extend(segment["tokens"])
+                all_prompts_segments.append({"id": i, **segment})
 
             # update progress bar
             pbar.update(min(content_frames, seek) - previous_seek)
