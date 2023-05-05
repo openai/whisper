@@ -164,6 +164,7 @@ def find_alignment(
     model: "Whisper",
     tokenizer: Tokenizer,
     text_tokens: List[int],
+    text_tokens_per_segment: List[List[int]],
     mel: torch.Tensor,
     num_frames: int,
     *,
@@ -213,8 +214,12 @@ def find_alignment(
     matrix = matrix[len(tokenizer.sot_sequence) : -1]
     text_indices, time_indices = dtw(-matrix)
 
-    words, word_tokens = tokenizer.split_to_word_tokens(text_tokens + [tokenizer.eot])
-    word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens[:-1]]), (1, 0))
+    words, word_tokens = [], []
+    for index, tokens_per_segment in enumerate(text_tokens_per_segment):
+        segment_words, segment_word_tokens = tokenizer.split_to_word_tokens(tokens_per_segment + [tokenizer.eot])
+        words.extend(segment_words[:-1] if index + 1 != len(text_tokens_per_segment) else segment_words)
+        word_tokens.extend(segment_word_tokens[:-1] if index + 1 != len(text_tokens_per_segment) else segment_word_tokens)
+    word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens[:-1]], dtype=int), (1, 0))
 
     jumps = np.pad(np.diff(text_indices), (1, 0), constant_values=1).astype(bool)
     jump_times = time_indices[jumps] / TOKENS_PER_SECOND
@@ -309,7 +314,7 @@ def add_word_timestamps(
     ]
 
     text_tokens = list(itertools.chain.from_iterable(text_tokens_per_segment))
-    alignment = find_alignment(model, tokenizer, text_tokens, mel, num_frames, **kwargs)
+    alignment = find_alignment(model, tokenizer, text_tokens, text_tokens_per_segment, mel, num_frames, **kwargs)
     merge_punctuations(alignment, prepend_punctuations, append_punctuations)
 
     time_offset = segments[0]["seek"] * HOP_LENGTH / SAMPLE_RATE
