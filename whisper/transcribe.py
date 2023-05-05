@@ -312,10 +312,6 @@ def transcribe(
                 )
                 seek += segment_size
 
-            if not condition_on_previous_text or result.temperature > 0.5:
-                # do not feed the prompt tokens if a high temperature was used
-                prompt_reset_since = len(all_tokens)
-
             if word_timestamps:
                 add_word_timestamps(
                     segments=current_segments,
@@ -360,6 +356,10 @@ def transcribe(
             all_tokens.extend(
                 [token for segment in current_segments for token in segment["tokens"]]
             )
+
+            if not condition_on_previous_text or result.temperature > 0.5:
+                # do not feed the prompt tokens if a high temperature was used
+                prompt_reset_since = len(all_tokens)
 
             # update progress bar
             pbar.update(min(content_frames, seek) - previous_seek)
