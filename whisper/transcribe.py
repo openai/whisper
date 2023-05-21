@@ -148,7 +148,7 @@ def transcribe(
         temperatures = (
             [temperature] if isinstance(temperature, (int, float)) else temperature
         )
-        decode_result = None
+        results = {}
 
         for t in temperatures:
             kwargs = {**decode_options}
@@ -162,6 +162,8 @@ def transcribe(
 
             options = DecodingOptions(**kwargs, temperature=t)
             decode_result = model.decode(segment, options)
+
+            results[t] = decode_result
 
             needs_fallback = False
             if (
@@ -182,7 +184,7 @@ def transcribe(
             if not needs_fallback:
                 break
 
-        return decode_result
+        return max(results.values(), key=lambda r: r.avg_logprob)
 
     seek = 0
     input_stride = exact_div(
