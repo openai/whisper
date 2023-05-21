@@ -148,6 +148,7 @@ def transcribe(
         temperatures = (
             [temperature] if isinstance(temperature, (int, float)) else temperature
         )
+        decode_result = None
         results = {}
 
         for t in temperatures:
@@ -183,8 +184,11 @@ def transcribe(
                 needs_fallback = False  # silence
             if not needs_fallback:
                 break
+        else:
+            # all failed
+            return max(results.values(), key=lambda r: r.avg_logprob)
 
-        return max(results.values(), key=lambda r: r.avg_logprob)
+        return decode_result
 
     seek = 0
     input_stride = exact_div(
