@@ -14,6 +14,7 @@ SAMPLE_RATE = 16000
 N_FFT = 400
 N_MELS = 80
 HOP_LENGTH = 160
+# TODO: check the problem with the chunk length (it should be using the first 30 secs of a data chunk, but the last ones)
 CHUNK_LENGTH = 30
 N_SAMPLES = CHUNK_LENGTH * SAMPLE_RATE  # 480000 samples in a 30-second chunk
 N_FRAMES = exact_div(N_SAMPLES, HOP_LENGTH)  # 3000 frames in a mel spectrogram input
