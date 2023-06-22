@@ -1,11 +1,13 @@
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
+import os
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch import Tensor
 from torch.distributions import Categorical
+from torch.autograd.profiler import profile
 
 from .audio import CHUNK_LENGTH
 from .tokenizer import Tokenizer, get_tokenizer
@@ -126,7 +128,7 @@ class DecodingResult:
 
 
 class Inference:
-    def logits(self, tokens: Tensor, audio_features: Tensor) -> Tensor:
+    def logits(self, tokens: Tensor, audio_features: Tensor, step: int) -> Tensor:
         """Perform a forward pass on the decoder and return per-token logits"""
         raise NotImplementedError
 
@@ -145,16 +147,27 @@ class PyTorchInference(Inference):
         self.initial_token_length = initial_token_length
         self.kv_cache = {}
         self.hooks = []
+        self.self_keys = [torch.tensor([]) for _ in range(self.model._decoder.n_layer)]
+        self.self_values = [torch.tensor([]) for _ in range(self.model._decoder.n_layer)]
+        self.cross_keys = [torch.tensor([]) for _ in range(self.model._decoder.n_layer)]
+        self.cross_values = [torch.tensor([]) for _ in range(self.model._decoder.n_layer)]
 
-    def logits(self, tokens: Tensor, audio_features: Tensor) -> Tensor:
-        if not self.kv_cache:
-            self.kv_cache, self.hooks = self.model.install_kv_cache_hooks()
+    def logits(self, tokens: Tensor, audio_features: Tensor, step: int) -> Tensor:
+        # if not self.kv_cache:
+        #     self.kv_cache, self.hooks = self.model.install_kv_cache_hooks()
 
         if tokens.shape[-1] > self.initial_token_length:
             # only need to use the last token except in the first forward pass
             tokens = tokens[:, -1:]
 
-        return self.model.decoder(tokens, audio_features, kv_cache=self.kv_cache)
+        if "AIO_PROFILER" in os.environ and os.environ["AIO_PROFILER"] == "1":
+            with profile() as self.profile:
+                logits, self.self_keys, self.self_values, self.cross_keys, self.cross_values = self.model.decoder(
+                    tokens, audio_features, step, self.self_keys, self.self_values, self.cross_keys, self.cross_values)
+        else:
+            logits, self.self_keys, self.self_values, self.cross_keys, self.cross_values = self.model.decoder(
+                tokens, audio_features, step, self.self_keys, self.self_values, self.cross_keys, self.cross_values)
+        return logits
 
     def cleanup_caching(self):
         for hook in self.hooks:
@@ -162,6 +175,13 @@ class PyTorchInference(Inference):
 
         self.kv_cache = {}
         self.hooks = []
+        self.self_keys = [torch.tensor([]) for _ in range(self.model._decoder.n_layer)]
+        self.self_values = [torch.tensor([]) for _ in range(self.model._decoder.n_layer)]
+        self.cross_keys = [torch.tensor([]) for _ in range(self.model._decoder.n_layer)]
+        self.cross_values = [torch.tensor([]) for _ in range(self.model._decoder.n_layer)]
+        if "AIO_PROFILER" in os.environ and os.environ["AIO_PROFILER"] == "1":
+            print(self.profile.key_averages().table(sort_by='cpu_time_total', row_limit=50))
+            torch._C._aio_profiler_print()
 
     def rearrange_kv_cache(self, source_indices):
         for module, tensor in self.kv_cache.items():
@@ -675,7 +695,7 @@ class DecodingTask:
 
         try:
             for i in range(self.sample_len):
-                logits = self.inference.logits(tokens, audio_features)
+                logits = self.inference.logits(tokens, audio_features, i)
 
                 if (
                     i == 0 and self.tokenizer.no_speech is not None

@@ -3,6 +3,7 @@ import io
 import os
 import urllib
 import warnings
+from collections import OrderedDict
 from typing import List, Optional, Union
 
 import torch
@@ -94,6 +95,16 @@ def available_models() -> List[str]:
     return list(_MODELS.keys())
 
 
+def rename_state_dict_keys(state_dict, key_transformation):
+    new_state_dict = OrderedDict()
+
+    for key, value in state_dict.items():
+        new_key = key_transformation(key)
+        new_state_dict[new_key] = value
+
+    return new_state_dict
+
+
 def load_model(
     name: str,
     device: Optional[Union[str, torch.device]] = None,
@@ -143,6 +154,11 @@ def load_model(
     ) as fp:
         checkpoint = torch.load(fp, map_location=device)
     del checkpoint_file
+
+    checkpoint["model_state_dict"] = rename_state_dict_keys(
+        checkpoint["model_state_dict"],
+        lambda old_key: old_key.replace("encoder", "_encoder").replace("decoder", "_decoder")
+    )
 
     dims = ModelDimensions(**checkpoint["dims"])
     model = Whisper(dims)
