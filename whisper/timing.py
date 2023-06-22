@@ -276,6 +276,7 @@ def add_word_timestamps(
     num_frames: int,
     prepend_punctuations: str = "\"'“¿([{-",
     append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
+    last_speech_timestamp: float,
     **kwargs,
 ):
     if len(segments) == 0:
@@ -312,7 +313,6 @@ def add_word_timestamps(
     time_offset = segments[0]["seek"] * HOP_LENGTH / SAMPLE_RATE
     word_index = 0
 
-    last = 0.0
     for segment, text_tokens in zip(segments, text_tokens_per_segment):
         saved_tokens = 0
         words = []
@@ -338,7 +338,7 @@ def add_word_timestamps(
         if len(words) > 0:
             # ensure the first and second word after a pause is not longer than
             # twice the median word duration.
-            if words[0]["end"] - last > median_duration * 4 and (
+            if words[0]["end"] - last_speech_timestamp > median_duration * 4 and (
                 words[0]["end"] - words[0]["start"] > max_duration
                 or (
                     len(words) > 1
@@ -375,6 +375,6 @@ def add_word_timestamps(
             else:
                 segment["end"] = words[-1]["end"]
 
-            last = segment["end"]
+            last_speech_timestamp = segment["end"]
 
         segment["words"] = words
