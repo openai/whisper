@@ -283,9 +283,7 @@ class Whisper(nn.Module):
             self.dims.n_text_layer,
         )
         self._traced_decoder = None
-        self._traced_decoder_first = None
         self._is_encoder_traced = False
-        self._is_first_decoder_traced = False
         self._is_decoder_traced = False
         # use the last half layers for alignment by default; see `set_alignment_heads()` below
         all_heads = torch.zeros(
@@ -305,16 +303,8 @@ class Whisper(nn.Module):
 
     def decoder(self, x: Tensor, xa: Tensor, step: int, self_keys: List[Tensor] = None,
                 self_values: List[Tensor] = None, cross_keys: List[Tensor] = None, cross_values: List[Tensor] = None):
-        # print("step", step)
         if step == 0:
-            if not self._is_first_decoder_traced:
-                self._traced_decoder_first = torch.jit.trace(self._decoder,
-                                                             (x, xa, self_keys, self_values, cross_keys, cross_values))
-                self._traced_decoder_first = torch.jit.freeze(self._traced_decoder_first)
-                self._is_first_decoder_traced = True
-                torch.jit.save(self._traced_decoder_first, "whisper_decoder_1st.pt")
             return self._decoder(x, xa, self_keys, self_values, cross_keys, cross_values)
-            return self._traced_decoder_first(x, xa, self_keys, self_values, cross_keys, cross_values)
         if not self._is_decoder_traced:
             self._traced_decoder = torch.jit.trace(self._decoder,
                                                    (x, xa, self_keys, self_values, cross_keys, cross_values))
@@ -322,7 +312,6 @@ class Whisper(nn.Module):
             self._is_decoder_traced = True
             torch.jit.save(self._traced_decoder, "whisper_decoder.pt")
         return self._traced_decoder(x, xa, self_keys, self_values, cross_keys, cross_values)
-        return self._decoder(x, xa, self_keys, self_values, cross_keys, cross_values)
 
     def set_alignment_heads(self, dump: bytes):
         array = np.frombuffer(
