@@ -325,13 +325,13 @@ class Whisper(nn.Module):
     def embed_audio(self, mel: torch.Tensor):
         return self.encoder(mel)
 
-    def logits(self, tokens: torch.Tensor, audio_features: torch.Tensor, step: int):
-        return self.decoder(tokens, audio_features, step)
+    def logits(self, tokens: torch.Tensor, audio_features: torch.Tensor):
+        return self._decoder(tokens, audio_features)
 
     def forward(
             self, mel: torch.Tensor, tokens: torch.Tensor
     ) -> Dict[str, torch.Tensor]:
-        return self.decoder(tokens, self.encoder(mel))
+        return self._decoder(tokens, self.encoder(mel))
 
     @property
     def device(self):
