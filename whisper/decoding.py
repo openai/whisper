@@ -51,10 +51,15 @@ def detect_language(
     if mel.shape[-2:] != (model.dims.n_audio_ctx, model.dims.n_audio_state):
         mel = model.encoder(mel)
 
+    self_keys = [torch.tensor([]) for _ in range(model._decoder.n_layer)]
+    self_values = [torch.tensor([]) for _ in range(model._decoder.n_layer)]
+    cross_keys = [torch.tensor([]) for _ in range(model._decoder.n_layer)]
+    cross_values = [torch.tensor([]) for _ in range(model._decoder.n_layer)]
+
     # forward pass using a single token, startoftranscript
     n_audio = mel.shape[0]
     x = torch.tensor([[tokenizer.sot]] * n_audio).to(mel.device)  # [n_audio, 1]
-    logits = model.logits(x, mel)[:, 0]
+    logits = model.logits(x, mel, 0, self_keys, self_values, cross_keys, cross_values)[:, 0]
 
     # collect detected languages; suppress all non-language tokens
     mask = torch.ones(logits.shape[-1], dtype=torch.bool)
