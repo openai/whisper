@@ -12,8 +12,12 @@ def read_version(fname="whisper/version.py"):
 
 
 requirements = []
+whisper_rocm = os.getenv('WHISPER_ROCM',default='0')
 if sys.platform.startswith("linux") and platform.machine() == "x86_64":
-    requirements.append("triton==2.0.0")
+    if whisper_rocm == "1" :
+        requirements.append("pytorch_triton_rocm==2.0.2")
+    else :
+        requirements.append("triton==2.0.0")
 
 setup(
     name="openai-whisper",
