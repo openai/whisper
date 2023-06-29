@@ -14,6 +14,10 @@ def read_version(fname="whisper/version.py"):
 requirements = []
 if sys.platform.startswith("linux") and platform.machine() == "x86_64":
     requirements.append("triton==2.0.0")
+if sys.platform == "darwin" and platform.machine() == "arm64":
+    print("Please install the nightly builds of PyTorch, torchvision, and torchaudio manually with the following command for GPU acceleration on apple silicon Macs:")
+    print("pip3 install --pre torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/nightly/cpu")
+
 
 setup(
     name="openai-whisper",
