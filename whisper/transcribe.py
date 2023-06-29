@@ -222,6 +222,7 @@ def transcribe(
     with tqdm.tqdm(
         total=content_frames, unit="frames", disable=verbose is not False
     ) as pbar:
+        last_speech_timestamp = 0.0
         while seek < content_frames:
             time_offset = float(seek * HOP_LENGTH / SAMPLE_RATE)
             mel_segment = mel[:, seek : seek + N_FRAMES]
@@ -321,10 +322,13 @@ def transcribe(
                     num_frames=segment_size,
                     prepend_punctuations=prepend_punctuations,
                     append_punctuations=append_punctuations,
+                    last_speech_timestamp=last_speech_timestamp,
                 )
                 word_end_timestamps = [
                     w["end"] for s in current_segments for w in s["words"]
                 ]
+                if len(word_end_timestamps) > 0:
+                    last_speech_timestamp = word_end_timestamps[-1]
                 if not single_timestamp_ending and len(word_end_timestamps) > 0:
                     seek_shift = round(
                         (word_end_timestamps[-1] - time_offset) * FRAMES_PER_SECOND
