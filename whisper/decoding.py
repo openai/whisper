@@ -145,6 +145,7 @@ class PyTorchInference(Inference):
         self.initial_token_length = initial_token_length
         self.kv_cache = {}
         self.hooks = []
+        self.rearrange_list = [block.attn.key for block in self.model.decoder.blocks] + [block.attn.value for block in self.model.decoder.blocks]
 
     def logits(self, tokens: Tensor, audio_features: Tensor) -> Tensor:
         if not self.kv_cache:
@@ -164,9 +165,13 @@ class PyTorchInference(Inference):
         self.hooks = []
 
     def rearrange_kv_cache(self, source_indices):
-        for module, tensor in self.kv_cache.items():
+        is_same_order = source_indices == list(range(len(source_indices)))
+        if is_same_order:
+            return
+
+        for module in self.rearrange_list:
             # update the key/value cache to contain the selected sequences
-            self.kv_cache[module] = tensor[source_indices].detach()
+            self.kv_cache[module] = self.kv_cache[module][source_indices].detach()
 
 
 class SequenceRanker:
