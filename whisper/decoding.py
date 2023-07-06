@@ -145,7 +145,7 @@ class PyTorchInference(Inference):
         self.initial_token_length = initial_token_length
         self.kv_cache = {}
         self.hooks = []
-        
+
         key_modules = [block.attn.key for block in self.model.decoder.blocks]
         value_modules = [block.attn.value for block in self.model.decoder.blocks]
         self.kv_modules = key_modules + value_modules
