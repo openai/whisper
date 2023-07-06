@@ -673,7 +673,6 @@ class DecodingTask:
         return languages, lang_probs
 
     def _main_loop(self, audio_features: Tensor, tokens: Tensor):
-        assert audio_features.shape[0] == tokens.shape[0]
         n_batch = tokens.shape[0]
         sum_logprobs: Tensor = torch.zeros(n_batch, device=audio_features.device)
         no_speech_probs = [np.nan] * n_batch
@@ -726,8 +725,7 @@ class DecodingTask:
                 )
             ]
 
-        # repeat the audio & text tensors by the group size, for beam search or best-of-n sampling
-        audio_features = audio_features.repeat_interleave(self.n_group, dim=0)
+        # repeat text tensors by the group size, for beam search or best-of-n sampling
         tokens = tokens.repeat_interleave(self.n_group, dim=0).to(audio_features.device)
 
         # call the main sampling loop
