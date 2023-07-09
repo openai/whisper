@@ -101,10 +101,8 @@ def mel_filters(device, n_mels: int = N_MELS) -> torch.Tensor:
         )
     """
     assert n_mels == 80, f"Unsupported n_mels: {n_mels}"
-    with np.load(
-        os.path.join(os.path.dirname(__file__), "assets", "mel_filters.npz")
-    ) as f:
-        return torch.from_numpy(f[f"mel_{n_mels}"]).to(device)
+    filters_path = os.path.join(os.path.dirname(__file__), "assets", "mel_filters.pt")
+    return torch.load(filters_path, map_location=device)[f"mel_{n_mels}"]
 
 
 def log_mel_spectrogram(
