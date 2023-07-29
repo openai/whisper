@@ -215,6 +215,8 @@ def find_alignment(
 
     words, word_tokens = tokenizer.split_to_word_tokens(text_tokens + [tokenizer.eot])
     word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens[:-1]]), (1, 0))
+    if len(word_boundaries) <= 1:
+        return []
 
     jumps = np.pad(np.diff(text_indices), (1, 0), constant_values=1).astype(bool)
     jump_times = time_indices[jumps] / TOKENS_PER_SECOND
@@ -297,8 +299,6 @@ def add_word_timestamps(
     # hack: truncate long words at sentence boundaries.
     # a better segmentation algorithm based on VAD should be able to replace this.
     if len(word_durations) > 0:
-        median_duration = np.median(word_durations)
-        max_duration = median_duration * 2
         sentence_end_marks = ".。!！?？"
         # ensure words at sentence boundaries are not longer than twice the median word duration.
         for i in range(1, len(alignment)):
