@@ -215,7 +215,11 @@ def find_alignment(
 
     words, word_tokens = tokenizer.split_to_word_tokens(text_tokens + [tokenizer.eot])
     if len(word_tokens) <= 1:
-        # just eot
+        # return on eot only
+        # >>> np.pad([], (1, 0))
+        # array([0.])
+        # This results in crashes when we lookup jump_times with float, like
+        # IndexError: arrays used as indices must be of integer (or boolean) type
         return []
     word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens[:-1]]), (1, 0))
 
