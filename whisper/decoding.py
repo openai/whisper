@@ -146,8 +146,11 @@ class PyTorchInference(Inference):
         self.kv_cache = {}
         self.hooks = []
 
-        key_modules = [block.attn.key for block in self.model.decoder.blocks]
-        value_modules = [block.attn.value for block in self.model.decoder.blocks]
+        key_modules = []
+        value_modules = []
+        for block in self.model.decoder.blocks:
+            key_modules.append(block.attn.key)
+            value_modules.append(block.attn.value)
         self.kv_modules = key_modules + value_modules
 
     def logits(self, tokens: Tensor, audio_features: Tensor) -> Tensor:
