@@ -79,7 +79,9 @@ def detect_language(
 class DecodingOptions:
     # whether to perform X->X "transcribe" or X->English "translate"
     task: str = "transcribe"
-
+    language_detection_segments: int = 1
+    language_threshold: Optional[float] = None
+    
     # language that the audio is in; uses detected language if None
     language: Optional[str] = None
 

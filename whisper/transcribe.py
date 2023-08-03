@@ -83,6 +83,12 @@ def transcribe(
         disabling may make the text inconsistent across windows, but the model becomes less prone to
         getting stuck in a failure loop, such as repetition looping or timestamps going out of sync.
 
+    language_threshold: float
+        If the maximum probability of the language tokens is higher than this value, the language is 
+        detected
+    language_detection_segments: int
+        Number of segments to consider for the language detection
+        
     word_timestamps: bool
         Extract word-level timestamps using the cross-attention pattern and dynamic time warping,
         and include the timestamps for each word in each segment.
@@ -120,18 +126,34 @@ def transcribe(
     # Pad 30-seconds of silence to the input audio, for slicing
     mel = log_mel_spectrogram(audio, padding=N_SAMPLES)
     content_frames = mel.shape[-1] - N_FRAMES
-
+    language_detection_segments: int = decode_options["language_detection_segments"]
+    language_threshold: Optional[float] = decode_options["language_threshold"]
+    
     if decode_options.get("language", None) is None:
         if not model.is_multilingual:
             decode_options["language"] = "en"
         else:
             if verbose:
-                print(
-                    "Detecting language using up to the first 30 seconds. Use `--language` to specify the language"
-                )
-            mel_segment = pad_or_trim(mel, N_FRAMES).to(model.device).to(dtype)
-            _, probs = model.detect_language(mel_segment)
-            decode_options["language"] = max(probs, key=probs.get)
+                print("Detecting language. Use `--language` to specify the language")
+            if language_detection_segments is None or language_detection_segments < 1:
+                language_detection_segments = 1 
+            seek = 0
+            languages = []
+            while seek < content_frames and seek < N_FRAMES * language_detection_segments:
+                segment = pad_or_trim(mel[:, seek:], N_FRAMES).to(model.device).to(dtype)
+                _, probs = model.detect_language(segment)
+                lang = max(probs, key=probs.get)
+                lang_prob = probs[lang]
+                if language_threshold is not None and lang_prob > language_threshold:
+                    decode_options["language"] = lang
+                    break
+                else:
+                    languages.append(lang)
+                    seek += segment.shape[-1]
+            else:
+                # If no language detected for all segments, the majority vote of the highest projected 
+                # languages for all segments is used to determine the language.
+                decode_options["language"] = max(set(languages), key=languages.count)
             if verbose is not None:
                 print(
                     f"Detected language: {LANGUAGES[decode_options['language']].title()}"
@@ -402,6 +424,9 @@ def cli():
     parser.add_argument("--condition_on_previous_text", type=str2bool, default=True, help="if True, provide the previous output of the model as a prompt for the next window; disabling may make the text inconsistent across windows, but the model becomes less prone to getting stuck in a failure loop")
     parser.add_argument("--fp16", type=str2bool, default=True, help="whether to perform inference in fp16; True by default")
 
+    parser.add_argument("--language_threshold", type=optional_float, default=None, help="if the maximum probability of the language tokens is higher than this value, the language is detected")
+    parser.add_argument("--language_detection_segments", type=int, default=1, help="number of segments to consider for the language detection")
+    
     parser.add_argument("--temperature_increment_on_fallback", type=optional_float, default=0.2, help="temperature to increase when falling back when the decoding fails to meet either of the thresholds below")
     parser.add_argument("--compression_ratio_threshold", type=optional_float, default=2.4, help="if the gzip compression ratio is higher than this value, treat the decoding as failed")
     parser.add_argument("--logprob_threshold", type=optional_float, default=-1.0, help="if the average log probability is lower than this value, treat the decoding as failed")
