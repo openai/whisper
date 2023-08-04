@@ -128,6 +128,7 @@ def transcribe(
     content_frames = mel.shape[-1] - N_FRAMES
     language_detection_segments: int = decode_options["language_detection_segments"]
     language_threshold: Optional[float] = decode_options["language_threshold"]
+    
     task: str = decode_options.get("task", "transcribe")
 
     if decode_options.get("language", None) is None:
@@ -161,6 +162,7 @@ def transcribe(
                 )
 
     language: str = decode_options["language"]
+
     if task == 'detect_language':
         return dict(
             text='',
