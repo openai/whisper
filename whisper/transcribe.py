@@ -27,6 +27,7 @@ from .utils import (
     optional_float,
     optional_int,
     str2bool,
+    remove_leading_spaces,
 )
 
 if TYPE_CHECKING:
@@ -368,11 +369,16 @@ def transcribe(
             # update progress bar
             pbar.update(min(content_frames, seek) - previous_seek)
 
-    return dict(
-        text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
-        segments=all_segments,
-        language=language,
-    )
+        result = dict(
+            text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
+            segments=all_segments,
+            language=language,
+        )
+
+        if decode_options["language"] == "ko":
+            result = remove_leading_spaces(result)
+
+    return result
 
 
 def cli():

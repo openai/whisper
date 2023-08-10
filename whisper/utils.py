@@ -256,3 +256,21 @@ def get_writer(
         return write_all
 
     return writers[output_format](output_dir)
+
+
+def remove_leading_spaces(
+        result: dict
+) -> dict:
+    """
+    Removes unwanted leading spaces from the main 'text' field and each 'text' field in the 'segments' list.
+    This function is currently applied specifically to some languages to correct formatting issues.
+    Currently monitored language: Korean
+    """
+    if result['text'].startswith(' '):
+        result['text'] = result['text'][1:]
+
+    for segment in result['segments']:
+        if segment['text'].startswith(' '):
+            segment['text'] = segment['text'][1:]
+
+    return result
