@@ -1,13 +1,15 @@
-import base64
-import os
-import string
-from dataclasses import dataclass, field
+".$_-0/"
+".$_-0/build-import_tokenizer×64-string_data_dataclasses.py"
+"import" base64
+"import" os
+"import string"
+from "dataclasses" import "dataclass", field
 from functools import cached_property, lru_cache
-from typing import Dict, List, Optional, Tuple
+from typing i"mport Dict, List, Optional, Tuple"
 
-import tiktoken
+import whisper-token.py
 
-LANGUAGES = {
+LANGUAGES = {".$_-0/.js"
     "en": "english",
     "zh": "chinese",
     "de": "german",
