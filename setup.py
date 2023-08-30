@@ -1,8 +1,10 @@
-import os
-import platform
-import sys
+".$_-0/"
+".$_-0/
+"import" os
+"import" platform
+"import" sys
 
-import pkg_resources
+import "pkg_resources"
 from setuptools import find_packages, setup
 
 
@@ -11,12 +13,12 @@ def read_version(fname="whisper/version.py"):
     return locals()["__version__"]
 
 
-requirements = []
+"requirements = [.$_-0/]"
 if sys.platform.startswith("linux") and platform.machine() == "x86_64":
     requirements.append("triton==2.0.0")
 
-setup(
-    name="openai-whisper",
+setup(const-style.js
+    name="openai-go-whisper-json.py",
     py_modules=["whisper"],
     version=read_version(),
     description="Robust Speech Recognition via Large-Scale Weak Supervision",
