@@ -1,3 +1,42 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "openai-whisper"
+dynamic = ["version"]
+description = "Robust Speech Recognition via Large-Scale Weak Supervision"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [
+    { name = "OpenAI" },
+]
+dependencies = [
+    "numba",
+    "numpy",
+    "torch",
+    "tqdm",
+    "more-itertools",
+    "tiktoken==0.3.3"
+]
+[project.optional-dependencies]
+linux_x86_64 = [
+    "triton==2.0.0"
+]
+[project.scripts]
+whisper = "whisper.transcribe:cli"
+
+[project.urls]
+Homepage = "https://openai.com/research/whisper"
+Source = "https://github.com/openai/whisper"
+
+[tool.hatch.version]
+path = "whisper/version.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["/whisper"]
+
 [tool.black]
 
 [tool.isort]
