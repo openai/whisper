@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Audio Recording Example</title>
+  </head>
+  <body>
+    <h1>Audio Recording Example</h1>
+
+    <button id="startButton">Start Recording</button>
+    <button id="stopButton" disabled>Stop Recording</button>
+
+    <audio id="audioPlayer" controls></audio>
+    <p>Response from the server:</p>
+    <div id="response"></div>
+
+    <!-- ... (remaining HTML content) ... -->
+    <script>
+      let mediaRecorder;
+      let audioChunks = [];
+
+      const startButton = document.getElementById("startButton");
+      const stopButton = document.getElementById("stopButton");
+      const audioPlayer = document.getElementById("audioPlayer");
+      const response = document.getElementById("response");
+
+      startButton.addEventListener("click", startRecording);
+      stopButton.addEventListener("click", stopRecording);
+
+      async function startRecording() {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: true,
+        });
+
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            audioChunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = () => {
+          const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          audioPlayer.src = audioUrl;
+
+          // Send the recorded audio to the server
+          sendAudioToServer(audioBlob);
+          audioChunks = [];
+        };
+
+        mediaRecorder.start();
+        startButton.disabled = true;
+        stopButton.disabled = false;
+      }
+
+      function stopRecording() {
+        if (mediaRecorder.state === "recording") {
+          mediaRecorder.stop();
+          startButton.disabled = false;
+          stopButton.disabled = true;
+        }
+      }
+
+      function sendAudioToServer(audioBlob) {
+        const formData = new FormData();
+        formData.append("audio", audioBlob, "audio.wav");
+
+        fetch("/upload", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => response.text())
+          .then((responseText) => {
+            response.innerHTML = responseText;
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+          });
+      }
+    </script>
+
+    <!-- ... (previous HTML content) ... -->
+  </body>
+</html>
