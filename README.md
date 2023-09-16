@@ -31,11 +31,19 @@ To update the package to the latest version of this repository, please run:
 
 For AMD GPU (ROCm Platform), you need to install pytorch for ROCm at the first, then install whisper from source:
 
+<<<<<<< HEAD
+    pip install --no-build-isolation  git+https://github.com/openai/whisper.git
+
+To update the package to the latest version of this repository for AMD GPU (ROCm Platform), please run:
+
+    pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git
+=======
     WHISPER_ROCM=1 pip install --no-build-isolation  git+https://github.com/openai/whisper.git
 
 To update the package to the latest version of this repository for AMD GPU (ROCm Platform), please run:
 
     WHISPER_ROCM=1 pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git
+>>>>>>> c41de6ac767b30524779e260969ed4a4d6a43523
 
 
 It also requires the command-line tool [`ffmpeg`](https://ffmpeg.org/) to be installed on your system, which is available from most package managers:
