@@ -226,7 +226,7 @@ class Tokenizer:
 
     @cached_property
     def all_language_codes(self) -> Tuple[str]:
-        return tuple(self.decode([l]).strip("<|>") for l in self.all_language_tokens)
+        return tuple(self.decode([_l]).strip("<|>") for _l in self.all_language_tokens)
 
     @cached_property
     def sot_sequence_including_notimestamps(self) -> Tuple[int]:
