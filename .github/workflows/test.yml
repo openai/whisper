@@ -35,7 +35,7 @@ jobs:
         run: |
           pip install -U pre-commit
           pre-commit install --install-hooks
-          pre-commit run --from-ref=origin/${{ github.base_ref }} --to-ref=HEAD
+          pre-commit run --all-files
   whisper-test:
     needs: pre-commit
     runs-on: ubuntu-latest
