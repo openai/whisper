@@ -453,8 +453,11 @@ def cli():
         warnings.warn("--max_line_count has no effect without --max_line_width")
     writer_args = {arg: args.pop(arg) for arg in word_options}
     for audio_path in args.pop("audio"):
-        result = transcribe(model, audio_path, temperature=temperature, **args)
-        writer(result, audio_path, writer_args)
+        try:
+            result = transcribe(model, audio_path, temperature=temperature, **args)
+            writer(result, audio_path, writer_args)
+        except:
+            print("Error transcribing. File skipped: " + audio_path)
 
 
 if __name__ == "__main__":
