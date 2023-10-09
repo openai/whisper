@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 import warnings
 from typing import TYPE_CHECKING, Optional, Tuple, Union
 
@@ -49,6 +50,7 @@ def transcribe(
     append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
     **decode_options,
 ):
+    print("Transcribing...")
     """
     Transcribe an audio file using Whisper
 
@@ -106,6 +108,14 @@ def transcribe(
     A dictionary containing the resulting text ("text") and segment-level details ("segments"), and
     the spoken language ("language"), which is detected when `decode_options["language"]` is None.
     """
+
+    transcript = None
+    tracked_expressions = None
+    if "transcript" in decode_options:
+        transcript = decode_options.pop("transcript")
+    if "tracked_expressions" in decode_options:
+        tracked_expressions = decode_options.pop("tracked_expressions")
+
     dtype = torch.float16 if decode_options.get("fp16", True) else torch.float32
     if model.device == torch.device("cpu"):
         if torch.cuda.is_available():
@@ -219,6 +229,39 @@ def transcribe(
         }
 
     # show the progress bar when verbose is False (if True, transcribed text will be printed)
+
+    def checking_time_windows_overlapping(
+        window1_start, window1_end, window2_start, window2_end
+    ):
+        if window1_start > window2_end or window2_start > window1_end:
+            return False
+        else:
+            return True
+
+    def extract_tracked_expressions_from_next_segment(
+        transcript, tracked_expressions, start, end
+    ) -> str:
+        tracked_expressions_mentioned = set()
+        additional_time = 10
+        for cue in transcript:
+            if cue and cue.get("text"):
+                if checking_time_windows_overlapping(
+                    cue.get("start") - additional_time,
+                    cue.get("end") + additional_time,
+                    start,
+                    end,
+                ):
+                    for expression in tracked_expressions.keys():
+                        if re.search(
+                            r"\b{}\b".format(expression.lower()),
+                            cue.get("text").lower(),
+                        ):
+                            tracked_expressions_mentioned.add(
+                                tracked_expressions[expression]
+                            )
+
+        return " ".join(tracked_expressions_mentioned)
+
     with tqdm.tqdm(
         total=content_frames, unit="frames", disable=verbose is not False
     ) as pbar:
@@ -230,7 +273,29 @@ def transcribe(
             segment_duration = segment_size * HOP_LENGTH / SAMPLE_RATE
             mel_segment = pad_or_trim(mel_segment, N_FRAMES).to(model.device).to(dtype)
 
+            # print("segment_duration", segment_duration)
+            start_segment = (
+                all_segments[-1].get("end", 0) if len(all_segments) > 0 else 0
+            )
+            tracked_expressions_probably_going_to_be_mentioned = None
+            if transcript and tracked_expressions:
+                tracked_expressions_probably_going_to_be_mentioned = (
+                    extract_tracked_expressions_from_next_segment(
+                        transcript,
+                        tracked_expressions,
+                        start_segment,
+                        start_segment + segment_duration,
+                    )
+                )
+
             decode_options["prompt"] = all_tokens[prompt_reset_since:]
+            if tracked_expressions_probably_going_to_be_mentioned:
+                print(tracked_expressions_probably_going_to_be_mentioned + ".")
+                decode_options["prompt"].extend(
+                    tokenizer.encode(
+                        " " + tracked_expressions_probably_going_to_be_mentioned + "."
+                    )
+                )
             result: DecodingResult = decode_with_fallback(mel_segment)
             tokens = torch.tensor(result.tokens)
 
