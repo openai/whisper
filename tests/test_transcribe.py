@@ -15,8 +15,9 @@ def test_transcribe(model_name: str):
 
     language = "en" if model_name.endswith(".en") else None
     result = model.transcribe(
-        audio_path, language=language, temperature=0.0, word_timestamps=True
+        audio_path, language=language, model_name=model_name, temperature=0.0, word_timestamps=True
     )
+    assert result["job_details"]["model"] == model_name
     assert result["language"] == "en"
     assert result["text"] == "".join([s["text"] for s in result["segments"]])
 
