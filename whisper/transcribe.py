@@ -445,13 +445,15 @@ def cli():
     model = load_model(model_name, device=device, download_root=model_dir)
 
     writer = get_writer(output_format, output_dir)
-    word_options = ["highlight_words", "max_line_count", "max_line_width"]
+    word_options = ["highlight_words", "max_line_count", "max_line_width", "max_words_count"]
     if not args["word_timestamps"]:
         for option in word_options:
             if args[option]:
                 parser.error(f"--{option} requires --word_timestamps True")
     if args["max_line_count"] and not args["max_line_width"]:
         warnings.warn("--max_line_count has no effect without --max_line_width")
+    if args["max_words_count"] and args["max_line_width"]:
+        warnings.warn("--max_words_count has no effect with --max_line_width")
     writer_args = {arg: args.pop(arg) for arg in word_options}
     for audio_path in args.pop("audio"):
         result = transcribe(model, audio_path, temperature=temperature, **args)
