@@ -457,7 +457,7 @@ def cli():
     writer_args = {arg: args.pop(arg) for arg in word_options}
     for audio_path in args.pop("audio"):
         result = transcribe(model, audio_path, temperature=temperature, **args)
-        writer(result, audio_path, writer_args)
+        writer(result, audio_path, **writer_args)
 
 
 if __name__ == "__main__":
