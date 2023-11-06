@@ -32,7 +32,9 @@ def detect_language(
         list of dictionaries containing the probability distribution over all languages.
     """
     if tokenizer is None:
-        tokenizer = get_tokenizer(model.is_multilingual, num_languages=model.num_languages)
+        tokenizer = get_tokenizer(
+            model.is_multilingual, num_languages=model.num_languages
+        )
     if (
         tokenizer.language is None
         or tokenizer.language_token not in tokenizer.sot_sequence
