@@ -6,12 +6,6 @@ from functools import cached_property, lru_cache
 from typing import Dict, List, Optional, Tuple
 
 import tiktoken
-from tiktoken.load import load_tiktoken_bpe
-
-ENCODINGS_BASE = os.environ.get(
-    "OPENAI_ENCODINGS_BASE",
-    "az://oaiappliedai/encodings/applied-encodings",
-)
 
 LANGUAGES = {
     "en": "english",
