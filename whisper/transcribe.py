@@ -1,5 +1,6 @@
 import argparse
 import os
+import traceback
 import warnings
 from typing import TYPE_CHECKING, Optional, Tuple, Union
 
@@ -456,8 +457,9 @@ def cli():
         try:
             result = transcribe(model, audio_path, temperature=temperature, **args)
             writer(result, audio_path, writer_args)
-        except:
-            print("Error transcribing. File skipped: " + audio_path)
+        except Exception as e:
+            traceback.print_exc()
+            print(f"Skipping {audio_path} due to {type(e).__name__}: {str(e)}")
 
 
 if __name__ == "__main__":
