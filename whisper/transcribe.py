@@ -1,5 +1,6 @@
 import argparse
 import os
+import traceback
 import warnings
 from typing import TYPE_CHECKING, Optional, Tuple, Union
 
@@ -468,8 +469,12 @@ def cli():
         warnings.warn("--max_words_per_line has no effect with --max_line_width")
     writer_args = {arg: args.pop(arg) for arg in word_options}
     for audio_path in args.pop("audio"):
-        result = transcribe(model, audio_path, temperature=temperature, **args)
-        writer(result, audio_path, **writer_args)
+        try:
+            result = transcribe(model, audio_path, temperature=temperature, **args)
+            writer(result, audio_path, **writer_args)
+        except Exception as e:
+            traceback.print_exc()
+            print(f"Skipping {audio_path} due to {type(e).__name__}: {str(e)}")
 
 
 if __name__ == "__main__":
