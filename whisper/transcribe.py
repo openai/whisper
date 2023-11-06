@@ -452,7 +452,12 @@ def cli():
     model = load_model(model_name, device=device, download_root=model_dir)
 
     writer = get_writer(output_format, output_dir)
-    word_options = ["highlight_words", "max_line_count", "max_line_width", "max_words_per_line"]
+    word_options = [
+        "highlight_words",
+        "max_line_count",
+        "max_line_width",
+        "max_words_per_line",
+    ]
     if not args["word_timestamps"]:
         for option in word_options:
             if args[option]:

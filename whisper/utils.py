@@ -74,7 +74,9 @@ class ResultWriter:
     def __init__(self, output_dir: str):
         self.output_dir = output_dir
 
-    def __call__(self, result: dict, audio_path: str, options: Optional[dict] = None, **kwargs):
+    def __call__(
+        self, result: dict, audio_path: str, options: Optional[dict] = None, **kwargs
+    ):
         audio_basename = os.path.basename(audio_path)
         audio_basename = os.path.splitext(audio_basename)[0]
         output_path = os.path.join(
@@ -84,14 +86,18 @@ class ResultWriter:
         with open(output_path, "w", encoding="utf-8") as f:
             self.write_result(result, file=f, options=options, **kwargs)
 
-    def write_result(self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs):
+    def write_result(
+        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs
+    ):
         raise NotImplementedError
 
 
 class WriteTXT(ResultWriter):
     extension: str = "txt"
 
-    def write_result(self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs):
+    def write_result(
+        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs
+    ):
         for segment in result["segments"]:
             print(segment["text"].strip(), file=file, flush=True)
 
@@ -132,12 +138,21 @@ class SubtitlesWriter(ResultWriter):
                     remaining_words = len(segment["words"]) - chunk_index
                     if max_words_per_line > len(segment["words"]) - chunk_index:
                         words_count = remaining_words
-                    for i, original_timing in enumerate(segment["words"][chunk_index:chunk_index + words_count]):
+                    for i, original_timing in enumerate(
+                        segment["words"][chunk_index : chunk_index + words_count]
+                    ):
                         timing = original_timing.copy()
-                        long_pause = not preserve_segments and timing["start"] - last > 3.0
+                        long_pause = (
+                            not preserve_segments and timing["start"] - last > 3.0
+                        )
                         has_room = line_len + len(timing["word"]) <= max_line_width
                         seg_break = i == 0 and len(subtitle) > 0 and preserve_segments
-                        if line_len > 0 and has_room and not long_pause and not seg_break:
+                        if (
+                            line_len > 0
+                            and has_room
+                            and not long_pause
+                            and not seg_break
+                        ):
                             # line continuation
                             line_len += len(timing["word"])
                         else:
@@ -209,7 +224,9 @@ class WriteVTT(SubtitlesWriter):
     always_include_hours: bool = False
     decimal_marker: str = "."
 
-    def write_result(self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs):
+    def write_result(
+        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs
+    ):
         print("WEBVTT\n", file=file)
         for start, end, text in self.iterate_result(result, options, **kwargs):
             print(f"{start} --> {end}\n{text}\n", file=file, flush=True)
@@ -220,7 +237,9 @@ class WriteSRT(SubtitlesWriter):
     always_include_hours: bool = True
     decimal_marker: str = ","
 
-    def write_result(self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs):
+    def write_result(
+        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs
+    ):
         for i, (start, end, text) in enumerate(
             self.iterate_result(result, options, **kwargs), start=1
         ):
@@ -239,7 +258,9 @@ class WriteTSV(ResultWriter):
 
     extension: str = "tsv"
 
-    def write_result(self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs):
+    def write_result(
+        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs
+    ):
         print("start", "end", "text", sep="\t", file=file)
         for segment in result["segments"]:
             print(round(1000 * segment["start"]), file=file, end="\t")
@@ -250,7 +271,9 @@ class WriteTSV(ResultWriter):
 class WriteJSON(ResultWriter):
     extension: str = "json"
 
-    def write_result(self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs):
+    def write_result(
+        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs
+    ):
         json.dump(result, file)
 
 
@@ -268,7 +291,9 @@ def get_writer(
     if output_format == "all":
         all_writers = [writer(output_dir) for writer in writers.values()]
 
-        def write_all(result: dict, file: TextIO, options: Optional[dict] = None, **kwargs):
+        def write_all(
+            result: dict, file: TextIO, options: Optional[dict] = None, **kwargs
+        ):
             for writer in all_writers:
                 writer(result, file, options, **kwargs)
 
