@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## [v20231106](https://github.com/openai/whisper/releases/tag/v20231106)
+
+* large-v3 ([#1761](https://github.com/openai/whisper/pull/1761))
+
 ## [v20231105](https://github.com/openai/whisper/releases/tag/v20231105)
 
 * remove tiktoken pin ([#1759](https://github.com/openai/whisper/pull/1759))
