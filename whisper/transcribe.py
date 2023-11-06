@@ -1,5 +1,6 @@
 import argparse
 import os
+import traceback
 import warnings
 from typing import TYPE_CHECKING, Optional, Tuple, Union
 
@@ -378,10 +379,17 @@ def transcribe(
 def cli():
     from . import available_models
 
+    def valid_model_name(name):
+        if name in available_models() or os.path.exists(name):
+            return name
+        raise ValueError(
+            f"model should be one of {available_models()} or path to a model checkpoint"
+        )
+
     # fmt: off
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("audio", nargs="+", type=str, help="audio file(s) to transcribe")
-    parser.add_argument("--model", default="small", choices=available_models(), help="name of the Whisper model to use")
+    parser.add_argument("--model", default="small", type=valid_model_name, help="name of the Whisper model to use")
     parser.add_argument("--model_dir", type=str, default=None, help="the path to save model files; uses ~/.cache/whisper by default")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu", help="device to use for PyTorch inference")
     parser.add_argument("--output_dir", "-o", type=str, default=".", help="directory to save the outputs")
@@ -412,6 +420,7 @@ def cli():
     parser.add_argument("--highlight_words", type=str2bool, default=False, help="(requires --word_timestamps True) underline each word as it is spoken in srt and vtt")
     parser.add_argument("--max_line_width", type=optional_int, default=None, help="(requires --word_timestamps True) the maximum number of characters in a line before breaking the line")
     parser.add_argument("--max_line_count", type=optional_int, default=None, help="(requires --word_timestamps True) the maximum number of lines in a segment")
+    parser.add_argument("--max_words_per_line", type=optional_int, default=None, help="(requires --word_timestamps True, no effect with --max_line_width) the maximum number of words in a segment")
     parser.add_argument("--threads", type=optional_int, default=0, help="number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS")
     # fmt: on
 
@@ -444,17 +453,28 @@ def cli():
     model = load_model(model_name, device=device, download_root=model_dir)
 
     writer = get_writer(output_format, output_dir)
-    word_options = ["highlight_words", "max_line_count", "max_line_width"]
+    word_options = [
+        "highlight_words",
+        "max_line_count",
+        "max_line_width",
+        "max_words_per_line",
+    ]
     if not args["word_timestamps"]:
         for option in word_options:
             if args[option]:
                 parser.error(f"--{option} requires --word_timestamps True")
     if args["max_line_count"] and not args["max_line_width"]:
         warnings.warn("--max_line_count has no effect without --max_line_width")
+    if args["max_words_per_line"] and args["max_line_width"]:
+        warnings.warn("--max_words_per_line has no effect with --max_line_width")
     writer_args = {arg: args.pop(arg) for arg in word_options}
     for audio_path in args.pop("audio"):
-        result = transcribe(model, audio_path, temperature=temperature, **args)
-        writer(result, audio_path, writer_args)
+        try:
+            result = transcribe(model, audio_path, temperature=temperature, **args)
+            writer(result, audio_path, **writer_args)
+        except Exception as e:
+            traceback.print_exc()
+            print(f"Skipping {audio_path} due to {type(e).__name__}: {str(e)}")
 
 
 if __name__ == "__main__":

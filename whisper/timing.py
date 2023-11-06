@@ -202,7 +202,7 @@ def find_alignment(
         hook.remove()
 
     # heads * tokens * frames
-    weights = torch.stack([QKs[l][h] for l, h in model.alignment_heads.indices().T])
+    weights = torch.stack([QKs[_l][_h] for _l, _h in model.alignment_heads.indices().T])
     weights = weights[:, :, : num_frames // 2]
     weights = (weights * qk_scale).softmax(dim=-1)
     std, mean = torch.std_mean(weights, dim=-2, keepdim=True, unbiased=False)
@@ -214,6 +214,13 @@ def find_alignment(
     text_indices, time_indices = dtw(-matrix)
 
     words, word_tokens = tokenizer.split_to_word_tokens(text_tokens + [tokenizer.eot])
+    if len(word_tokens) <= 1:
+        # return on eot only
+        # >>> np.pad([], (1, 0))
+        # array([0.])
+        # This results in crashes when we lookup jump_times with float, like
+        # IndexError: arrays used as indices must be of integer (or boolean) type
+        return []
     word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens[:-1]]), (1, 0))
 
     jumps = np.pad(np.diff(text_indices), (1, 0), constant_values=1).astype(bool)
@@ -297,8 +304,6 @@ def add_word_timestamps(
     # hack: truncate long words at sentence boundaries.
     # a better segmentation algorithm based on VAD should be able to replace this.
     if len(word_durations) > 0:
-        median_duration = np.median(word_durations)
-        max_duration = median_duration * 2
         sentence_end_marks = ".。!！?？"
         # ensure words at sentence boundaries are not longer than twice the median word duration.
         for i in range(1, len(alignment)):
