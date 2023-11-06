@@ -104,9 +104,9 @@ class SubtitlesWriter(ResultWriter):
         raw_max_line_width: Optional[int] = options["max_line_width"]
         max_line_count: Optional[int] = options["max_line_count"]
         highlight_words: bool = options["highlight_words"]
-        max_words_count: Optional[int] = options["max_words_count"]
+        max_words_per_line: Optional[int] = options["max_words_per_line"]
         max_line_width = 1000 if raw_max_line_width is None else raw_max_line_width
-        max_words_count = 1000 if max_words_count is None else max_words_count
+        max_words_per_line = 1000 if max_words_per_line is None else max_words_per_line
         preserve_segments = max_line_count is None or raw_max_line_width is None
 
         def iterate_subtitles():
@@ -117,10 +117,10 @@ class SubtitlesWriter(ResultWriter):
             last = result["segments"][0]["words"][0]["start"]
             for segment in result["segments"]:
                 chunk_index = 0
-                words_count = max_words_count
+                words_count = max_words_per_line
                 while chunk_index < len(segment["words"]):
                     remaining_words = len(segment["words"]) - chunk_index
-                    if max_words_count > len(segment["words"]) - chunk_index:
+                    if max_words_per_line > len(segment["words"]) - chunk_index:
                         words_count = remaining_words
                     for i, original_timing in enumerate(segment["words"][chunk_index:chunk_index + words_count]):
                         timing = original_timing.copy()
@@ -150,7 +150,7 @@ class SubtitlesWriter(ResultWriter):
                             line_len = len(timing["word"].strip())
                         subtitle.append(timing)
                         last = timing["start"]
-                    chunk_index += max_words_count
+                    chunk_index += max_words_per_line
             if len(subtitle) > 0:
                 yield subtitle
 
