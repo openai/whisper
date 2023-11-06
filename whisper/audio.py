@@ -98,9 +98,10 @@ def mel_filters(device, n_mels: int = N_MELS) -> torch.Tensor:
         np.savez_compressed(
             "mel_filters.npz",
             mel_80=librosa.filters.mel(sr=16000, n_fft=400, n_mels=80),
+            mel_128=librosa.filters.mel(sr=16000, n_fft=400, n_mels=128),
         )
     """
-    assert n_mels == 80, f"Unsupported n_mels: {n_mels}"
+    assert n_mels in {80, 128}, f"Unsupported n_mels: {n_mels}"
 
     filters_path = os.path.join(os.path.dirname(__file__), "assets", "mel_filters.npz")
     with np.load(filters_path, allow_pickle=False) as f:
