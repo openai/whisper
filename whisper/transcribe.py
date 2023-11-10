@@ -378,6 +378,8 @@ def transcribe(
         text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
         segments=all_segments,
         language=language,
+        content_frames=content_frames,
+        dtype=str(dtype),
     )
 
 
