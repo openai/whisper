@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## [v20231117](https://github.com/openai/whisper/releases/tag/v20231117)
+
+* Relax triton requirements for compatibility with pytorch 2.1 and newer ([#1802](https://github.com/openai/whisper/pull/1802))
+
 ## [v20231106](https://github.com/openai/whisper/releases/tag/v20231106)
 
 * large-v3 ([#1761](https://github.com/openai/whisper/pull/1761))
