@@ -23,7 +23,7 @@ setup(
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     readme="README.md",
-    python_requires=">=3.8",
+    python_requires=">=2.7",
     author="OpenAI",
     url="https://github.com/openai/whisper",
     license="MIT",
