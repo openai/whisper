@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## [v20231117](https://github.com/openai/whisper/releases/tag/v20231117)
+
+* Relax triton requirements for compatibility with pytorch 2.1 and newer ([#1802](https://github.com/openai/whisper/pull/1802))
+
+## [v20231106](https://github.com/openai/whisper/releases/tag/v20231106)
+
+* large-v3 ([#1761](https://github.com/openai/whisper/pull/1761))
+
+## [v20231105](https://github.com/openai/whisper/releases/tag/v20231105)
+
+* remove tiktoken pin ([#1759](https://github.com/openai/whisper/pull/1759))
+* docs: Disambiguation of the term "relative speed" in the README ([#1751](https://github.com/openai/whisper/pull/1751))
+* allow_pickle=False while loading of mel matrix IN audio.py ([#1511](https://github.com/openai/whisper/pull/1511))
+* handling transcribe exceptions. ([#1682](https://github.com/openai/whisper/pull/1682))
+* Add new option to generate subtitles by a specific number of words ([#1729](https://github.com/openai/whisper/pull/1729))
+* Fix exception when an audio file with no speech is provided ([#1396](https://github.com/openai/whisper/pull/1396))
+
 ## [v20230918](https://github.com/openai/whisper/releases/tag/v20230918)
 
 * Add .pre-commit-config.yaml ([#1528](https://github.com/openai/whisper/pull/1528))
