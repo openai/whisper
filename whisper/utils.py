@@ -32,7 +32,7 @@ def str2bool(string: str) -> bool:
     if string.lower() in {'false', 'no', 'n', '0'}:
         return False
 
-    raise ValueError(f"Expected one of {set(str2val.keys())}, got {string}")
+    raise ValueError(f"Expected one of true/yes/1 or false/no/0, but got {string}")
 
 
 def optional_int(string):
