@@ -2,7 +2,7 @@ import argparse
 import os
 import traceback
 import warnings
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -49,7 +49,7 @@ def transcribe(
     word_timestamps: bool = False,
     prepend_punctuations: str = "\"'“¿([{-",
     append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
-    clip_timestamps: Union[str, list[float]] = "0",
+    clip_timestamps: Union[str, List[float]] = "0",
     hallucination_silence_threshold: Optional[float] = None,
     **decode_options,
 ):
@@ -105,7 +105,7 @@ def transcribe(
     decode_options: dict
         Keyword arguments to construct `DecodingOptions` instances
 
-    clip_timestamps: Union[str, list[float]]
+    clip_timestamps: Union[str, List[float]]
         Comma-separated list start,end,start,end,... timestamps (in seconds) of clips to process.
         The last end timestamp defaults to the end of the file.
 
@@ -163,12 +163,12 @@ def transcribe(
         clip_timestamps = [
             float(ts) for ts in (clip_timestamps.split(",") if clip_timestamps else [])
         ]
-    seek_points: list[int] = [round(ts * FRAMES_PER_SECOND) for ts in clip_timestamps]
+    seek_points: List[int] = [round(ts * FRAMES_PER_SECOND) for ts in clip_timestamps]
     if len(seek_points) == 0:
         seek_points.append(0)
     if len(seek_points) % 2 == 1:
         seek_points.append(content_frames)
-    seek_clips: list[Tuple[int, int]] = list(zip(seek_points[::2], seek_points[1::2]))
+    seek_clips: List[Tuple[int, int]] = list(zip(seek_points[::2], seek_points[1::2]))
 
     punctuation = "\"'“¿([{-\"'.。,，!！?？:：”)]}、"
 
@@ -317,7 +317,7 @@ def transcribe(
                 score = sum(word_anomaly_score(w) for w in words)
                 return score >= 3 or score + 0.01 >= len(words)
 
-            def next_words_segment(segments: list[dict]) -> Optional[dict]:
+            def next_words_segment(segments: List[dict]) -> Optional[dict]:
                 return next((s for s in segments if s["words"]), None)
 
             timestamp_tokens: torch.Tensor = tokens.ge(tokenizer.timestamp_begin)

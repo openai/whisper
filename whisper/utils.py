@@ -3,7 +3,7 @@ import os
 import re
 import sys
 import zlib
-from typing import Callable, Optional, TextIO
+from typing import Callable, List, Optional, TextIO
 
 system_encoding = sys.getdefaultencoding()
 
@@ -68,14 +68,14 @@ def format_timestamp(
     )
 
 
-def get_start(segments: list[dict]) -> Optional[float]:
+def get_start(segments: List[dict]) -> Optional[float]:
     return next(
         (w["start"] for s in segments for w in s["words"]),
         segments[0]["start"] if segments else None,
     )
 
 
-def get_end(segments: list[dict]) -> Optional[float]:
+def get_end(segments: List[dict]) -> Optional[float]:
     return next(
         (w["end"] for s in reversed(segments) for w in reversed(s["words"])),
         segments[-1]["end"] if segments else None,
@@ -143,7 +143,7 @@ class SubtitlesWriter(ResultWriter):
             line_len = 0
             line_count = 1
             # the next subtitle to yield (a list of word timings with whitespace)
-            subtitle: list[dict] = []
+            subtitle: List[dict] = []
             last: float = get_start(result["segments"]) or 0.0
             for segment in result["segments"]:
                 chunk_index = 0
