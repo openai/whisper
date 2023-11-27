@@ -29,7 +29,7 @@ To update the package to the latest version of this repository, please run:
 
     pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git
 
-For AMD GPU (ROCm Platform), you need to install pytorch for ROCm at the first using wheels from https://pytorch.org or https://repo.radeon.com/rocm/manylinux/, then install whisper from source:
+For AMD GPU (ROCm Platform), you need to install pytorch for ROCm at the first using wheels from https://pytorch.org/ or https://repo.radeon.com/rocm/manylinux/, then install whisper from source:
 
     pip install --no-build-isolation  git+https://github.com/openai/whisper.git
 
