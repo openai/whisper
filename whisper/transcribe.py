@@ -267,6 +267,29 @@ def transcribe(
                             )
 
         return " ".join(tracked_expressions_mentioned)
+    
+    tokenizedPunctuations = tokenizer.encode(". ? ! ¿ ¡")
+    def insert_after_last_from_tokenizedPunctuations(prompt, detectedTrackedExpressionTokenized, tokenizedPunctuations = tokenizedPunctuations):
+        # Handle the edge case where prompt is empty
+        if not prompt:
+            return detectedTrackedExpressionTokenized
+        
+        last_index = -1
+
+        # Search for the last occurrence of any element from tokenizedPunctuations in prompt
+        for item in tokenizedPunctuations:
+            if item in prompt:
+                idx = len(prompt) - prompt[::-1].index(item) - 1
+                last_index = max(last_index, idx)
+
+        # If no element from tokenizedPunctuations is found, insert detectedTrackedExpressionTokenized at the second to last position of prompt
+        if last_index == -1:
+            if len(prompt) > 1:
+                return prompt[:-1] + detectedTrackedExpressionTokenized + prompt[-1:]
+            else:
+                return detectedTrackedExpressionTokenized + prompt
+        else:
+            return prompt[:last_index + 1] + detectedTrackedExpressionTokenized + prompt[last_index + 1:]
 
     with tqdm.tqdm(
         total=content_frames, unit="frames", disable=verbose is not False
@@ -296,12 +319,12 @@ def transcribe(
 
             decode_options["prompt"] = all_tokens[prompt_reset_since:]
             if tracked_expressions_probably_going_to_be_mentioned:
-                print(tracked_expressions_probably_going_to_be_mentioned + ".")
-                decode_options["prompt"].extend(
-                    tokenizer.encode(
+                tokenizedTrackedExpressions = tokenizer.encode(
                         " " + tracked_expressions_probably_going_to_be_mentioned + "."
                     )
-                )
+                # decode_options["prompt"].extend(tokenizedTrackedExpressions)               
+                decode_options["prompt"] = insert_after_last_from_tokenizedPunctuations(decode_options["prompt"], tokenizedTrackedExpressions)
+
             result: DecodingResult = decode_with_fallback(mel_segment)
             tokens = torch.tensor(result.tokens)
 
