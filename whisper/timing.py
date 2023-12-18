@@ -299,6 +299,7 @@ def add_word_timestamps(
     word_durations = np.array([t.end - t.start for t in alignment])
     word_durations = word_durations[word_durations.nonzero()]
     median_duration = np.median(word_durations) if len(word_durations) > 0 else 0.0
+    median_duration = min(0.7, float(median_duration))
     max_duration = median_duration * 2
 
     # hack: truncate long words at sentence boundaries.
