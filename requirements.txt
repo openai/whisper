@@ -3,4 +3,5 @@ numpy
 torch
 tqdm
 more-itertools
-tiktoken==0.3.3
+tiktoken
+triton>=2.0.0,<3;platform_machine=="x86_64" and sys_platform=="linux" or sys_platform=="linux2"
