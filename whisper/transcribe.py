@@ -459,11 +459,14 @@ def transcribe(
                 if last_word_end is not None:
                     last_speech_timestamp = last_word_end
 
-            if verbose:
-                for segment in current_segments:
-                    start, end, text = segment["start"], segment["end"], segment["text"]
-                    line = f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}"
-                    print(make_safe(line))
+            try:
+                if verbose:
+                    for segment in current_segments:
+                        start, end, text = segment["start"], segment["end"], segment["text"]
+                        line = f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}"
+                        print(make_safe(line))
+            except Exception as e:
+                print(f"Displaying results skipped due to limitations in the current environment's Unicode support.")
 
             # if a segment is instantaneous or does not contain text, clear it
             for i, segment in enumerate(current_segments):
