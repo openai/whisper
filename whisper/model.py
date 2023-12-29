@@ -274,7 +274,7 @@ class Whisper(nn.Module):
 
     @property
     def num_languages(self):
-        return self.dims.n_vocab - 51765 - int(self.is_multilingual)
+        return self.dims.n_vocab - 51764 - int(self.is_multilingual)
 
     def install_kv_cache_hooks(self, cache: Optional[dict] = None):
         """
