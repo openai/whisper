@@ -1,0 +1,10 @@
+{
+    "summary": "Executes the transcribe CLI function from the whisper/transcribe module.",
+    "details": [
+        {
+            "comment": "Executes the transcribe CLI function from the whisper/transcribe module.",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/whisper/__main__.py\":0-2",
+            "content": "from .transcribe import cli\ncli()"
+        }
+    ]
+}

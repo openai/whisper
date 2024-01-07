@@ -1,0 +1,20 @@
+{
+    "summary": "Both comments discuss testing the performance of a median filter implementation on both CPU and GPU, ensuring equivalence between the two.",
+    "details": [
+        {
+            "comment": "This code tests the dynamic time warping (DTW) algorithm implementation for CPU and CUDA, as well as a median filter. It generates random sequences of length N and M for different combinations of N and M specified in the sizes variable. The code also performs a series of assertions to ensure that the results from the CPU and CUDA implementations match the expected results generated using numpy's concatenate, random shuffle, and allclose functions.",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/tests/test_timing.py\":0-55",
+            "content": "import numpy as np\nimport pytest\nimport scipy.ndimage\nimport torch\nfrom whisper.timing import dtw_cpu, dtw_cuda, median_filter\nsizes = [\n    (10, 20),\n    (32, 16),\n    (123, 1500),\n    (234, 189),\n]\nshapes = [\n    (10,),\n    (1, 15),\n    (4, 5, 345),\n    (6, 12, 240, 512),\n]\n@pytest.mark.parametrize(\"N, M\", sizes)\ndef test_dtw(N: int, M: int):\n    steps = np.concatenate([np.zeros(N - 1), np.ones(M - 1)])\n    np.random.shuffle(steps)\n    x = np.random.random((N, M)).astype(np.float32)\n    i, j, k = 0, 0, 0\n    trace = []\n    while True:\n        x[i, j] -= 1\n        trace.append((i, j))\n        if k == len(steps):\n            break\n        if k + 1 < len(steps) and steps[k] != steps[k + 1]:\n            i += 1\n            j += 1\n            k += 2\n            continue\n        if steps[k] == 0:\n            i += 1\n        if steps[k] == 1:\n            j += 1\n        k += 1\n    trace = np.array(trace).T\n    dtw_trace = dtw_cpu(x)\n    assert np.allclose(trace, dtw_trace)\n@pytest.mark.requires_cuda\n@pytest.mark.parametrize(\"N, M\", sizes)"
+        },
+        {
+            "comment": "test_dtw_cuda_equivalence: Tests if the CPU and CUDA implementations of Dynamic Time Warping (DTW) are equivalent.\ntest_median_filter: Tests median filtering for different filter widths on a random tensor, comparing the results with Scipy's implementation.\ntest_median_filter_equivalence: Tests if the CPU and CUDA implementations of median filtering are equivalent.",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/tests/test_timing.py\":56-88",
+            "content": "def test_dtw_cuda_equivalence(N: int, M: int):\n    x_numpy = np.random.randn(N, M).astype(np.float32)\n    x_cuda = torch.from_numpy(x_numpy).cuda()\n    trace_cpu = dtw_cpu(x_numpy)\n    trace_cuda = dtw_cuda(x_cuda)\n    assert np.allclose(trace_cpu, trace_cuda)\n@pytest.mark.parametrize(\"shape\", shapes)\ndef test_median_filter(shape):\n    x = torch.randn(*shape)\n    for filter_width in [3, 5, 7, 13]:\n        filtered = median_filter(x, filter_width)\n        # using np.pad to reflect-pad, because Scipy's behavior is different near the edges.\n        pad_width = filter_width // 2\n        padded_x = np.pad(\n            x, [(0, 0)] * (x.ndim - 1) + [(pad_width, pad_width)], mode=\"reflect\"\n        )\n        scipy_filtered = scipy.ndimage.median_filter(\n            padded_x, [1] * (x.ndim - 1) + [filter_width]\n        )\n        scipy_filtered = scipy_filtered[..., pad_width:-pad_width]\n        assert np.allclose(filtered, scipy_filtered)\n@pytest.mark.requires_cuda\n@pytest.mark.parametrize(\"shape\", shapes)\ndef test_median_filter_equivalence(shape):"
+        },
+        {
+            "comment": "Testing median filter performance on CPU and GPU, asserting results are the same.",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/tests/test_timing.py\":89-95",
+            "content": "    x = torch.randn(*shape)\n    for filter_width in [3, 5, 7, 13]:\n        filtered_cpu = median_filter(x, filter_width)\n        filtered_gpu = median_filter(x.cuda(), filter_width).cpu()\n        assert np.allclose(filtered_cpu, filtered_gpu)"
+        }
+    ]
+}

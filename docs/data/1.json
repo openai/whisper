@@ -1,0 +1,542 @@
+{
+    "100": {
+        "file_id": 8,
+        "content": "        special = subword_tokens[0] >= tokenizer.eot\n        with_space = subword.startswith(\" \")\n        punctuation = subword.strip() in string.punctuation\n        if special or with_space or punctuation:\n            words.append(subword)\n            word_tokens.append(subword_tokens)\n        else:\n            words[-1] = words[-1] + subword\n            word_tokens[-1].extend(subword_tokens)\n    return words, word_tokens\n# In[17]:\nif languages[lang] in {\"Chinese\", \"Japanese\", \"Thai\", \"Lao\", \"Myanmar\"}:\n    # These languages don't typically use spaces, so it is difficult to split words\n    # without morpheme analysis. Here, we instead split words at any\n    # position where the tokens are decoded as valid unicode points\n    split_tokens = split_tokens_on_unicode\nelse:\n    split_tokens = split_tokens_on_spaces\n# In[18]:\n# install hooks on the cross attention layers to retrieve the attention weights\nQKs = [None] * model.dims.n_text_layer\nfor i, block in enumerate(model.decoder.blocks):\n    block.cross_attn.register_forward_hook(",
+        "type": "code",
+        "location": "/notebooks/Multilingual_ASR.py:262-294"
+    },
+    "101": {
+        "file_id": 8,
+        "content": "Code is splitting words in different languages and setting up hooks on cross-attention layers for later use.",
+        "type": "comment"
+    },
+    "102": {
+        "file_id": 8,
+        "content": "        lambda _, ins, outs, index=i: QKs.__setitem__(index, outs[-1])\n    )\n# In[19]:\n# for the first 10 examples in the dataset\nfor (audio, label), transcription in zip(dataset, transcriptions[:10]):\n    print(transcription)\n    duration = len(audio)\n    mel = whisper.log_mel_spectrogram(whisper.pad_or_trim(audio)).cuda()\n    tokens = torch.tensor(\n        [\n            *tokenizer.sot_sequence,\n            tokenizer.timestamp_begin,\n        ] + tokenizer.encode(transcription) + [\n            tokenizer.timestamp_begin + duration // AUDIO_SAMPLES_PER_TOKEN,\n            tokenizer.eot,\n        ]\n    ).cuda()\n    with torch.no_grad():\n        logits = model(mel.unsqueeze(0), tokens.unsqueeze(0))\n    weights = torch.cat(QKs)  # layers * heads * tokens * frames    \n    weights = weights[:, :, :, : duration // AUDIO_SAMPLES_PER_TOKEN].cpu()\n    weights = median_filter(weights, (1, 1, 1, medfilt_width))\n    weights = torch.tensor(weights * qk_scale).softmax(dim=-1)\n    w = weights / weights.norm(dim=-2, keepdim=True)",
+        "type": "code",
+        "location": "/notebooks/Multilingual_ASR.py:295-325"
+    },
+    "103": {
+        "file_id": 8,
+        "content": "Iterates through the first 10 examples in the dataset, calculating and printing transcriptions.\n- Audio and label pair for each example\n- Calculates duration of audio\n- Creates mel spectrogram from audio using Whisper's methods\n- Encodes transcription into tokens using tokenizer\n- Applies model to generate logits\n- Extracts weights from QKs matrix, applies median filtering and normalization",
+        "type": "comment"
+    },
+    "104": {
+        "file_id": 8,
+        "content": "    matrix = w[-6:].mean(axis=(0, 1))\n    alignment = dtw(-matrix.double().numpy())\n    jumps = np.pad(np.diff(alignment.index1s), (1, 0), constant_values=1).astype(bool)\n    jump_times = alignment.index2s[jumps] * AUDIO_TIME_PER_TOKEN\n    words, word_tokens = split_tokens(tokens)\n    # display the normalized attention weights and the alignment\n    plt.figure(figsize=(8, 8))\n    plt.imshow(matrix, aspect=\"auto\")\n    plt.plot(alignment.index2s, alignment.index1s, color=\"red\")\n    xticks = np.arange(0, matrix.shape[1], 1 / AUDIO_TIME_PER_TOKEN)\n    xticklabels = (xticks * AUDIO_TIME_PER_TOKEN).round().astype(np.int32) \n    plt.xticks(xticks, xticklabels)\n    plt.xlabel(\"Time (s)\")\n    # display tokens and words as tick labels\n    ylims = plt.gca().get_ylim()\n    ax = plt.gca()\n    ax.tick_params('both', length=0, width=0, which='minor', pad=6)\n    ax.yaxis.set_ticks_position(\"left\")\n    ax.yaxis.set_label_position(\"left\")\n    ax.invert_yaxis()\n    ax.set_ylim(ylims)\n    major_ticks = [-0.5]\n    minor_ticks = []",
+        "type": "code",
+        "location": "/notebooks/Multilingual_ASR.py:326-356"
+    },
+    "105": {
+        "file_id": 8,
+        "content": "This code is used to display the attention weights and alignment between audio signals and tokens. It calculates the mean of the last 6 rows from 'w', then uses dynamic time warping (DTW) for alignment, finds jumps in the alignment, computes jump times, splits tokens into words and word tokens, and finally plots the matrix with attention weights and alignment using matplotlib.",
+        "type": "comment"
+    },
+    "106": {
+        "file_id": 8,
+        "content": "    current_y = 0\n    for word, word_token in zip(words, word_tokens):\n        minor_ticks.append(current_y + len(word_token) / 2 - 0.5)\n        current_y += len(word_token)\n        major_ticks.append(current_y - 0.5)\n    ax.yaxis.set_minor_locator(ticker.FixedLocator(minor_ticks))\n    ax.yaxis.set_minor_formatter(ticker.FixedFormatter(words))\n    ax.set_yticks(major_ticks)\n    ax.yaxis.set_major_formatter(ticker.NullFormatter())\n    for label in ax.get_yminorticklabels():\n        label.set_fontproperties(prop)\n    plt.ylabel(\"Words\")\n    plt.show()\n    # display the word-level timestamps in a table\n    word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens[:-1]]), (1, 0))\n    begin_times = jump_times[word_boundaries[:-1]]\n    end_times = jump_times[word_boundaries[1:]]\n    data = [\n        dict(word=word, begin=begin, end=end)\n        for word, begin, end in zip(words[:-1], begin_times, end_times)\n        if not word.startswith(\"<|\") and word.strip() not in \".,!?、。\"\n    ]\n    display(pd.DataFrame(data))",
+        "type": "code",
+        "location": "/notebooks/Multilingual_ASR.py:357-386"
+    },
+    "107": {
+        "file_id": 8,
+        "content": "This code generates a plot of word-level timestamps and displays the word-level timestamps in a table. It iterates over words and their corresponding token values, appends minor and major tick locations to the axes, sets the minor and major locators and formatters, sets y-ticks, removes the formatter from major ticks, adjusts the font properties of the tick labels, displays the y-axis label, shows the plot, and finally creates a table with word, begin time, and end time values for each segmented word.",
+        "type": "comment"
+    },
+    "108": {
+        "file_id": 8,
+        "content": "    display(HTML(\"<hr>\"))",
+        "type": "code",
+        "location": "/notebooks/Multilingual_ASR.py:387-387"
+    },
+    "109": {
+        "file_id": 8,
+        "content": "Creates a horizontal line for separation in the notebook",
+        "type": "comment"
+    },
+    "110": {
+        "file_id": 9,
+        "content": "/tests/conftest.py",
+        "type": "filepath"
+    },
+    "111": {
+        "file_id": 9,
+        "content": "Imports necessary libraries and sets seed for random number generators.",
+        "type": "summary"
+    },
+    "112": {
+        "file_id": 9,
+        "content": "import random as rand\nimport numpy\nimport pytest\ndef pytest_configure(config):\n    config.addinivalue_line(\"markers\", \"requires_cuda\")\n@pytest.fixture\ndef random():\n    rand.seed(42)\n    numpy.random.seed(42)",
+        "type": "code",
+        "location": "/tests/conftest.py:1-14"
+    },
+    "113": {
+        "file_id": 9,
+        "content": "Imports necessary libraries and sets seed for random number generators.",
+        "type": "comment"
+    },
+    "114": {
+        "file_id": 10,
+        "content": "/tests/test_audio.py",
+        "type": "filepath"
+    },
+    "115": {
+        "file_id": 10,
+        "content": "This test function checks if the audio loading and log mel spectrogram calculation is correct. It tests if the audio's shape, sample rate, and standard deviation are within expected ranges, verifies that the calculated mel spectrograms from audio file and directly from audio are equal, and ensures that the max-min difference of the mel spectrogram is less than or equal to 2.0.",
+        "type": "summary"
+    },
+    "116": {
+        "file_id": 10,
+        "content": "import os.path\nimport numpy as np\nfrom whisper.audio import SAMPLE_RATE, load_audio, log_mel_spectrogram\ndef test_audio():\n    audio_path = os.path.join(os.path.dirname(__file__), \"jfk.flac\")\n    audio = load_audio(audio_path)\n    assert audio.ndim == 1\n    assert SAMPLE_RATE * 10 < audio.shape[0] < SAMPLE_RATE * 12\n    assert 0 < audio.std() < 1\n    mel_from_audio = log_mel_spectrogram(audio)\n    mel_from_file = log_mel_spectrogram(audio_path)\n    assert np.allclose(mel_from_audio, mel_from_file)\n    assert mel_from_audio.max() - mel_from_audio.min() <= 2.0",
+        "type": "code",
+        "location": "/tests/test_audio.py:1-19"
+    },
+    "117": {
+        "file_id": 10,
+        "content": "This test function checks if the audio loading and log mel spectrogram calculation is correct. It tests if the audio's shape, sample rate, and standard deviation are within expected ranges, verifies that the calculated mel spectrograms from audio file and directly from audio are equal, and ensures that the max-min difference of the mel spectrogram is less than or equal to 2.0.",
+        "type": "comment"
+    },
+    "118": {
+        "file_id": 11,
+        "content": "/tests/test_normalizer.py",
+        "type": "filepath"
+    },
+    "119": {
+        "file_id": 11,
+        "content": "The code tests the EnglishNumberNormalizer and EnglishTextNormalizer classes, verifying proper normalization of numbers, dates, percentages, abbreviations, and various input formats.",
+        "type": "summary"
+    },
+    "120": {
+        "file_id": 11,
+        "content": "import pytest\nfrom whisper.normalizers import EnglishTextNormalizer\nfrom whisper.normalizers.english import (\n    EnglishNumberNormalizer,\n    EnglishSpellingNormalizer,\n)\n@pytest.mark.parametrize(\"std\", [EnglishNumberNormalizer(), EnglishTextNormalizer()])\ndef test_number_normalizer(std):\n    assert std(\"two\") == \"2\"\n    assert std(\"thirty one\") == \"31\"\n    assert std(\"five twenty four\") == \"524\"\n    assert std(\"nineteen ninety nine\") == \"1999\"\n    assert std(\"twenty nineteen\") == \"2019\"\n    assert std(\"two point five million\") == \"2500000\"\n    assert std(\"four point two billions\") == \"4200000000s\"\n    assert std(\"200 thousand\") == \"200000\"\n    assert std(\"200 thousand dollars\") == \"$200000\"\n    assert std(\"$20 million\") == \"$20000000\"\n    assert std(\"€52.4 million\") == \"€52400000\"\n    assert std(\"£77 thousands\") == \"£77000s\"\n    assert std(\"two double o eight\") == \"2008\"\n    assert std(\"three thousand twenty nine\") == \"3029\"\n    assert std(\"forty three thousand two hundred sixty\") == \"43260\"\n    assert std(\"forty three thousand two hundred and sixty\") == \"43260\"",
+        "type": "code",
+        "location": "/tests/test_normalizer.py:1-30"
+    },
+    "121": {
+        "file_id": 11,
+        "content": "This code tests the EnglishNumberNormalizer and EnglishTextNormalizer classes in the whisper library by providing various input strings and asserting that the normalization output is as expected.",
+        "type": "comment"
+    },
+    "122": {
+        "file_id": 11,
+        "content": "    assert std(\"nineteen fifties\") == \"1950s\"\n    assert std(\"thirty first\") == \"31st\"\n    assert std(\"thirty three thousand and three hundred and thirty third\") == \"33333rd\"\n    assert std(\"three billion\") == \"3000000000\"\n    assert std(\"millions\") == \"1000000s\"\n    assert std(\"july third twenty twenty\") == \"july 3rd 2020\"\n    assert std(\"august twenty sixth twenty twenty one\") == \"august 26th 2021\"\n    assert std(\"3 14\") == \"3 14\"\n    assert std(\"3.14\") == \"3.14\"\n    assert std(\"3 point 2\") == \"3.2\"\n    assert std(\"3 point 14\") == \"3.14\"\n    assert std(\"fourteen point 4\") == \"14.4\"\n    assert std(\"two point two five dollars\") == \"$2.25\"\n    assert std(\"two hundred million dollars\") == \"$200000000\"\n    assert std(\"$20.1 million\") == \"$20100000\"\n    assert std(\"ninety percent\") == \"90%\"\n    assert std(\"seventy six per cent\") == \"76%\"\n    assert std(\"double oh seven\") == \"007\"\n    assert std(\"double zero seven\") == \"007\"\n    assert std(\"nine one one\") == \"911\"\n    assert std(\"nine double one\") == \"911\"\n    assert std(\"one triple oh one\") == \"10001\"",
+        "type": "code",
+        "location": "/tests/test_normalizer.py:32-57"
+    },
+    "123": {
+        "file_id": 11,
+        "content": "These tests assert that the normalizer function correctly handles various input formats for numbers, dates, percentages, and abbreviations.",
+        "type": "comment"
+    },
+    "124": {
+        "file_id": 11,
+        "content": "    assert std(\"two thousandth\") == \"2000th\"\n    assert std(\"thirty two thousandth\") == \"32000th\"\n    assert std(\"minus 500\") == \"-500\"\n    assert std(\"positive twenty thousand\") == \"+20000\"\n    assert std(\"two dollars and seventy cents\") == \"$2.70\"\n    assert std(\"3 cents\") == \"¢3\"\n    assert std(\"$0.36\") == \"¢36\"\n    assert std(\"three euros and sixty five cents\") == \"€3.65\"\n    assert std(\"three and a half million\") == \"3500000\"\n    assert std(\"forty eight and a half dollars\") == \"$48.5\"\n    assert std(\"b747\") == \"b 747\"\n    assert std(\"10 th\") == \"10th\"\n    assert std(\"10th\") == \"10th\"\ndef test_spelling_normalizer():\n    std = EnglishSpellingNormalizer()\n    assert std(\"mobilisation\") == \"mobilization\"\n    assert std(\"cancelation\") == \"cancellation\"\ndef test_text_normalizer():\n    std = EnglishTextNormalizer()\n    assert std(\"Let's\") == \"let us\"\n    assert std(\"he's like\") == \"he is like\"\n    assert std(\"she's been like\") == \"she has been like\"\n    assert std(\"10km\") == \"10 km\"\n    assert std(\"10mm\") == \"10 mm\"",
+        "type": "code",
+        "location": "/tests/test_normalizer.py:59-90"
+    },
+    "125": {
+        "file_id": 11,
+        "content": "This code is testing the functionality of a spelling normalizer and text normalizer for English language. The test cases assert that the normalizers correctly handle different input formats, such as numbers with units (thousandth, dollars), currency symbols, and text phrases (mobilization, cancelation).",
+        "type": "comment"
+    },
+    "126": {
+        "file_id": 11,
+        "content": "    assert std(\"RC232\") == \"rc 232\"\n    assert (\n        std(\"Mr. Park visited Assoc. Prof. Kim Jr.\")\n        == \"mister park visited associate professor kim junior\"\n    )",
+        "type": "code",
+        "location": "/tests/test_normalizer.py:91-96"
+    },
+    "127": {
+        "file_id": 11,
+        "content": "Checking if normalization function works correctly on given inputs.",
+        "type": "comment"
+    },
+    "128": {
+        "file_id": 12,
+        "content": "/tests/test_timing.py",
+        "type": "filepath"
+    },
+    "129": {
+        "file_id": 12,
+        "content": "Both comments discuss testing the performance of a median filter implementation on both CPU and GPU, ensuring equivalence between the two.",
+        "type": "summary"
+    },
+    "130": {
+        "file_id": 12,
+        "content": "import numpy as np\nimport pytest\nimport scipy.ndimage\nimport torch\nfrom whisper.timing import dtw_cpu, dtw_cuda, median_filter\nsizes = [\n    (10, 20),\n    (32, 16),\n    (123, 1500),\n    (234, 189),\n]\nshapes = [\n    (10,),\n    (1, 15),\n    (4, 5, 345),\n    (6, 12, 240, 512),\n]\n@pytest.mark.parametrize(\"N, M\", sizes)\ndef test_dtw(N: int, M: int):\n    steps = np.concatenate([np.zeros(N - 1), np.ones(M - 1)])\n    np.random.shuffle(steps)\n    x = np.random.random((N, M)).astype(np.float32)\n    i, j, k = 0, 0, 0\n    trace = []\n    while True:\n        x[i, j] -= 1\n        trace.append((i, j))\n        if k == len(steps):\n            break\n        if k + 1 < len(steps) and steps[k] != steps[k + 1]:\n            i += 1\n            j += 1\n            k += 2\n            continue\n        if steps[k] == 0:\n            i += 1\n        if steps[k] == 1:\n            j += 1\n        k += 1\n    trace = np.array(trace).T\n    dtw_trace = dtw_cpu(x)\n    assert np.allclose(trace, dtw_trace)\n@pytest.mark.requires_cuda\n@pytest.mark.parametrize(\"N, M\", sizes)",
+        "type": "code",
+        "location": "/tests/test_timing.py:1-56"
+    },
+    "131": {
+        "file_id": 12,
+        "content": "This code tests the dynamic time warping (DTW) algorithm implementation for CPU and CUDA, as well as a median filter. It generates random sequences of length N and M for different combinations of N and M specified in the sizes variable. The code also performs a series of assertions to ensure that the results from the CPU and CUDA implementations match the expected results generated using numpy's concatenate, random shuffle, and allclose functions.",
+        "type": "comment"
+    },
+    "132": {
+        "file_id": 12,
+        "content": "def test_dtw_cuda_equivalence(N: int, M: int):\n    x_numpy = np.random.randn(N, M).astype(np.float32)\n    x_cuda = torch.from_numpy(x_numpy).cuda()\n    trace_cpu = dtw_cpu(x_numpy)\n    trace_cuda = dtw_cuda(x_cuda)\n    assert np.allclose(trace_cpu, trace_cuda)\n@pytest.mark.parametrize(\"shape\", shapes)\ndef test_median_filter(shape):\n    x = torch.randn(*shape)\n    for filter_width in [3, 5, 7, 13]:\n        filtered = median_filter(x, filter_width)\n        # using np.pad to reflect-pad, because Scipy's behavior is different near the edges.\n        pad_width = filter_width // 2\n        padded_x = np.pad(\n            x, [(0, 0)] * (x.ndim - 1) + [(pad_width, pad_width)], mode=\"reflect\"\n        )\n        scipy_filtered = scipy.ndimage.median_filter(\n            padded_x, [1] * (x.ndim - 1) + [filter_width]\n        )\n        scipy_filtered = scipy_filtered[..., pad_width:-pad_width]\n        assert np.allclose(filtered, scipy_filtered)\n@pytest.mark.requires_cuda\n@pytest.mark.parametrize(\"shape\", shapes)\ndef test_median_filter_equivalence(shape):",
+        "type": "code",
+        "location": "/tests/test_timing.py:57-89"
+    },
+    "133": {
+        "file_id": 12,
+        "content": "test_dtw_cuda_equivalence: Tests if the CPU and CUDA implementations of Dynamic Time Warping (DTW) are equivalent.\ntest_median_filter: Tests median filtering for different filter widths on a random tensor, comparing the results with Scipy's implementation.\ntest_median_filter_equivalence: Tests if the CPU and CUDA implementations of median filtering are equivalent.",
+        "type": "comment"
+    },
+    "134": {
+        "file_id": 12,
+        "content": "    x = torch.randn(*shape)\n    for filter_width in [3, 5, 7, 13]:\n        filtered_cpu = median_filter(x, filter_width)\n        filtered_gpu = median_filter(x.cuda(), filter_width).cpu()\n        assert np.allclose(filtered_cpu, filtered_gpu)",
+        "type": "code",
+        "location": "/tests/test_timing.py:90-96"
+    },
+    "135": {
+        "file_id": 12,
+        "content": "Testing median filter performance on CPU and GPU, asserting results are the same.",
+        "type": "comment"
+    },
+    "136": {
+        "file_id": 13,
+        "content": "/tests/test_tokenizer.py",
+        "type": "filepath"
+    },
+    "137": {
+        "file_id": 13,
+        "content": "The comments discuss testing tokenizer functionality across different languages, examining basic properties and comparing encoding results between GPT2 and multilingual tokenizers while focusing on the ability to split tokens based on Unicode values.",
+        "type": "summary"
+    },
+    "138": {
+        "file_id": 13,
+        "content": "import pytest\nfrom whisper.tokenizer import get_tokenizer\n@pytest.mark.parametrize(\"multilingual\", [True, False])\ndef test_tokenizer(multilingual):\n    tokenizer = get_tokenizer(multilingual=False)\n    assert tokenizer.sot in tokenizer.sot_sequence\n    assert len(tokenizer.all_language_codes) == len(tokenizer.all_language_tokens)\n    assert all(c < tokenizer.timestamp_begin for c in tokenizer.all_language_tokens)\ndef test_multilingual_tokenizer():\n    gpt2_tokenizer = get_tokenizer(multilingual=False)\n    multilingual_tokenizer = get_tokenizer(multilingual=True)\n    text = \"다람쥐 헌 쳇바퀴에 타고파\"\n    gpt2_tokens = gpt2_tokenizer.encode(text)\n    multilingual_tokens = multilingual_tokenizer.encode(text)\n    assert gpt2_tokenizer.decode(gpt2_tokens) == text\n    assert multilingual_tokenizer.decode(multilingual_tokens) == text\n    assert len(gpt2_tokens) > len(multilingual_tokens)\ndef test_split_on_unicode():\n    multilingual_tokenizer = get_tokenizer(multilingual=True)\n    tokens = [8404, 871, 287, 6, 246, 526, 3210, 20378]",
+        "type": "code",
+        "location": "/tests/test_tokenizer.py:1-30"
+    },
+    "139": {
+        "file_id": 13,
+        "content": "Testing tokenizer functionality with different languages and comparing the output tokens.\n- test_tokenizer: Testing basic properties of the tokenizer.\n- test_multilingual_tokenizer: Comparing encoding results between GPT2 and multilingual tokenizers for a given text.\n- test_split_on_unicode: Testing splitting on Unicode characters with the multilingual tokenizer.",
+        "type": "comment"
+    },
+    "140": {
+        "file_id": 13,
+        "content": "    words, word_tokens = multilingual_tokenizer.split_tokens_on_unicode(tokens)\n    assert words == [\" elle\", \" est\", \" l\", \"'\", \"\\ufffd\", \"é\", \"rit\", \"oire\"]\n    assert word_tokens == [[8404], [871], [287], [6], [246], [526], [3210], [20378]]",
+        "type": "code",
+        "location": "/tests/test_tokenizer.py:31-34"
+    },
+    "141": {
+        "file_id": 13,
+        "content": "Testing multilingual tokenizer's ability to split tokens based on Unicode values, asserting correct word and word_token lists.",
+        "type": "comment"
+    },
+    "142": {
+        "file_id": 14,
+        "content": "/tests/test_transcribe.py",
+        "type": "filepath"
+    },
+    "143": {
+        "file_id": 14,
+        "content": "The code tests the Whisper AI model's transcription functionality on an audio file, checking language, text matching, tokenizer output, and valid timing for words. It asserts the tokenizer starts with \"<|0.00||>\", verifies timings for words, and ensures at least one timing was checked.",
+        "type": "summary"
+    },
+    "144": {
+        "file_id": 14,
+        "content": "import os\nimport pytest\nimport torch\nimport whisper\nfrom whisper.tokenizer import get_tokenizer\n@pytest.mark.parametrize(\"model_name\", whisper.available_models())\ndef test_transcribe(model_name: str):\n    device = \"cuda\" if torch.cuda.is_available() else \"cpu\"\n    model = whisper.load_model(model_name).to(device)\n    audio_path = os.path.join(os.path.dirname(__file__), \"jfk.flac\")\n    language = \"en\" if model_name.endswith(\".en\") else None\n    result = model.transcribe(\n        audio_path, language=language, temperature=0.0, word_timestamps=True\n    )\n    assert result[\"language\"] == \"en\"\n    assert result[\"text\"] == \"\".join([s[\"text\"] for s in result[\"segments\"]])\n    transcription = result[\"text\"].lower()\n    assert \"my fellow americans\" in transcription\n    assert \"your country\" in transcription\n    assert \"do for you\" in transcription\n    tokenizer = get_tokenizer(model.is_multilingual, num_languages=model.num_languages)\n    all_tokens = [t for s in result[\"segments\"] for t in s[\"tokens\"]]\n    assert tokenizer.decode(all_tokens) == result[\"text\"]",
+        "type": "code",
+        "location": "/tests/test_transcribe.py:1-30"
+    },
+    "145": {
+        "file_id": 14,
+        "content": "This code is testing the transcription functionality of the Whisper AI model on a given audio file (jfk.flac). It checks if the detected language is English, if the transcribed text matches the expected segments, and if the decoded tokens match the final text output.",
+        "type": "comment"
+    },
+    "146": {
+        "file_id": 14,
+        "content": "    assert tokenizer.decode_with_timestamps(all_tokens).startswith(\"<|0.00|>\")\n    timing_checked = False\n    for segment in result[\"segments\"]:\n        for timing in segment[\"words\"]:\n            assert timing[\"start\"] < timing[\"end\"]\n            if timing[\"word\"].strip(\" ,\") == \"Americans\":\n                assert timing[\"start\"] <= 1.8\n                assert timing[\"end\"] >= 1.8\n                timing_checked = True\n    assert timing_checked",
+        "type": "code",
+        "location": "/tests/test_transcribe.py:31-42"
+    },
+    "147": {
+        "file_id": 14,
+        "content": "This code asserts that the decoded tokens from the tokenizer start with \"<|0.00||>\". It then checks if each timing in the result has a valid start and end time, specifically for the word \"Americans\" it ensures the start time is less than 1.8 and the end time is greater than or equal to 1.8. Finally, it asserts that at least one timing was checked.",
+        "type": "comment"
+    },
+    "148": {
+        "file_id": 15,
+        "content": "/whisper/__init__.py",
+        "type": "filepath"
+    },
+    "149": {
+        "file_id": 15,
+        "content": "The Whisper library imports necessary libraries and defines functions for downloading pre-trained models, verifying their integrity, and providing a list of available models to load.",
+        "type": "summary"
+    },
+    "150": {
+        "file_id": 15,
+        "content": "import hashlib\nimport io\nimport os\nimport urllib\nimport warnings\nfrom typing import List, Optional, Union\nimport torch\nfrom tqdm import tqdm\nfrom .audio import load_audio, log_mel_spectrogram, pad_or_trim\nfrom .decoding import DecodingOptions, DecodingResult, decode, detect_language\nfrom .model import ModelDimensions, Whisper\nfrom .transcribe import transcribe\nfrom .version import __version__\n_MODELS = {\n    \"tiny.en\": \"https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt\",\n    \"tiny\": \"https://openaipublic.azureedge.net/main/whisper/models/65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9/tiny.pt\",\n    \"base.en\": \"https://openaipublic.azureedge.net/main/whisper/models/25a8566e1d0c1e2231d1c762132cd20e0f96a85d16145c3a00adf5d1ac670ead/base.en.pt\",\n    \"base\": \"https://openaipublic.azureedge.net/main/whisper/models/ed3a0b6b1c0edf879ad9b11b1af5a0e6ab5db9205f891f668f8b0e6c6326e34e/base.pt\",\n    \"small.en\": \"https://o",
+        "type": "code",
+        "location": "/whisper/__init__.py:1-22"
+    },
+    "151": {
+        "file_id": 15,
+        "content": "Storage location: \"whisper/__init__.py\":0-21\nCode: This code is importing necessary libraries, defining types and functions related to Whisper model, and storing pre-trained models' URLs.",
+        "type": "comment"
+    },
+    "152": {
+        "file_id": 15,
+        "content": "penaipublic.azureedge.net/main/whisper/models/f953ad0fd29cacd07d5a9eda5624af0f6bcf2258be67c92b79389873d91e0872/small.en.pt\",\n    \"small\": \"https://openaipublic.azureedge.net/main/whisper/models/9ecf779972d90ba49c06d968637d720dd632c55bbf19d441fb42bf17a411e794/small.pt\",\n    \"medium.en\": \"https://openaipublic.azureedge.net/main/whisper/models/d7440d1dc186f76616474e0ff0b3b6b879abc9d1a4926b7adfa41db2d497ab4f/medium.en.pt\",\n    \"medium\": \"https://openaipublic.azureedge.net/main/whisper/models/345ae4da62f9b3d59415adc60127b97c714f32e89e936602e85993674d08dcb1/medium.pt\",\n    \"large-v1\": \"https://openaipublic.azureedge.net/main/whisper/models/e4b87e7e0bf463eb8e6956e646f1e277e901512310def2c24bf0e11bd3c28e9a/large-v1.pt\",\n    \"large-v2\": \"https://openaipublic.azureedge.net/main/whisper/models/81f7c96c852ee8fc832187b0132e569d6c3065a3252ed18e56effd0b6a73e524/large-v2.pt\",\n    \"large-v3\": \"https://openaipublic.azureedge.net/main/whisper/models/e5b1a55b89c1367dacf97e3e19bfd829a01529dbfdeefa8caeb59b3f1b81dadb/large-v3.pt\",",
+        "type": "code",
+        "location": "/whisper/__init__.py:22-28"
+    },
+    "153": {
+        "file_id": 15,
+        "content": "This code defines URLs for different Whisper model versions and languages to download the models.",
+        "type": "comment"
+    },
+    "154": {
+        "file_id": 15,
+        "content": "    \"large\": \"https://openaipublic.azureedge.net/main/whisper/models/e5b1a55b89c1367dacf97e3e19bfd829a01529dbfdeefa8caeb59b3f1b81dadb/large-v3.pt\",\n}\n# base85-encoded (n_layers, n_heads) boolean arrays indicating the cross-attention heads that are\n# highly correlated to the word-level timing, i.e. the alignment between audio and text tokens.\n_ALIGNMENT_HEADS = {\n    \"tiny.en\": b\"ABzY8J1N>@0{>%R00Bk>$p{7v037`oCl~+#00\",\n    \"tiny\": b\"ABzY8bu8Lr0{>%RKn9Fp%m@SkK7Kt=7ytkO\",\n    \"base.en\": b\"ABzY8;40c<0{>%RzzG;p*o+Vo09|#PsxSZm00\",\n    \"base\": b\"ABzY8KQ!870{>%RzyTQH3`Q^yNP!>##QT-<FaQ7m\",\n    \"small.en\": b\"ABzY8>?_)10{>%RpeA61k&I|OI3I$65C{;;pbCHh0B{qLQ;+}v00\",\n    \"small\": b\"ABzY8DmU6=0{>%Rpa?J`kvJ6qF(V^F86#Xh7JUGMK}P<N0000\",\n    \"medium.en\": b\"ABzY8usPae0{>%R7<zz_OvQ{)4kMa0BMw6u5rT}kRKX;$NfYBv00*Hl@qhsU00\",\n    \"medium\": b\"ABzY8B0Jh+0{>%R7}kK1fFL7w6%<-Pf*t^=N)Qr&0RR9\",\n    \"large-v1\": b\"ABzY8r9j$a0{>%R7#4sLmoOs{s)o3~84-RPdcFk!JR<kSfC2yj\",\n    \"large-v2\": b\"ABzY8zd+h!0{>%R7=D0pU<_bnWW*tkYAhobTNnu$jnkEkXqp)j;w1Tzk)UH3X%SZd&fFZ2fC2yj\",",
+        "type": "code",
+        "location": "/whisper/__init__.py:29-44"
+    },
+    "155": {
+        "file_id": 15,
+        "content": "Storage location: \"whisper/__init__.py\":28-43\nCode:\n```python\nalignment_heads = {\n    # ...\n}\n```\nComment for code:\nMaps model name to a base85-encoded boolean array representing cross-attention heads highly correlated to word-level timing in Whisper models.",
+        "type": "comment"
+    },
+    "156": {
+        "file_id": 15,
+        "content": "    \"large-v3\": b\"ABzY8gWO1E0{>%R7(9S+Kn!D~%ngiGaR?*L!iJG9p-nab0JQ=-{D1-g00\",\n    \"large\": b\"ABzY8gWO1E0{>%R7(9S+Kn!D~%ngiGaR?*L!iJG9p-nab0JQ=-{D1-g00\",\n}\ndef _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:\n    os.makedirs(root, exist_ok=True)\n    expected_sha256 = url.split(\"/\")[-2]\n    download_target = os.path.join(root, os.path.basename(url))\n    if os.path.exists(download_target) and not os.path.isfile(download_target):\n        raise RuntimeError(f\"{download_target} exists and is not a regular file\")\n    if os.path.isfile(download_target):\n        with open(download_target, \"rb\") as f:\n            model_bytes = f.read()\n        if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:\n            return model_bytes if in_memory else download_target\n        else:\n            warnings.warn(\n                f\"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file\"\n            )\n    with urllib.request.urlopen(url) as source, open(download_target, \"wb\") as output:",
+        "type": "code",
+        "location": "/whisper/__init__.py:45-69"
+    },
+    "157": {
+        "file_id": 15,
+        "content": "This function downloads a model from the specified URL and saves it either in memory or to disk based on the `in_memory` argument. It also performs an integrity check using SHA256 hash to ensure the downloaded file is correct before returning it.",
+        "type": "comment"
+    },
+    "158": {
+        "file_id": 15,
+        "content": "        with tqdm(\n            total=int(source.info().get(\"Content-Length\")),\n            ncols=80,\n            unit=\"iB\",\n            unit_scale=True,\n            unit_divisor=1024,\n        ) as loop:\n            while True:\n                buffer = source.read(8192)\n                if not buffer:\n                    break\n                output.write(buffer)\n                loop.update(len(buffer))\n    model_bytes = open(download_target, \"rb\").read()\n    if hashlib.sha256(model_bytes).hexdigest() != expected_sha256:\n        raise RuntimeError(\n            \"Model has been downloaded but the SHA256 checksum does not not match. Please retry loading the model.\"\n        )\n    return model_bytes if in_memory else download_target\ndef available_models() -> List[str]:\n    \"\"\"Returns the names of available models\"\"\"\n    return list(_MODELS.keys())\ndef load_model(\n    name: str,\n    device: Optional[Union[str, torch.device]] = None,\n    download_root: str = None,\n    in_memory: bool = False,\n) -> Whisper:\n    \"\"\"\n    Load a Whisper ASR model",
+        "type": "code",
+        "location": "/whisper/__init__.py:70-106"
+    },
+    "159": {
+        "file_id": 15,
+        "content": "This code is a part of the Whisper library, which provides speech recognition capabilities. The function load_model() loads an ASR model given its name, device (optional), download root path (optional) and whether to load it in memory or not. It first checks if the SHA256 checksum matches for the model file, then loads it either into memory or writes to disk.\nThe available_models() function returns a list of available model names.",
+        "type": "comment"
+    },
+    "160": {
+        "file_id": 15,
+        "content": "    Parameters\n    ----------\n    name : str\n        one of the official model names listed by `whisper.available_models()`, or\n        path to a model checkpoint containing the model dimensions and the model state_dict.\n    device : Union[str, torch.device]\n        the PyTorch device to put the model into\n    download_root: str\n        path to download the model files; by default, it uses \"~/.cache/whisper\"\n    in_memory: bool\n        whether to preload the model weights into host memory\n    Returns\n    -------\n    model : Whisper\n        The Whisper ASR model instance\n    \"\"\"\n    if device is None:\n        device = \"cuda\" if torch.cuda.is_available() else \"cpu\"\n    if download_root is None:\n        default = os.path.join(os.path.expanduser(\"~\"), \".cache\")\n        download_root = os.path.join(os.getenv(\"XDG_CACHE_HOME\", default), \"whisper\")\n    if name in _MODELS:\n        checkpoint_file = _download(_MODELS[name], download_root, in_memory)\n        alignment_heads = _ALIGNMENT_HEADS[name]\n    elif os.path.isfile(name):",
+        "type": "code",
+        "location": "/whisper/__init__.py:108-135"
+    },
+    "161": {
+        "file_id": 15,
+        "content": "This function takes the model name or a path to a checkpoint, device, download root, and in_memory as parameters. It creates a Whisper ASR model instance and returns it. If no device is specified, it defaults to CUDA if available, otherwise CPU. If no download_root is given, it uses the default path. If the name matches an official model, it downloads the checkpoint file to the specified location. It also keeps track of the alignment_heads for the specific model.",
+        "type": "comment"
+    },
+    "162": {
+        "file_id": 15,
+        "content": "        checkpoint_file = open(name, \"rb\").read() if in_memory else name\n        alignment_heads = None\n    else:\n        raise RuntimeError(\n            f\"Model {name} not found; available models = {available_models()}\"\n        )\n    with (\n        io.BytesIO(checkpoint_file) if in_memory else open(checkpoint_file, \"rb\")\n    ) as fp:\n        checkpoint = torch.load(fp, map_location=device)\n    del checkpoint_file\n    dims = ModelDimensions(**checkpoint[\"dims\"])\n    model = Whisper(dims)\n    model.load_state_dict(checkpoint[\"model_state_dict\"])\n    if alignment_heads is not None:\n        model.set_alignment_heads(alignment_heads)\n    return model.to(device)",
+        "type": "code",
+        "location": "/whisper/__init__.py:136-156"
+    },
+    "163": {
+        "file_id": 15,
+        "content": "This code loads a pre-trained Whisper model from a file or in-memory binary data and returns the model. If the specified model name is not found, it raises an error with available models as a reference. The function takes into account the device to which the model will be transferred for computation.",
+        "type": "comment"
+    },
+    "164": {
+        "file_id": 16,
+        "content": "/whisper/__main__.py",
+        "type": "filepath"
+    },
+    "165": {
+        "file_id": 16,
+        "content": "Executes the transcribe CLI function from the whisper/transcribe module.",
+        "type": "summary"
+    },
+    "166": {
+        "file_id": 16,
+        "content": "from .transcribe import cli\ncli()",
+        "type": "code",
+        "location": "/whisper/__main__.py:1-3"
+    },
+    "167": {
+        "file_id": 16,
+        "content": "Executes the transcribe CLI function from the whisper/transcribe module.",
+        "type": "comment"
+    },
+    "168": {
+        "file_id": 17,
+        "content": "/whisper/audio.py",
+        "type": "filepath"
+    },
+    "169": {
+        "file_id": 17,
+        "content": "Both comments describe code that preprocesses audio data into a Tensor or Torch tensor format, applies windows and performs STFT, computes mel spectrograms, and optionally moves the tensor to a specific device.",
+        "type": "summary"
+    },
+    "170": {
+        "file_id": 17,
+        "content": "import os\nfrom functools import lru_cache\nfrom subprocess import CalledProcessError, run\nfrom typing import Optional, Union\nimport numpy as np\nimport torch\nimport torch.nn.functional as F\nfrom .utils import exact_div\n# hard-coded audio hyperparameters\nSAMPLE_RATE = 16000\nN_FFT = 400\nHOP_LENGTH = 160\nCHUNK_LENGTH = 30\nN_SAMPLES = CHUNK_LENGTH * SAMPLE_RATE  # 480000 samples in a 30-second chunk\nN_FRAMES = exact_div(N_SAMPLES, HOP_LENGTH)  # 3000 frames in a mel spectrogram input\nN_SAMPLES_PER_TOKEN = HOP_LENGTH * 2  # the initial convolutions has stride 2\nFRAMES_PER_SECOND = exact_div(SAMPLE_RATE, HOP_LENGTH)  # 10ms per audio frame\nTOKENS_PER_SECOND = exact_div(SAMPLE_RATE, N_SAMPLES_PER_TOKEN)  # 20ms per audio token\ndef load_audio(file: str, sr: int = SAMPLE_RATE):\n    \"\"\"\n    Open an audio file and read as mono waveform, resampling as necessary\n    Parameters\n    ----------\n    file: str\n        The audio file to open\n    sr: int\n        The sample rate to resample the audio if necessary\n    Returns\n    -------",
+        "type": "code",
+        "location": "/whisper/audio.py:1-38"
+    },
+    "171": {
+        "file_id": 17,
+        "content": "This code defines constants for audio hyperparameters and a function to load an audio file. It also imports necessary libraries and defines some helper functions.",
+        "type": "comment"
+    },
+    "172": {
+        "file_id": 17,
+        "content": "    A NumPy array containing the audio waveform, in float32 dtype.\n    \"\"\"\n    # This launches a subprocess to decode audio while down-mixing\n    # and resampling as necessary.  Requires the ffmpeg CLI in PATH.\n    # fmt: off\n    cmd = [\n        \"ffmpeg\",\n        \"-nostdin\",\n        \"-threads\", \"0\",\n        \"-i\", file,\n        \"-f\", \"s16le\",\n        \"-ac\", \"1\",\n        \"-acodec\", \"pcm_s16le\",\n        \"-ar\", str(sr),\n        \"-\"\n    ]\n    # fmt: on\n    try:\n        out = run(cmd, capture_output=True, check=True).stdout\n    except CalledProcessError as e:\n        raise RuntimeError(f\"Failed to load audio: {e.stderr.decode()}\") from e\n    return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0\ndef pad_or_trim(array, length: int = N_SAMPLES, *, axis: int = -1):\n    \"\"\"\n    Pad or trim the audio array to N_SAMPLES, as expected by the encoder.\n    \"\"\"\n    if torch.is_tensor(array):\n        if array.shape[axis] > length:\n            array = array.index_select(\n                dim=axis, index=torch.arange(length, device=array.device)",
+        "type": "code",
+        "location": "/whisper/audio.py:39-72"
+    },
+    "173": {
+        "file_id": 17,
+        "content": "This code reads an audio file, decodes it while downmixing and resampling if necessary, converts the audio waveform to a NumPy array in float32 dtype, pads or trims the array to N_SAMPLES (expected by the encoder), and returns the processed audio.",
+        "type": "comment"
+    },
+    "174": {
+        "file_id": 17,
+        "content": "            )\n        if array.shape[axis] < length:\n            pad_widths = [(0, 0)] * array.ndim\n            pad_widths[axis] = (0, length - array.shape[axis])\n            array = F.pad(array, [pad for sizes in pad_widths[::-1] for pad in sizes])\n    else:\n        if array.shape[axis] > length:\n            array = array.take(indices=range(length), axis=axis)\n        if array.shape[axis] < length:\n            pad_widths = [(0, 0)] * array.ndim\n            pad_widths[axis] = (0, length - array.shape[axis])\n            array = np.pad(array, pad_widths)\n    return array\n@lru_cache(maxsize=None)\ndef mel_filters(device, n_mels: int) -> torch.Tensor:\n    \"\"\"\n    load the mel filterbank matrix for projecting STFT into a Mel spectrogram.\n    Allows decoupling librosa dependency; saved using:\n        np.savez_compressed(\n            \"mel_filters.npz\",\n            mel_80=librosa.filters.mel(sr=16000, n_fft=400, n_mels=80),\n            mel_128=librosa.filters.mel(sr=16000, n_fft=400, n_mels=128),\n        )\n    \"\"\"\n    assert n_mels in {80, 128}, f\"Unsupported n_mels: {n_mels}\"",
+        "type": "code",
+        "location": "/whisper/audio.py:73-103"
+    },
+    "175": {
+        "file_id": 17,
+        "content": "This code defines a function that takes an array and a specific axis, then adjusts the shape of the array to match the desired length. If the array's size along the specified axis is less than the desired length, it pads the array with zeros. If the array's size along the specified axis is greater than the desired length, it trims the array to the specified length. The code also includes a function mel_filters that loads pre-defined Mel filterbank matrices for projecting Short-Time Fourier Transform (STFT) into a Mel spectrogram. This allows decoupling from librosa dependency and uses previously saved data for faster loading.",
+        "type": "comment"
+    },
+    "176": {
+        "file_id": 17,
+        "content": "    filters_path = os.path.join(os.path.dirname(__file__), \"assets\", \"mel_filters.npz\")\n    with np.load(filters_path, allow_pickle=False) as f:\n        return torch.from_numpy(f[f\"mel_{n_mels}\"]).to(device)\ndef log_mel_spectrogram(\n    audio: Union[str, np.ndarray, torch.Tensor],\n    n_mels: int = 80,\n    padding: int = 0,\n    device: Optional[Union[str, torch.device]] = None,\n):\n    \"\"\"\n    Compute the log-Mel spectrogram of\n    Parameters\n    ----------\n    audio: Union[str, np.ndarray, torch.Tensor], shape = (*)\n        The path to audio or either a NumPy array or Tensor containing the audio waveform in 16 kHz\n    n_mels: int\n        The number of Mel-frequency filters, only 80 is supported\n    padding: int\n        Number of zero samples to pad to the right\n    device: Optional[Union[str, torch.device]]\n        If given, the audio tensor is moved to this device before STFT\n    Returns\n    -------\n    torch.Tensor, shape = (80, n_frames)\n        A Tensor that contains the Mel spectrogram\n    \"\"\"\n    if not torch.is_tensor(audio):",
+        "type": "code",
+        "location": "/whisper/audio.py:105-138"
+    },
+    "177": {
+        "file_id": 17,
+        "content": "This function computes the log-Mel spectrogram of an audio input. It takes in either a file path, NumPy array, or Tensor containing audio waveform in 16 kHz. The function requires a specific number of Mel frequency filters (only 80 supported), and allows for padding of zero samples to the right. If a device is specified, it moves the audio tensor to that device before applying STFT. It returns a Tensor containing the Mel spectrogram.",
+        "type": "comment"
+    },
+    "178": {
+        "file_id": 17,
+        "content": "        if isinstance(audio, str):\n            audio = load_audio(audio)\n        audio = torch.from_numpy(audio)\n    if device is not None:\n        audio = audio.to(device)\n    if padding > 0:\n        audio = F.pad(audio, (0, padding))\n    window = torch.hann_window(N_FFT).to(audio.device)\n    stft = torch.stft(audio, N_FFT, HOP_LENGTH, window=window, return_complex=True)\n    magnitudes = stft[..., :-1].abs() ** 2\n    filters = mel_filters(audio.device, n_mels)\n    mel_spec = filters @ magnitudes\n    log_spec = torch.clamp(mel_spec, min=1e-10).log10()\n    log_spec = torch.maximum(log_spec, log_spec.max() - 8.0)\n    log_spec = (log_spec + 4.0) / 4.0\n    return log_spec",
+        "type": "code",
+        "location": "/whisper/audio.py:139-157"
+    },
+    "179": {
+        "file_id": 17,
+        "content": "This code loads audio, converts it to a torch tensor, optionally moves the tensor to a specific device, pads the audio if necessary, applies a Hann window function, performs short-time Fourier transform (STFT), computes mel spectrograms, clamps and logs the spectrogram values.",
+        "type": "comment"
+    },
+    "180": {
+        "file_id": 18,
+        "content": "/whisper/decoding.py",
+        "type": "filepath"
+    },
+    "181": {
+        "file_id": 18,
+        "content": "The code utilizes a Whisper model for audio language detection, with features like fp16 calculations, diverse data output, and speech recognition classes. It also ensures efficient processing by preventing infinite looping, incorporating functions for audio processing, language identification, tokenization, batch processing, and optional updates.",
+        "type": "summary"
+    },
+    "182": {
+        "file_id": 18,
+        "content": "from dataclasses import dataclass, field, replace\nfrom typing import TYPE_CHECKING, Dict, Iterable, List, Optional, Sequence, Tuple, Union\nimport numpy as np\nimport torch\nimport torch.nn.functional as F\nfrom torch import Tensor\nfrom torch.distributions import Categorical\nfrom .audio import CHUNK_LENGTH\nfrom .tokenizer import Tokenizer, get_tokenizer\nfrom .utils import compression_ratio\nif TYPE_CHECKING:\n    from .model import Whisper\n@torch.no_grad()\ndef detect_language(\n    model: \"Whisper\", mel: Tensor, tokenizer: Tokenizer = None\n) -> Tuple[Tensor, List[dict]]:\n    \"\"\"\n    Detect the spoken language in the audio, and return them as list of strings, along with the ids\n    of the most probable language tokens and the probability distribution over all language tokens.\n    This is performed outside the main decode loop in order to not interfere with kv-caching.\n    Returns\n    -------\n    language_tokens : Tensor, shape = (n_audio,)\n        ids of the most probable language tokens, which appears after the startoftranscript token.",
+        "type": "code",
+        "location": "/whisper/decoding.py:1-30"
+    },
+    "183": {
+        "file_id": 18,
+        "content": "The code is defining a function `detect_language` that takes in an audio mel spectrogram, a pre-trained Whisper model and optionally a tokenizer. It detects the spoken language in the audio and returns the list of detected languages as strings along with their corresponding ids and probability distribution over all language tokens. The function is decorated with `@torch.no_grad()` to avoid unnecessary memory allocation during inference.",
+        "type": "comment"
+    },
+    "184": {
+        "file_id": 18,
+        "content": "    language_probs : List[Dict[str, float]], length = n_audio\n        list of dictionaries containing the probability distribution over all languages.\n    \"\"\"\n    if tokenizer is None:\n        tokenizer = get_tokenizer(\n            model.is_multilingual, num_languages=model.num_languages\n        )\n    if (\n        tokenizer.language is None\n        or tokenizer.language_token not in tokenizer.sot_sequence\n    ):\n        raise ValueError(\n            \"This model doesn't have language tokens so it can't perform lang id\"\n        )\n    single = mel.ndim == 2\n    if single:\n        mel = mel.unsqueeze(0)\n    # skip encoder forward pass if already-encoded audio features were given\n    if mel.shape[-2:] != (model.dims.n_audio_ctx, model.dims.n_audio_state):\n        mel = model.encoder(mel)\n    # forward pass using a single token, startoftranscript\n    n_audio = mel.shape[0]\n    x = torch.tensor([[tokenizer.sot]] * n_audio).to(mel.device)  # [n_audio, 1]\n    logits = model.logits(x, mel)[:, 0]\n    # collect detected languages; suppress all non-language tokens",
+        "type": "code",
+        "location": "/whisper/decoding.py:31-59"
+    },
+    "185": {
+        "file_id": 18,
+        "content": "This code prepares input for language identification by either using a pre-existing tokenizer or creating one based on the model's configuration. It then performs an encoder forward pass and a forward pass using a single token (startoftranscript) to generate logits, which represent the detected languages while suppressing non-language tokens.",
+        "type": "comment"
+    },
+    "186": {
+        "file_id": 18,
+        "content": "    mask = torch.ones(logits.shape[-1], dtype=torch.bool)\n    mask[list(tokenizer.all_language_tokens)] = False\n    logits[:, mask] = -np.inf\n    language_tokens = logits.argmax(dim=-1)\n    language_token_probs = logits.softmax(dim=-1).cpu()\n    language_probs = [\n        {\n            c: language_token_probs[i, j].item()\n            for j, c in zip(tokenizer.all_language_tokens, tokenizer.all_language_codes)\n        }\n        for i in range(n_audio)\n    ]\n    if single:\n        language_tokens = language_tokens[0]\n        language_probs = language_probs[0]\n    return language_tokens, language_probs\n@dataclass(frozen=True)\nclass DecodingOptions:\n    # whether to perform X->X \"transcribe\" or X->English \"translate\"\n    task: str = \"transcribe\"\n    # language that the audio is in; uses detected language if None\n    language: Optional[str] = None\n    # sampling-related options\n    temperature: float = 0.0\n    sample_len: Optional[int] = None  # maximum number of tokens to sample\n    best_of: Optional[int] = None  # number of independent sample trajectories, if t > 0",
+        "type": "code",
+        "location": "/whisper/decoding.py:60-91"
+    },
+    "187": {
+        "file_id": 18,
+        "content": "This code is for decoding audio in a model. It takes logits, tokenizer, and other parameters as input to predict the language tokens and their probabilities. The code also includes options for task type (transcribe or translate), language detection, temperature control for sampling, and best-of options. The function returns language tokens and their probabilities.",
+        "type": "comment"
+    },
+    "188": {
+        "file_id": 18,
+        "content": "    beam_size: Optional[int] = None  # number of beams in beam search, if t == 0\n    patience: Optional[float] = None  # patience in beam search (arxiv:2204.05424)\n    # \"alpha\" in Google NMT, or None for length norm, when ranking generations\n    # to select which to return among the beams or best-of-N samples\n    length_penalty: Optional[float] = None\n    # text or tokens to feed as the prompt or the prefix; for more info:\n    # https://github.com/openai/whisper/discussions/117#discussioncomment-3727051\n    prompt: Optional[Union[str, List[int]]] = None  # for the previous context\n    prefix: Optional[Union[str, List[int]]] = None  # to prefix the current context\n    # list of tokens ids (or comma-separated token ids) to suppress\n    # \"-1\" will suppress a set of symbols as defined in `tokenizer.non_speech_tokens()`\n    suppress_tokens: Optional[Union[str, Iterable[int]]] = \"-1\"\n    suppress_blank: bool = True  # this will suppress blank outputs\n    # timestamp sampling options\n    without_timestamps: bool = False  # use <|notimestamps|> to sample text tokens only",
+        "type": "code",
+        "location": "/whisper/decoding.py:92-110"
+    },
+    "189": {
+        "file_id": 18,
+        "content": "This code defines a class with various parameters for controlling the decoding process of a speech-to-text model. The beam_size, patience, and length_penalty parameters control the beam search algorithm used in the decoding process. The prompt and prefix parameters allow feeding additional context to the model. The suppress_tokens parameter allows suppressing certain token ids or symbol sets. The suppress_blank parameter controls whether to suppress blank outputs. Lastly, the without_timestamps parameter can be used to sample text tokens only.",
+        "type": "comment"
+    },
+    "190": {
+        "file_id": 18,
+        "content": "    max_initial_timestamp: Optional[float] = 1.0\n    # implementation details\n    fp16: bool = True  # use fp16 for most of the calculation\n@dataclass(frozen=True)\nclass DecodingResult:\n    audio_features: Tensor\n    language: str\n    language_probs: Optional[Dict[str, float]] = None\n    tokens: List[int] = field(default_factory=list)\n    text: str = \"\"\n    avg_logprob: float = np.nan\n    no_speech_prob: float = np.nan\n    temperature: float = np.nan\n    compression_ratio: float = np.nan\nclass Inference:\n    def logits(self, tokens: Tensor, audio_features: Tensor) -> Tensor:\n        \"\"\"Perform a forward pass on the decoder and return per-token logits\"\"\"\n        raise NotImplementedError\n    def rearrange_kv_cache(self, source_indices) -> None:\n        \"\"\"Update the key-value cache according to the updated beams\"\"\"\n        raise NotImplementedError\n    def cleanup_caching(self) -> None:\n        \"\"\"Clean up any resources or hooks after decoding is finished\"\"\"\n        pass\nclass PyTorchInference(Inference):\n    def __init__(self, model: \"Whisper\", initial_token_length: int):",
+        "type": "code",
+        "location": "/whisper/decoding.py:111-145"
+    },
+    "191": {
+        "file_id": 18,
+        "content": "This code defines classes and methods for a whisper inference module. It has properties such as maximum initial timestamp, uses fp16 calculations, and returns results like audio features, language, token lists, text, average log probabilities, no speech probabilities, temperatures, and compression ratios. The class also includes functions to perform forward passes, update key-value caches, and clean up resources after decoding is complete.",
+        "type": "comment"
+    },
+    "192": {
+        "file_id": 18,
+        "content": "        self.model: \"Whisper\" = model\n        self.initial_token_length = initial_token_length\n        self.kv_cache = {}\n        self.hooks = []\n        key_modules = [block.attn.key for block in self.model.decoder.blocks]\n        value_modules = [block.attn.value for block in self.model.decoder.blocks]\n        self.kv_modules = key_modules + value_modules\n    def logits(self, tokens: Tensor, audio_features: Tensor) -> Tensor:\n        if not self.kv_cache:\n            self.kv_cache, self.hooks = self.model.install_kv_cache_hooks()\n        if tokens.shape[-1] > self.initial_token_length:\n            # only need to use the last token except in the first forward pass\n            tokens = tokens[:, -1:]\n        return self.model.decoder(tokens, audio_features, kv_cache=self.kv_cache)\n    def cleanup_caching(self):\n        for hook in self.hooks:\n            hook.remove()\n        self.kv_cache = {}\n        self.hooks = []\n    def rearrange_kv_cache(self, source_indices):\n        if source_indices != list(range(len(source_indices))):",
+        "type": "code",
+        "location": "/whisper/decoding.py:146-173"
+    },
+    "193": {
+        "file_id": 18,
+        "content": "This code initializes a Whisper model and sets up key-value cache hooks for caching attention keys and values during inference. The logits function calculates the logits, using the cache if it exists. The cleanup_caching function removes all installed hooks and resets the cache, and the rearrange_kv_cache function can be used to reorder the cached key-value pairs based on given source indices.",
+        "type": "comment"
+    },
+    "194": {
+        "file_id": 18,
+        "content": "            for module in self.kv_modules:\n                # update the key/value cache to contain the selected sequences\n                self.kv_cache[module] = self.kv_cache[module][source_indices].detach()\nclass SequenceRanker:\n    def rank(\n        self, tokens: List[List[Tensor]], sum_logprobs: List[List[float]]\n    ) -> List[int]:\n        \"\"\"\n        Given a list of groups of samples and their cumulative log probabilities,\n        return the indices of the samples in each group to select as the final result\n        \"\"\"\n        raise NotImplementedError\nclass MaximumLikelihoodRanker(SequenceRanker):\n    \"\"\"\n    Select the sample with the highest log probabilities, penalized using either\n    a simple length normalization or Google NMT paper's length penalty\n    \"\"\"\n    def __init__(self, length_penalty: Optional[float]):\n        self.length_penalty = length_penalty\n    def rank(self, tokens: List[List[Tensor]], sum_logprobs: List[List[float]]):\n        def scores(logprobs, lengths):\n            result = []",
+        "type": "code",
+        "location": "/whisper/decoding.py:174-201"
+    },
+    "195": {
+        "file_id": 18,
+        "content": "The code defines a class `SequenceRanker` with a method `rank()` that takes a list of groups of samples and their cumulative log probabilities as input, and returns the indices of the samples in each group to select as the final result. The code also includes a subclass `MaximumLikelihoodRanker` that extends `SequenceRanker`, allowing the selection of samples with the highest log probabilities, penalized using either simple length normalization or Google NMT paper's length penalty.",
+        "type": "comment"
+    },
+    "196": {
+        "file_id": 18,
+        "content": "            for logprob, length in zip(logprobs, lengths):\n                if self.length_penalty is None:\n                    penalty = length\n                else:\n                    # from the Google NMT paper\n                    penalty = ((5 + length) / 6) ** self.length_penalty\n                result.append(logprob / penalty)\n            return result\n        # get the sequence with the highest score\n        lengths = [[len(t) for t in s] for s in tokens]\n        return [np.argmax(scores(p, l)) for p, l in zip(sum_logprobs, lengths)]\nclass TokenDecoder:\n    def reset(self):\n        \"\"\"Initialize any stateful variables for decoding a new sequence\"\"\"\n    def update(\n        self, tokens: Tensor, logits: Tensor, sum_logprobs: Tensor\n    ) -> Tuple[Tensor, bool]:\n        \"\"\"Specify how to select the next token, based on the current trace and logits\n        Parameters\n        ----------\n        tokens : Tensor, shape = (n_batch, current_sequence_length)\n            all tokens in the context so far, including the prefix and sot_sequence tokens",
+        "type": "code",
+        "location": "/whisper/decoding.py:202-228"
+    },
+    "197": {
+        "file_id": 18,
+        "content": "This code defines a class `TokenDecoder` that is responsible for decoding token sequences in sequence-to-sequence tasks. The `reset` function initializes any stateful variables needed for decoding a new sequence. The `update` function takes in `tokens`, `logits`, and `sum_logprobs` as input, and returns the next token and whether it is an end-of-sequence token.\n\nThe `reset` function: \n- Initializes any stateful variables needed for decoding a new sequence.",
+        "type": "comment"
+    },
+    "198": {
+        "file_id": 18,
+        "content": "        logits : Tensor, shape = (n_batch, vocab_size)\n            per-token logits of the probability distribution at the current step\n        sum_logprobs : Tensor, shape = (n_batch)\n            cumulative log probabilities for each sequence\n        Returns\n        -------\n        tokens : Tensor, shape = (n_batch, current_sequence_length + 1)\n            the tokens, appended with the selected next token\n        completed : bool\n            True if all sequences has reached the end of text\n        \"\"\"\n        raise NotImplementedError\n    def finalize(\n        self, tokens: Tensor, sum_logprobs: Tensor\n    ) -> Tuple[Sequence[Sequence[Tensor]], List[List[float]]]:\n        \"\"\"Finalize search and return the final candidate sequences\n        Parameters\n        ----------\n        tokens : Tensor, shape = (n_audio, n_group, current_sequence_length)\n            all tokens in the context so far, including the prefix and sot_sequence\n        sum_logprobs : Tensor, shape = (n_audio, n_group)\n            cumulative log probabilities for each sequence",
+        "type": "code",
+        "location": "/whisper/decoding.py:230-258"
+    },
+    "199": {
+        "file_id": 18,
+        "content": "This code defines a class that seems to be related to speech recognition. It has two methods: 'decode' and 'finalize'. The 'decode' method takes logits and cumulative log probabilities as input, returns the tokens and a boolean value indicating if all sequences have reached the end of text. The 'finalize' method takes tokens and cumulative log probabilities, and returns final candidate sequences.",
+        "type": "comment"
+    }
+}

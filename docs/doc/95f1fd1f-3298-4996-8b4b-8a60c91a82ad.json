@@ -1,0 +1,10 @@
+{
+    "summary": "This code sets the version number for the \"whisper\" library to \"20231117\".",
+    "details": [
+        {
+            "comment": "This code sets the version number for the \"whisper\" library to \"20231117\".",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/whisper/version.py\":0-0",
+            "content": "__version__ = \"20231117\""
+        }
+    ]
+}

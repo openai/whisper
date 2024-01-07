@@ -1,0 +1,15 @@
+{
+    "summary": "The comments discuss testing tokenizer functionality across different languages, examining basic properties and comparing encoding results between GPT2 and multilingual tokenizers while focusing on the ability to split tokens based on Unicode values.",
+    "details": [
+        {
+            "comment": "Testing tokenizer functionality with different languages and comparing the output tokens.\n- test_tokenizer: Testing basic properties of the tokenizer.\n- test_multilingual_tokenizer: Comparing encoding results between GPT2 and multilingual tokenizers for a given text.\n- test_split_on_unicode: Testing splitting on Unicode characters with the multilingual tokenizer.",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/tests/test_tokenizer.py\":0-29",
+            "content": "import pytest\nfrom whisper.tokenizer import get_tokenizer\n@pytest.mark.parametrize(\"multilingual\", [True, False])\ndef test_tokenizer(multilingual):\n    tokenizer = get_tokenizer(multilingual=False)\n    assert tokenizer.sot in tokenizer.sot_sequence\n    assert len(tokenizer.all_language_codes) == len(tokenizer.all_language_tokens)\n    assert all(c < tokenizer.timestamp_begin for c in tokenizer.all_language_tokens)\ndef test_multilingual_tokenizer():\n    gpt2_tokenizer = get_tokenizer(multilingual=False)\n    multilingual_tokenizer = get_tokenizer(multilingual=True)\n    text = \"\ub2e4\ub78c\uc950 \ud5cc \uccc7\ubc14\ud034\uc5d0 \ud0c0\uace0\ud30c\"\n    gpt2_tokens = gpt2_tokenizer.encode(text)\n    multilingual_tokens = multilingual_tokenizer.encode(text)\n    assert gpt2_tokenizer.decode(gpt2_tokens) == text\n    assert multilingual_tokenizer.decode(multilingual_tokens) == text\n    assert len(gpt2_tokens) > len(multilingual_tokens)\ndef test_split_on_unicode():\n    multilingual_tokenizer = get_tokenizer(multilingual=True)\n    tokens = [8404, 871, 287, 6, 246, 526, 3210, 20378]"
+        },
+        {
+            "comment": "Testing multilingual tokenizer's ability to split tokens based on Unicode values, asserting correct word and word_token lists.",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/tests/test_tokenizer.py\":30-33",
+            "content": "    words, word_tokens = multilingual_tokenizer.split_tokens_on_unicode(tokens)\n    assert words == [\" elle\", \" est\", \" l\", \"'\", \"\\ufffd\", \"\u00e9\", \"rit\", \"oire\"]\n    assert word_tokens == [[8404], [871], [287], [6], [246], [526], [3210], [20378]]"
+        }
+    ]
+}

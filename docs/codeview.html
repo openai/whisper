@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- visit with anchor: #mycode.12-14 -->
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-code-square' viewBox='0 0 16 16'%3E%3Cpath d='M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z'/%3E%3Cpath d='M6.854 4.646a.5.5 0 0 1 0 .708L4.207 8l2.647 2.646a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 0 1 .708 0zm2.292 0a.5.5 0 0 0 0 .708L11.793 8l-2.647 2.646a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708 0z'/%3E%3C/svg%3E"
+        type="image/svg+xml">
+    <title>Code View</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.css">
+    <script>
+        (function () {
+
+            if (typeof Prism === 'undefined' || typeof document === 'undefined' || !document.querySelector) {
+                return;
+            }
+
+            var LINE_NUMBERS_CLASS = 'line-numbers';
+            var LINKABLE_LINE_NUMBERS_CLASS = 'linkable-line-numbers';
+            var NEW_LINE_EXP = /\n(?!$)/g;
+
+            /**
+             * @param {string} selector
+             * @param {ParentNode} [container]
+             * @returns {HTMLElement[]}
+             */
+            function $$(selector, container) {
+                return Array.prototype.slice.call((container || document).querySelectorAll(selector));
+            }
+
+            /**
+             * Returns whether the given element has the given class.
+             *
+             * @param {Element} element
+             * @param {string} className
+             * @returns {boolean}
+             */
+            function hasClass(element, className) {
+                return element.classList.contains(className);
+            }
+
+            /**
+             * Calls the given function.
+             *
+             * @param {() => any} func
+             * @returns {void}
+             */
+            function callFunction(func) {
+                func();
+            }
+
+            // Some browsers round the line-height, others don't.
+            // We need to test for it to position the elements properly.
+            var isLineHeightRounded = (function () {
+                var res;
+                return function () {
+                    if (typeof res === 'undefined') {
+                        var d = document.createElement('div');
+                        d.style.fontSize = '13px'; // larger.
+                        d.style.lineHeight = '1.5';
+                        d.style.padding = '0';
+                        d.style.border = '0';
+                        d.innerHTML = '&nbsp;<br />&nbsp;';
+                        document.body.appendChild(d);
+                        // Browsers that round the line-height should have offsetHeight === 38
+                        // The others should have 39.
+                        res = d.offsetHeight === 38;
+                        document.body.removeChild(d);
+                    }
+                    return res;
+                };
+            }());
+
+            /**
+             * Returns the top offset of the content box of the given parent and the content box of one of its children.
+             *
+             * @param {HTMLElement} parent
+             * @param {HTMLElement} child
+             */
+            function getContentBoxTopOffset(parent, child) {
+                var parentStyle = getComputedStyle(parent);
+                var childStyle = getComputedStyle(child);
+
+                /**
+                 * Returns the numeric value of the given pixel value.
+                 *
+                 * @param {string} px
+                 */
+                function pxToNumber(px) {
+                    return +px.substr(0, px.length - 2);
+                }
+
+                return child.offsetTop
+                    + pxToNumber(childStyle.borderTopWidth)
+                    + pxToNumber(childStyle.paddingTop)
+                    - pxToNumber(parentStyle.paddingTop);
+            }
+
+            /**
+             * Returns whether the Line Highlight plugin is active for the given element.
+             *
+             * If this function returns `false`, do not call `highlightLines` for the given element.
+             *
+             * @param {HTMLElement | null | undefined} pre
+             * @returns {boolean}
+             */
+            function isActiveFor(pre) {
+                if (!pre || !/pre/i.test(pre.nodeName)) {
+                    return false;
+                }
+
+                if (pre.hasAttribute('data-line')) {
+                    return true;
+                }
+
+                if (pre.id && Prism.util.isActive(pre, LINKABLE_LINE_NUMBERS_CLASS)) {
+                    // Technically, the line numbers plugin is also necessary but this plugin doesn't control the classes of
+                    // the line numbers plugin, so we can't assume that they are present.
+                    return true;
+                }
+
+                return false;
+            }
+
+            var scrollIntoView = true;
+
+            Prism.plugins.lineHighlight = {
+                /**
+                 * Highlights the lines of the given pre.
+                 *
+                 * This function is split into a DOM measuring and mutate phase to improve performance.
+                 * The returned function mutates the DOM when called.
+                 *
+                 * @param {HTMLElement} pre
+                 * @param {string | null} [lines]
+                 * @param {string} [classes='']
+                 * @returns {() => void}
+                 */
+                highlightLines: function highlightLines(pre, lines, classes) {
+                    lines = typeof lines === 'string' ? lines : (pre.getAttribute('data-line') || '');
+
+                    var ranges = lines.replace(/\s+/g, '').split(',').filter(Boolean);
+                    var offset = +pre.getAttribute('data-line-offset') || 0;
+
+                    var parseMethod = isLineHeightRounded() ? parseInt : parseFloat;
+                    var lineHeight = parseMethod(getComputedStyle(pre).lineHeight);
+                    var hasLineNumbers = Prism.util.isActive(pre, LINE_NUMBERS_CLASS);
+                    var codeElement = pre.querySelector('code');
+                    var parentElement = hasLineNumbers ? pre : codeElement || pre;
+                    var mutateActions = /** @type {(() => void)[]} */ ([]);
+                    var lineBreakMatch = codeElement.textContent.match(NEW_LINE_EXP);
+                    var numberOfLines = lineBreakMatch ? lineBreakMatch.length + 1 : 1;
+                    /**
+                     * The top offset between the content box of the <code> element and the content box of the parent element of
+                     * the line highlight element (either `<pre>` or `<code>`).
+                     *
+                     * This offset might not be zero for some themes where the <code> element has a top margin. Some plugins
+                     * (or users) might also add element above the <code> element. Because the line highlight is aligned relative
+                     * to the <pre> element, we have to take this into account.
+                     *
+                     * This offset will be 0 if the parent element of the line highlight element is the `<code>` element.
+                     */
+                    var codePreOffset = !codeElement || parentElement == codeElement ? 0 : getContentBoxTopOffset(pre, codeElement);
+
+                    ranges.forEach(function (currentRange) {
+                        var range = currentRange.split('-');
+
+                        var start = +range[0];
+                        var end = +range[1] || start;
+                        end = Math.min(numberOfLines + offset, end);
+
+                        if (end < start) {
+                            return;
+                        }
+
+                        /** @type {HTMLElement} */
+                        var line = pre.querySelector('.line-highlight[data-range="' + currentRange + '"]') || document.createElement('div');
+
+                        mutateActions.push(function () {
+                            line.setAttribute('aria-hidden', 'true');
+                            line.setAttribute('data-range', currentRange);
+                            line.className = (classes || '') + ' line-highlight';
+                        });
+
+                        // if the line-numbers plugin is enabled, then there is no reason for this plugin to display the line numbers
+                        if (hasLineNumbers && Prism.plugins.lineNumbers) {
+                            var startNode = Prism.plugins.lineNumbers.getLine(pre, start);
+                            var endNode = Prism.plugins.lineNumbers.getLine(pre, end);
+
+                            if (startNode) {
+                                var top = startNode.offsetTop + codePreOffset + 'px';
+                                mutateActions.push(function () {
+                                    line.style.top = top;
+                                });
+                            }
+
+                            if (endNode) {
+                                var height = (endNode.offsetTop - startNode.offsetTop) + endNode.offsetHeight + 'px';
+                                mutateActions.push(function () {
+                                    line.style.height = height;
+                                });
+                            }
+                        } else {
+                            mutateActions.push(function () {
+                                line.setAttribute('data-start', String(start));
+
+                                if (end > start) {
+                                    line.setAttribute('data-end', String(end));
+                                }
+
+                                line.style.top = (start - offset - 1) * lineHeight + codePreOffset + 'px';
+
+                                line.textContent = new Array(end - start + 2).join(' \n');
+                            });
+                        }
+
+                        mutateActions.push(function () {
+                            line.style.width = pre.scrollWidth + 'px';
+                        });
+
+                        mutateActions.push(function () {
+                            // allow this to play nicely with the line-numbers plugin
+                            // need to attack to pre as when line-numbers is enabled, the code tag is relatively which screws up the positioning
+                            parentElement.appendChild(line);
+                        });
+                    });
+
+                    var id = pre.id;
+                    if (hasLineNumbers && Prism.util.isActive(pre, LINKABLE_LINE_NUMBERS_CLASS) && id) {
+                        // This implements linkable line numbers. Linkable line numbers use Line Highlight to create a link to a
+                        // specific line. For this to work, the pre element has to:
+                        //  1) have line numbers,
+                        //  2) have the `linkable-line-numbers` class or an ascendant that has that class, and
+                        //  3) have an id.
+
+                        if (!hasClass(pre, LINKABLE_LINE_NUMBERS_CLASS)) {
+                            // add class to pre
+                            mutateActions.push(function () {
+                                pre.classList.add(LINKABLE_LINE_NUMBERS_CLASS);
+                            });
+                        }
+
+                        var start = parseInt(pre.getAttribute('data-start') || '1');
+
+                        // iterate all line number spans
+                        $$('.line-numbers-rows > span', pre).forEach(function (lineSpan, i) {
+                            var lineNumber = i + start;
+                            lineSpan.onclick = function () {
+                                var hash = id + '.' + lineNumber;
+
+                                // this will prevent scrolling since the span is obviously in view
+                                scrollIntoView = false;
+                                location.hash = hash;
+                                setTimeout(function () {
+                                    scrollIntoView = true;
+                                }, 1);
+                            };
+                        });
+                    }
+
+                    return function () {
+                        mutateActions.forEach(callFunction);
+                    };
+                }
+            };
+
+
+            function applyHash() {
+                var hash = location.hash.slice(1);
+
+                // Remove pre-existing temporary lines
+                $$('.temporary.line-highlight').forEach(function (line) {
+                    line.parentNode.removeChild(line);
+                });
+
+                var range = (hash.match(/\.([\d,-]+)$/) || [, ''])[1];
+
+                if (!range || document.getElementById(hash)) {
+                    return;
+                }
+
+                var id = hash.slice(0, hash.lastIndexOf('.'));
+                var pre = document.getElementById(id);
+
+                if (!pre) {
+                    return;
+                }
+
+                // now we have hash.
+
+                if (!pre.hasAttribute('data-line')) {
+                    pre.setAttribute('data-line', '');
+                }
+
+                var mutateDom = Prism.plugins.lineHighlight.highlightLines(pre, range, 'temporary ');
+                mutateDom();
+
+                if (scrollIntoView) {
+                    document.querySelector('.temporary.line-highlight').scrollIntoView();
+                }
+            }
+
+            var fakeTimer = 0; // Hack to limit the number of times applyHash() runs
+
+            Prism.hooks.add('before-sanity-check', function (env) {
+                var pre = env.element.parentElement;
+                if (!isActiveFor(pre)) {
+                    return;
+                }
+
+                /*
+                 * Cleanup for other plugins (e.g. autoloader).
+                 *
+                 * Sometimes <code> blocks are highlighted multiple times. It is necessary
+                 * to cleanup any left-over tags, because the whitespace inside of the <div>
+                 * tags change the content of the <code> tag.
+                 */
+                var num = 0;
+                $$('.line-highlight', pre).forEach(function (line) {
+                    num += line.textContent.length;
+                    line.parentNode.removeChild(line);
+                });
+                // Remove extra whitespace
+                if (num && /^(?: \n)+$/.test(env.code.slice(-num))) {
+                    env.code = env.code.slice(0, -num);
+                }
+            });
+
+            Prism.hooks.add('complete', function completeHook(env) {
+                var pre = env.element.parentElement;
+                if (!isActiveFor(pre)) {
+                    return;
+                }
+
+                clearTimeout(fakeTimer);
+
+                var hasLineNumbers = Prism.plugins.lineNumbers;
+                var isLineNumbersLoaded = env.plugins && env.plugins.lineNumbers;
+
+                if (hasClass(pre, LINE_NUMBERS_CLASS) && hasLineNumbers && !isLineNumbersLoaded) {
+                    Prism.hooks.add('line-numbers', completeHook);
+                } else {
+                    var mutateDom = Prism.plugins.lineHighlight.highlightLines(pre);
+                    mutateDom();
+                    fakeTimer = setTimeout(applyHash, 1);
+                }
+            });
+
+            window.addEventListener('hashchange', applyHash);
+
+            function conditionalApplyHash() {
+                const pre_elem = document.getElementById('mycode');
+                const loaded = pre_elem.getAttribute('data-src-status');
+                if (loaded == "loaded") {
+                    applyHash();
+                } else {
+                    setTimeout(conditionalApplyHash, 500)
+                }
+            }
+            function getQueryParams() {
+                var search = window.location.search.substring(1); // Remove leading '?'
+                var queryParams = {};
+                search.split('&').forEach(function (pair) {
+                    var parts = pair.split('=');
+                    var key = decodeURIComponent(parts[0]);
+                    var value = decodeURIComponent(parts[1]);
+                    queryParams[key] = value;
+                });
+                return queryParams;
+            }
+            function loadedAction() {
+                // console.log('location search:', window.location.search);
+                const section_elem = document.getElementById('code-section');
+                const pre_elem = document.createElement('pre');
+                const queryParams = getQueryParams(window.location.search);
+                // const queryParams = new URLSearchParams(window.location.search);
+                const language = queryParams.language;
+                const code_path = queryParams.file;
+                const project_name = queryParams.project;
+                const h1_element = document.getElementById('code-path');
+                // h1_element.textContent = code_path.slice('src/'.length);
+                // debugger;
+                h1_element.textContent = project_name + "/" + code_path.slice('src/'.length);
+                pre_elem.className = `language-${language}`
+                pre_elem.id = "mycode";
+                pre_elem.setAttribute("data-src", code_path);
+                section_elem.appendChild(pre_elem)
+                Prism.highlightElement(pre_elem);
+                conditionalApplyHash();
+                // applyHash();
+                // Prism.highlightElement(pre_elem, () => {applyHash()});
+                // Prism.highlightElement(pre_elem).then(applyHash);
+            }
+            // window.addEventListener('load', loadedAction);
+            document.addEventListener('DOMContentLoaded', loadedAction);
+            window.addEventListener('resize', function () {
+                var actions = $$('pre')
+                    .filter(isActiveFor)
+                    .map(function (pre) {
+                        return Prism.plugins.lineHighlight.highlightLines(pre);
+                    });
+                actions.forEach(callFunction);
+            });
+
+        }());
+    </script>
+    <style>
+/* 
+        html, body{
+            background-color: transparent;
+        } */
+        #code-path {
+            /* overflow-x:scroll; */
+            /* opt1 */
+            /* word-wrap: break-word; 
+            overflow-wrap: break-word */
+            /* opt2 */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            direction: rtl;
+        }
+
+        html,
+        body {
+            /* max-width: 900px; */
+            /* margin: 0 auto; */
+            /* margin-left: 5%;
+            margin-right: 5%; */
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Roboto', sans-serif;
+
+            /* Adjust based on the height of the header */
+        }
+
+        section {
+            flex: 1;
+            /* margin: 0 auto; */
+            /* Provide spacing to accommodate the fixed header */
+            /* Ensure the section fills the remaining viewport height */
+            overflow-y: auto;
+            /* Enable vertical scrolling if content exceeds viewport height */
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: left;
+            justify-content: center;
+            text-align: left;
+        }
+
+        .monospace-text {
+            font-family: "Courier New", monospace;
+            color: #333;
+        }
+
+        @media (max-width: 767px) {
+
+            .container {
+                padding-left: 10px;
+            }
+
+
+            html,
+            body {
+
+                margin-left: 3%;
+                margin-right: 3%;
+            }
+
+            #code-section {
+                font-size: 14px;
+            }
+        }
+
+        #code-section {
+            border: 1px solid #ccc;
+        }
+
+        /* Styles for desktop devices */
+        @media (min-width: 768px) {
+            .container {
+                padding-left: 1.6%;
+            }
+
+            html,
+            body {
+
+                margin-left: 5%;
+                margin-right: 5%;
+            }
+
+            #code-section {
+                font-size: 17px;
+            }
+
+        }
+    </style>
+</head>
+
+<body>
+    <header class="container" data-plugin-header="line-numbers">
+        <p id="code-path" class="monospace-text">Code Preview</p>
+    </header>
+    <section id="code-section">
+        <!-- <pre id="mycode" class="language-python" data-src="code_view_demo.py">
+  </pre> -->
+    </section>
+</body>
+
+</html>

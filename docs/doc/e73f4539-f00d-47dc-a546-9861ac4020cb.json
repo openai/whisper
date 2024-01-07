@@ -1,0 +1,10 @@
+{
+    "summary": "Configures Black and Isort tools for formatting Python code according to their respective profiles.",
+    "details": [
+        {
+            "comment": "Configures Black and Isort tools for formatting Python code according to their respective profiles.",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/pyproject.toml\":0-6",
+            "content": "[tool.black]\n[tool.isort]\nprofile = \"black\"\ninclude_trailing_comma = true\nline_length = 88\nmulti_line_output = 3"
+        }
+    ]
+}

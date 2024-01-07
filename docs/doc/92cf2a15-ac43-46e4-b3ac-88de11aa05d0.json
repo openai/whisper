@@ -1,0 +1,10 @@
+{
+    "summary": "Imports necessary libraries and sets seed for random number generators.",
+    "details": [
+        {
+            "comment": "Imports necessary libraries and sets seed for random number generators.",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/tests/conftest.py\":0-13",
+            "content": "import random as rand\nimport numpy\nimport pytest\ndef pytest_configure(config):\n    config.addinivalue_line(\"markers\", \"requires_cuda\")\n@pytest.fixture\ndef random():\n    rand.seed(42)\n    numpy.random.seed(42)"
+        }
+    ]
+}

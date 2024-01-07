@@ -1,0 +1,10 @@
+{
+    "summary": "Importing BasicTextNormalizer and EnglishTextNormalizer from respective modules.",
+    "details": [
+        {
+            "comment": "Importing BasicTextNormalizer and EnglishTextNormalizer from respective modules.",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/whisper/normalizers/__init__.py\":0-1",
+            "content": "from .basic import BasicTextNormalizer as BasicTextNormalizer\nfrom .english import EnglishTextNormalizer as EnglishTextNormalizer"
+        }
+    ]
+}

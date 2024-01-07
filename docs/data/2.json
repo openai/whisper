@@ -1,0 +1,549 @@
+{
+    "200": {
+        "file_id": 18,
+        "content": "        Returns\n        -------\n        tokens : Sequence[Sequence[Tensor]], length = n_audio\n            sequence of Tensors containing candidate token sequences, for each audio input\n        sum_logprobs : List[List[float]], length = n_audio\n            sequence of cumulative log probabilities corresponding to the above\n        \"\"\"\n        raise NotImplementedError\nclass GreedyDecoder(TokenDecoder):\n    def __init__(self, temperature: float, eot: int):\n        self.temperature = temperature\n        self.eot = eot\n    def update(\n        self, tokens: Tensor, logits: Tensor, sum_logprobs: Tensor\n    ) -> Tuple[Tensor, bool]:\n        if self.temperature == 0:\n            next_tokens = logits.argmax(dim=-1)\n        else:\n            next_tokens = Categorical(logits=logits / self.temperature).sample()\n        logprobs = F.log_softmax(logits.float(), dim=-1)\n        current_logprobs = logprobs[torch.arange(logprobs.shape[0]), next_tokens]\n        sum_logprobs += current_logprobs * (tokens[:, -1] != self.eot)\n        next_tokens[tokens[:, -1] == self.eot] = self.eot",
+        "type": "code",
+        "location": "/whisper/decoding.py:260-289"
+    },
+    "201": {
+        "file_id": 18,
+        "content": "This code defines a GreedyDecoder class that takes temperature and eot (end of text) parameters. It implements an update() function that given tokens, logits, and sum_logprobs, returns updated tokens and a boolean indicating whether the end of text has been reached. If the temperature is 0, it selects the most probable token using argmax. Otherwise, it uses the softmax distribution to sample a token at the specified temperature. It also updates the logprobs and sum_logprobs for each token.",
+        "type": "comment"
+    },
+    "202": {
+        "file_id": 18,
+        "content": "        tokens = torch.cat([tokens, next_tokens[:, None]], dim=-1)\n        completed = (tokens[:, -1] == self.eot).all()\n        return tokens, completed\n    def finalize(self, tokens: Tensor, sum_logprobs: Tensor):\n        # make sure each sequence has at least one EOT token at the end\n        tokens = F.pad(tokens, (0, 1), value=self.eot)\n        return tokens, sum_logprobs.tolist()\nclass BeamSearchDecoder(TokenDecoder):\n    def __init__(\n        self,\n        beam_size: int,\n        eot: int,\n        inference: Inference,\n        patience: Optional[float] = None,\n    ):\n        self.beam_size = beam_size\n        self.eot = eot\n        self.inference = inference\n        self.patience = patience or 1.0\n        self.max_candidates: int = round(beam_size * self.patience)\n        self.finished_sequences = None\n        assert (\n            self.max_candidates > 0\n        ), f\"Invalid beam size ({beam_size}) or patience ({patience})\"\n    def reset(self):\n        self.finished_sequences = None\n    def update(\n        self, tokens: Tensor, logits: Tensor, sum_logprobs: Tensor",
+        "type": "code",
+        "location": "/whisper/decoding.py:290-324"
+    },
+    "203": {
+        "file_id": 18,
+        "content": "The code defines a BeamSearchDecoder class for decoding sequences using beam search algorithm. It initializes with a beam size, EOT token, inference type, and patience value. It also has methods for resetting and updating the decoder during the decoding process.",
+        "type": "comment"
+    },
+    "204": {
+        "file_id": 18,
+        "content": "    ) -> Tuple[Tensor, bool]:\n        if tokens.shape[0] % self.beam_size != 0:\n            raise ValueError(f\"{tokens.shape}[0] % {self.beam_size} != 0\")\n        n_audio = tokens.shape[0] // self.beam_size\n        if self.finished_sequences is None:  # for the first update\n            self.finished_sequences = [{} for _ in range(n_audio)]\n        logprobs = F.log_softmax(logits.float(), dim=-1)\n        next_tokens, source_indices, finished_sequences = [], [], []\n        for i in range(n_audio):\n            scores, sources, finished = {}, {}, {}\n            # STEP 1: calculate the cumulative log probabilities for possible candidates\n            for j in range(self.beam_size):\n                idx = i * self.beam_size + j\n                prefix = tokens[idx].tolist()\n                for logprob, token in zip(*logprobs[idx].topk(self.beam_size + 1)):\n                    new_logprob = (sum_logprobs[idx] + logprob).item()\n                    sequence = tuple(prefix + [token.item()])\n                    scores[sequence] = new_logprob",
+        "type": "code",
+        "location": "/whisper/decoding.py:325-345"
+    },
+    "205": {
+        "file_id": 18,
+        "content": "This function divides the input tokens into multiple audio sequences based on the beam size. It checks if the number of tokens is a multiple of the beam size, and raises an error if not. It then calculates cumulative log probabilities for possible candidates in each audio sequence.",
+        "type": "comment"
+    },
+    "206": {
+        "file_id": 18,
+        "content": "                    sources[sequence] = idx\n            # STEP 2: rank the candidates and keep the top beam_size sequences for each audio\n            saved = 0\n            for sequence in sorted(scores, key=scores.get, reverse=True):\n                if sequence[-1] == self.eot:\n                    finished[sequence] = scores[sequence]\n                else:\n                    sum_logprobs[len(next_tokens)] = scores[sequence]\n                    next_tokens.append(sequence)\n                    source_indices.append(sources[sequence])\n                    saved += 1\n                    if saved == self.beam_size:\n                        break\n            finished_sequences.append(finished)\n        tokens = torch.tensor(next_tokens, device=tokens.device)\n        self.inference.rearrange_kv_cache(source_indices)\n        # add newly finished sequences to self.finished_sequences\n        assert len(self.finished_sequences) == len(finished_sequences)\n        for previously_finished, newly_finished in zip(\n            self.finished_sequences, finished_sequences",
+        "type": "code",
+        "location": "/whisper/decoding.py:346-370"
+    },
+    "207": {
+        "file_id": 18,
+        "content": "This code is ranking and selecting the top N sequences from a list of candidate sequences based on their scores. It keeps track of finished sequences and updates the inference cache with new data.",
+        "type": "comment"
+    },
+    "208": {
+        "file_id": 18,
+        "content": "        ):\n            for seq in sorted(newly_finished, key=newly_finished.get, reverse=True):\n                if len(previously_finished) >= self.max_candidates:\n                    break  # the candidate list is full\n                previously_finished[seq] = newly_finished[seq]\n        # mark as completed if all audio has enough number of samples\n        completed = all(\n            len(sequences) >= self.max_candidates\n            for sequences in self.finished_sequences\n        )\n        return tokens, completed\n    def finalize(self, preceding_tokens: Tensor, sum_logprobs: Tensor):\n        # collect all finished sequences, including patience, and add unfinished ones if not enough\n        sum_logprobs = sum_logprobs.cpu()\n        for i, sequences in enumerate(self.finished_sequences):\n            if (\n                len(sequences) < self.beam_size\n            ):  # when not enough sequences are finished\n                for j in list(np.argsort(sum_logprobs[i]))[::-1]:\n                    sequence = preceding_tokens[i, j].tolist() + [self.eot]",
+        "type": "code",
+        "location": "/whisper/decoding.py:371-392"
+    },
+    "209": {
+        "file_id": 18,
+        "content": "Code adds more finished sequences to the list if there are not enough. It also marks all sequences as completed if they have enough samples.",
+        "type": "comment"
+    },
+    "210": {
+        "file_id": 18,
+        "content": "                    sequences[tuple(sequence)] = sum_logprobs[i][j].item()\n                    if len(sequences) >= self.beam_size:\n                        break\n        tokens: List[List[Tensor]] = [\n            [torch.tensor(seq) for seq in sequences.keys()]\n            for sequences in self.finished_sequences\n        ]\n        sum_logprobs: List[List[float]] = [\n            list(sequences.values()) for sequences in self.finished_sequences\n        ]\n        return tokens, sum_logprobs\nclass LogitFilter:\n    def apply(self, logits: Tensor, tokens: Tensor) -> None:\n        \"\"\"Apply any filtering or masking to logits in-place\n        Parameters\n        ----------\n        logits : Tensor, shape = (n_batch, vocab_size)\n            per-token logits of the probability distribution at the current step\n        tokens : Tensor, shape = (n_batch, current_sequence_length)\n            all tokens in the context so far, including the prefix and sot_sequence tokens\n        \"\"\"\n        raise NotImplementedError\nclass SuppressBlank(LogitFilter):",
+        "type": "code",
+        "location": "/whisper/decoding.py:393-423"
+    },
+    "211": {
+        "file_id": 18,
+        "content": "This code is a part of a decoding process in a deep learning model. It calculates the log probabilities of each sequence and stores them in a dictionary called \"sequences\". If the length of sequences reaches a certain threshold (beam_size), the loop breaks. Then, it creates two lists: tokens and sum_logprobs from the data stored in self.finished_sequences. Finally, it returns these two lists as output.\n\nThe LogitFilter class is an abstract base class for applying filtering or masking to logits during decoding. It has a method \"apply\" which takes logits and tokens as input but does not return anything. The SuppressBlank class inherits from LogitFilter and requires implementing the apply method according to specific requirements.",
+        "type": "comment"
+    },
+    "212": {
+        "file_id": 18,
+        "content": "    def __init__(self, tokenizer: Tokenizer, sample_begin: int):\n        self.tokenizer = tokenizer\n        self.sample_begin = sample_begin\n    def apply(self, logits: Tensor, tokens: Tensor):\n        if tokens.shape[1] == self.sample_begin:\n            logits[:, self.tokenizer.encode(\" \") + [self.tokenizer.eot]] = -np.inf\nclass SuppressTokens(LogitFilter):\n    def __init__(self, suppress_tokens: Sequence[int]):\n        self.suppress_tokens = list(suppress_tokens)\n    def apply(self, logits: Tensor, tokens: Tensor):\n        logits[:, self.suppress_tokens] = -np.inf\nclass ApplyTimestampRules(LogitFilter):\n    def __init__(\n        self,\n        tokenizer: Tokenizer,\n        sample_begin: int,\n        max_initial_timestamp_index: Optional[int],\n    ):\n        self.tokenizer = tokenizer\n        self.sample_begin = sample_begin\n        self.max_initial_timestamp_index = max_initial_timestamp_index\n    def apply(self, logits: Tensor, tokens: Tensor):\n        # suppress <|notimestamps|> which is handled by without_timestamps",
+        "type": "code",
+        "location": "/whisper/decoding.py:424-453"
+    },
+    "213": {
+        "file_id": 18,
+        "content": "The code contains three classes, each representing a different method of filtering logits in a machine translation model. \"SuppressTokens\" applies a negative infinity penalty to specified token indices. \"ApplyTimestampRules\" suppresses <|notimestamps|> and sets negative penalties for certain tokens based on sample_begin and max_initial_timestamp_index. \"SuppressEmptyTokens\" sets a negative penalty for empty tokens.",
+        "type": "comment"
+    },
+    "214": {
+        "file_id": 18,
+        "content": "        if self.tokenizer.no_timestamps is not None:\n            logits[:, self.tokenizer.no_timestamps] = -np.inf\n        # timestamps have to appear in pairs, except directly before EOT; mask logits accordingly\n        for k in range(tokens.shape[0]):\n            sampled_tokens = tokens[k, self.sample_begin :]\n            seq = [t for t in sampled_tokens.tolist()]\n            last_was_timestamp = (\n                len(seq) >= 1 and seq[-1] >= self.tokenizer.timestamp_begin\n            )\n            penultimate_was_timestamp = (\n                len(seq) < 2 or seq[-2] >= self.tokenizer.timestamp_begin\n            )\n            if last_was_timestamp:\n                if penultimate_was_timestamp:  # has to be non-timestamp\n                    logits[k, self.tokenizer.timestamp_begin :] = -np.inf\n                else:  # cannot be normal text tokens\n                    logits[k, : self.tokenizer.eot] = -np.inf\n            timestamps = sampled_tokens[\n                sampled_tokens.ge(self.tokenizer.timestamp_begin)",
+        "type": "code",
+        "location": "/whisper/decoding.py:454-475"
+    },
+    "215": {
+        "file_id": 18,
+        "content": "This code masks certain logits based on whether the preceding tokens are timestamps or not. If the preceding token is a timestamp, it sets corresponding logits to -inf, preventing them from being selected during sampling.",
+        "type": "comment"
+    },
+    "216": {
+        "file_id": 18,
+        "content": "            ]\n            if timestamps.numel() > 0:\n                # timestamps shouldn't decrease; forbid timestamp tokens smaller than the last\n                # also force each segment to have a nonzero length, to prevent infinite looping\n                if last_was_timestamp and not penultimate_was_timestamp:\n                    timestamp_last = timestamps[-1]\n                else:\n                    timestamp_last = timestamps[-1] + 1\n                logits[k, self.tokenizer.timestamp_begin : timestamp_last] = -np.inf\n        if tokens.shape[1] == self.sample_begin:\n            # suppress generating non-timestamp tokens at the beginning\n            logits[:, : self.tokenizer.timestamp_begin] = -np.inf\n            # apply the `max_initial_timestamp` option\n            if self.max_initial_timestamp_index is not None:\n                last_allowed = (\n                    self.tokenizer.timestamp_begin + self.max_initial_timestamp_index\n                )\n                logits[:, last_allowed + 1 :] = -np.inf",
+        "type": "code",
+        "location": "/whisper/decoding.py:476-495"
+    },
+    "217": {
+        "file_id": 18,
+        "content": "This code is ensuring that the timestamps in the decoding process don't decrease and forcing each segment to have a non-zero length, preventing infinite looping. It also suppresses generating non-timestamp tokens at the beginning of the sequence and applies the `max_initial_timestamp` option if specified.",
+        "type": "comment"
+    },
+    "218": {
+        "file_id": 18,
+        "content": "        # if sum of probability over timestamps is above any other token, sample timestamp\n        logprobs = F.log_softmax(logits.float(), dim=-1)\n        for k in range(tokens.shape[0]):\n            timestamp_logprob = logprobs[k, self.tokenizer.timestamp_begin :].logsumexp(\n                dim=-1\n            )\n            max_text_token_logprob = logprobs[k, : self.tokenizer.timestamp_begin].max()\n            if timestamp_logprob > max_text_token_logprob:\n                logits[k, : self.tokenizer.timestamp_begin] = -np.inf\nclass DecodingTask:\n    inference: Inference\n    sequence_ranker: SequenceRanker\n    decoder: TokenDecoder\n    logit_filters: List[LogitFilter]\n    def __init__(self, model: \"Whisper\", options: DecodingOptions):\n        self.model = model\n        language = options.language or \"en\"\n        tokenizer = get_tokenizer(\n            model.is_multilingual,\n            num_languages=model.num_languages,\n            language=language,\n            task=options.task,\n        )\n        self.tokenizer: Tokenizer = tokenizer",
+        "type": "code",
+        "location": "/whisper/decoding.py:497-524"
+    },
+    "219": {
+        "file_id": 18,
+        "content": "This code snippet is part of a machine learning model that performs speech-to-text decoding. It calculates the probability scores for each timestamp and token, then selects the timestamp with the highest log probability. The selected timestamp is used to sample the next token from the text tokens.",
+        "type": "comment"
+    },
+    "220": {
+        "file_id": 18,
+        "content": "        self.options: DecodingOptions = self._verify_options(options)\n        self.n_group: int = options.beam_size or options.best_of or 1\n        self.n_ctx: int = model.dims.n_text_ctx\n        self.sample_len: int = options.sample_len or model.dims.n_text_ctx // 2\n        self.sot_sequence: Tuple[int] = tokenizer.sot_sequence\n        if self.options.without_timestamps:\n            self.sot_sequence = tokenizer.sot_sequence_including_notimestamps\n        self.initial_tokens: Tuple[int] = self._get_initial_tokens()\n        self.sample_begin: int = len(self.initial_tokens)\n        self.sot_index: int = self.initial_tokens.index(tokenizer.sot)\n        # inference: implements the forward pass through the decoder, including kv caching\n        self.inference = PyTorchInference(model, len(self.initial_tokens))\n        # sequence ranker: implements how to rank a group of sampled sequences\n        self.sequence_ranker = MaximumLikelihoodRanker(options.length_penalty)\n        # decoder: implements how to select the next tokens, given the autoregressive distribution",
+        "type": "code",
+        "location": "/whisper/decoding.py:525-545"
+    },
+    "221": {
+        "file_id": 18,
+        "content": "This code initializes various variables for decoding, such as beam size, maximum sample length, and initial tokens. It also creates instances of PyTorchInference and MaximumLikelihoodRanker classes, which are used for inference and sequence ranking respectively.",
+        "type": "comment"
+    },
+    "222": {
+        "file_id": 18,
+        "content": "        if options.beam_size is not None:\n            self.decoder = BeamSearchDecoder(\n                options.beam_size, tokenizer.eot, self.inference, options.patience\n            )\n        else:\n            self.decoder = GreedyDecoder(options.temperature, tokenizer.eot)\n        # logit filters: applies various rules to suppress or penalize certain tokens\n        self.logit_filters = []\n        if self.options.suppress_blank:\n            self.logit_filters.append(SuppressBlank(self.tokenizer, self.sample_begin))\n        if self.options.suppress_tokens:\n            self.logit_filters.append(SuppressTokens(self._get_suppress_tokens()))\n        if not options.without_timestamps:\n            precision = CHUNK_LENGTH / model.dims.n_audio_ctx  # usually 0.02 seconds\n            max_initial_timestamp_index = None\n            if options.max_initial_timestamp:\n                max_initial_timestamp_index = round(\n                    self.options.max_initial_timestamp / precision\n                )\n            self.logit_filters.append(",
+        "type": "code",
+        "location": "/whisper/decoding.py:546-566"
+    },
+    "223": {
+        "file_id": 18,
+        "content": "This code initializes the decoder and logit filters for a model. The decoder is chosen based on the beam size option, with BeamSearchDecoder used if specified or GreedyDecoder otherwise. Logit filters are added based on options to suppress blank tokens or specific tokens. If timestamps are not disabled, a timestamp filter is also added.",
+        "type": "comment"
+    },
+    "224": {
+        "file_id": 18,
+        "content": "                ApplyTimestampRules(\n                    tokenizer, self.sample_begin, max_initial_timestamp_index\n                )\n            )\n    def _verify_options(self, options: DecodingOptions) -> DecodingOptions:\n        if options.beam_size is not None and options.best_of is not None:\n            raise ValueError(\"beam_size and best_of can't be given together\")\n        if options.temperature == 0:\n            if options.best_of is not None:\n                raise ValueError(\"best_of with greedy sampling (T=0) is not compatible\")\n        if options.patience is not None and options.beam_size is None:\n            raise ValueError(\"patience requires beam_size to be given\")\n        if options.length_penalty is not None and not (\n            0 <= options.length_penalty <= 1\n        ):\n            raise ValueError(\"length_penalty (alpha) should be a value between 0 and 1\")\n        return options\n    def _get_initial_tokens(self) -> Tuple[int]:\n        tokens = list(self.sot_sequence)\n        if prefix := self.options.prefix:",
+        "type": "code",
+        "location": "/whisper/decoding.py:567-590"
+    },
+    "225": {
+        "file_id": 18,
+        "content": "This code defines a class with methods to initialize decoding options, verify them for compatibility, and get initial tokens. It also applies timestamp rules to tokens if necessary.",
+        "type": "comment"
+    },
+    "226": {
+        "file_id": 18,
+        "content": "            prefix_tokens = (\n                self.tokenizer.encode(\" \" + prefix.strip())\n                if isinstance(prefix, str)\n                else prefix\n            )\n            if self.sample_len is not None:\n                max_prefix_len = self.n_ctx // 2 - self.sample_len\n                prefix_tokens = prefix_tokens[-max_prefix_len:]\n            tokens = tokens + prefix_tokens\n        if prompt := self.options.prompt:\n            prompt_tokens = (\n                self.tokenizer.encode(\" \" + prompt.strip())\n                if isinstance(prompt, str)\n                else prompt\n            )\n            tokens = (\n                [self.tokenizer.sot_prev]\n                + prompt_tokens[-(self.n_ctx // 2 - 1) :]\n                + tokens\n            )\n        return tuple(tokens)\n    def _get_suppress_tokens(self) -> Tuple[int]:\n        suppress_tokens = self.options.suppress_tokens\n        if isinstance(suppress_tokens, str):\n            suppress_tokens = [int(t) for t in suppress_tokens.split(\",\")]",
+        "type": "code",
+        "location": "/whisper/decoding.py:591-619"
+    },
+    "227": {
+        "file_id": 18,
+        "content": "Code snippet encodes prefix and prompt tokens, handles sample length, and defines suppress_tokens.",
+        "type": "comment"
+    },
+    "228": {
+        "file_id": 18,
+        "content": "        if -1 in suppress_tokens:\n            suppress_tokens = [t for t in suppress_tokens if t >= 0]\n            suppress_tokens.extend(self.tokenizer.non_speech_tokens)\n        elif suppress_tokens is None or len(suppress_tokens) == 0:\n            suppress_tokens = []  # interpret empty string as an empty list\n        else:\n            assert isinstance(suppress_tokens, list), \"suppress_tokens must be a list\"\n        suppress_tokens.extend(\n            [\n                self.tokenizer.transcribe,\n                self.tokenizer.translate,\n                self.tokenizer.sot,\n                self.tokenizer.sot_prev,\n                self.tokenizer.sot_lm,\n            ]\n        )\n        if self.tokenizer.no_speech is not None:\n            # no-speech probability is collected separately\n            suppress_tokens.append(self.tokenizer.no_speech)\n        return tuple(sorted(set(suppress_tokens)))\n    def _get_audio_features(self, mel: Tensor):\n        if self.options.fp16:\n            mel = mel.half()\n        if mel.shape[-2:] == (",
+        "type": "code",
+        "location": "/whisper/decoding.py:621-648"
+    },
+    "229": {
+        "file_id": 18,
+        "content": "This code is responsible for managing a list of tokens that represent different aspects of audio processing, such as non-speech segments, transcribing, translating, and marking start of a segment. It ensures the list is in proper format and order, then extends it with specific tokens from the tokenizer, before possibly appending a no-speech probability if available.",
+        "type": "comment"
+    },
+    "230": {
+        "file_id": 18,
+        "content": "            self.model.dims.n_audio_ctx,\n            self.model.dims.n_audio_state,\n        ):\n            # encoded audio features are given; skip audio encoding\n            audio_features = mel\n        else:\n            audio_features = self.model.encoder(mel)\n        if audio_features.dtype != (\n            torch.float16 if self.options.fp16 else torch.float32\n        ):\n            return TypeError(\n                f\"audio_features has an incorrect dtype: {audio_features.dtype}\"\n            )\n        return audio_features\n    def _detect_language(self, audio_features: Tensor, tokens: Tensor):\n        languages = [self.options.language] * audio_features.shape[0]\n        lang_probs = None\n        if self.options.language is None or self.options.task == \"lang_id\":\n            lang_tokens, lang_probs = self.model.detect_language(\n                audio_features, self.tokenizer\n            )\n            languages = [max(probs, key=probs.get) for probs in lang_probs]\n            if self.options.language is None:",
+        "type": "code",
+        "location": "/whisper/decoding.py:649-675"
+    },
+    "231": {
+        "file_id": 18,
+        "content": "This code defines two functions, `_get_audio_features` and `_detect_language`. \n\n`_get_audio_features` checks if the encoded audio features are given or not. If they are given, it skips audio encoding. Otherwise, it encodes the audio using `self.model.encoder(mel)`. It also checks if the audio features have the correct dtype (either float16 or float32).\n\n`_detect_language` either retrieves the specified language from options or detects languages using `self.model.detect_language(audio_features, self.tokenizer)` when no specific language is given or task is 'lang_id'. It assigns the detected language to `languages` and calculates the language probabilities (`lang_probs`) if necessary.",
+        "type": "comment"
+    },
+    "232": {
+        "file_id": 18,
+        "content": "                tokens[:, self.sot_index + 1] = lang_tokens  # write language tokens\n        return languages, lang_probs\n    def _main_loop(self, audio_features: Tensor, tokens: Tensor):\n        n_batch = tokens.shape[0]\n        sum_logprobs: Tensor = torch.zeros(n_batch, device=audio_features.device)\n        no_speech_probs = [np.nan] * n_batch\n        try:\n            for i in range(self.sample_len):\n                logits = self.inference.logits(tokens, audio_features)\n                if (\n                    i == 0 and self.tokenizer.no_speech is not None\n                ):  # save no_speech_probs\n                    probs_at_sot = logits[:, self.sot_index].float().softmax(dim=-1)\n                    no_speech_probs = probs_at_sot[:, self.tokenizer.no_speech].tolist()\n                # now we need to consider the logits at the last token only\n                logits = logits[:, -1]\n                # apply the logit filters, e.g. for suppressing or applying penalty to\n                for logit_filter in self.logit_filters:",
+        "type": "code",
+        "location": "/whisper/decoding.py:676-699"
+    },
+    "233": {
+        "file_id": 18,
+        "content": "This code defines a function that performs inference on audio features and returns the languages and language probabilities. It also contains a loop that processes each chunk of audio features, calculates logits, applies logit filters, and keeps track of no_speech_probs if there is a specified no_speech token.",
+        "type": "comment"
+    },
+    "234": {
+        "file_id": 18,
+        "content": "                    logit_filter.apply(logits, tokens)\n                # expand the tokens tensor with the selected next tokens\n                tokens, completed = self.decoder.update(tokens, logits, sum_logprobs)\n                if completed or tokens.shape[-1] > self.n_ctx:\n                    break\n        finally:\n            self.inference.cleanup_caching()\n        return tokens, sum_logprobs, no_speech_probs\n    @torch.no_grad()\n    def run(self, mel: Tensor) -> List[DecodingResult]:\n        self.decoder.reset()\n        tokenizer: Tokenizer = self.tokenizer\n        n_audio: int = mel.shape[0]\n        audio_features: Tensor = self._get_audio_features(mel)  # encoder forward pass\n        tokens: Tensor = torch.tensor([self.initial_tokens]).repeat(n_audio, 1)\n        # detect language if requested, overwriting the language token\n        languages, language_probs = self._detect_language(audio_features, tokens)\n        if self.options.task == \"lang_id\":\n            return [\n                DecodingResult(",
+        "type": "code",
+        "location": "/whisper/decoding.py:700-725"
+    },
+    "235": {
+        "file_id": 18,
+        "content": "The code is performing inference for text generation or language identification using a whisper model. It starts by resetting the decoder, tokenizing input audio, and getting audio features. The code then updates tokens based on selected next tokens and applies a logit filter. If a token has been completed or if there are too many tokens, it breaks the loop. Finally, it cleans up caching before returning the results.",
+        "type": "comment"
+    },
+    "236": {
+        "file_id": 18,
+        "content": "                    audio_features=features, language=language, language_probs=probs\n                )\n                for features, language, probs in zip(\n                    audio_features, languages, language_probs\n                )\n            ]\n        # repeat text tensors by the group size, for beam search or best-of-n sampling\n        tokens = tokens.repeat_interleave(self.n_group, dim=0).to(audio_features.device)\n        # call the main sampling loop\n        tokens, sum_logprobs, no_speech_probs = self._main_loop(audio_features, tokens)\n        # reshape the tensors to have (n_audio, n_group) as the first two dimensions\n        audio_features = audio_features[:: self.n_group]\n        no_speech_probs = no_speech_probs[:: self.n_group]\n        assert audio_features.shape[0] == len(no_speech_probs) == n_audio\n        tokens = tokens.reshape(n_audio, self.n_group, -1)\n        sum_logprobs = sum_logprobs.reshape(n_audio, self.n_group)\n        # get the final candidates for each group, and slice between the first sampled token and EOT",
+        "type": "code",
+        "location": "/whisper/decoding.py:726-747"
+    },
+    "237": {
+        "file_id": 18,
+        "content": "This code performs text-to-speech decoding by splitting the input audio into groups, repeating the text tensors for each group, then running a main sampling loop to generate speech tokens. The final candidates are extracted for each group and sliced up to the end of text (EOT) token.",
+        "type": "comment"
+    },
+    "238": {
+        "file_id": 18,
+        "content": "        tokens, sum_logprobs = self.decoder.finalize(tokens, sum_logprobs)\n        tokens: List[List[Tensor]] = [\n            [t[self.sample_begin : (t == tokenizer.eot).nonzero()[0, 0]] for t in s]\n            for s in tokens\n        ]\n        # select the top-ranked sample in each group\n        selected = self.sequence_ranker.rank(tokens, sum_logprobs)\n        tokens: List[List[int]] = [t[i].tolist() for i, t in zip(selected, tokens)]\n        texts: List[str] = [tokenizer.decode(t).strip() for t in tokens]\n        sum_logprobs: List[float] = [lp[i] for i, lp in zip(selected, sum_logprobs)]\n        avg_logprobs: List[float] = [\n            lp / (len(t) + 1) for t, lp in zip(tokens, sum_logprobs)\n        ]\n        fields = (\n            texts,\n            languages,\n            tokens,\n            audio_features,\n            avg_logprobs,\n            no_speech_probs,\n        )\n        if len(set(map(len, fields))) != 1:\n            raise RuntimeError(f\"inconsistent result lengths: {list(map(len, fields))}\")\n        return [",
+        "type": "code",
+        "location": "/whisper/decoding.py:748-775"
+    },
+    "239": {
+        "file_id": 18,
+        "content": "This code snippet is part of a text decoding process. It selects the top-ranked sample from each group, calculates average log probabilities, and stores results in various formats (texts, languages, tokens, audio features). The code raises an error if result lengths are inconsistent.",
+        "type": "comment"
+    },
+    "240": {
+        "file_id": 18,
+        "content": "            DecodingResult(\n                audio_features=features,\n                language=language,\n                tokens=tokens,\n                text=text,\n                avg_logprob=avg_logprob,\n                no_speech_prob=no_speech_prob,\n                temperature=self.options.temperature,\n                compression_ratio=compression_ratio(text),\n            )\n            for text, language, tokens, features, avg_logprob, no_speech_prob in zip(\n                *fields\n            )\n        ]\n@torch.no_grad()\ndef decode(\n    model: \"Whisper\",\n    mel: Tensor,\n    options: DecodingOptions = DecodingOptions(),\n    **kwargs,\n) -> Union[DecodingResult, List[DecodingResult]]:\n    \"\"\"\n    Performs decoding of 30-second audio segment(s), provided as Mel spectrogram(s).\n    Parameters\n    ----------\n    model: Whisper\n        the Whisper model instance\n    mel: torch.Tensor, shape = (80, 3000) or (*, 80, 3000)\n        A tensor containing the Mel spectrogram(s)\n    options: DecodingOptions\n        A dataclass that contains all necessary options for decoding 30-second segments",
+        "type": "code",
+        "location": "/whisper/decoding.py:776-811"
+    },
+    "241": {
+        "file_id": 18,
+        "content": "This code defines a function `decode` which takes in a Whisper model, Mel spectrogram(s), and optional decoding options. It performs the decoding of 30-second audio segment(s) by using the given model and mel spectrogram(s). The decoded result is returned as a DecodingResult object or a list of DecodingResult objects if multiple segments are provided.",
+        "type": "comment"
+    },
+    "242": {
+        "file_id": 18,
+        "content": "    Returns\n    -------\n    result: Union[DecodingResult, List[DecodingResult]]\n        The result(s) of decoding contained in `DecodingResult` dataclass instance(s)\n    \"\"\"\n    if single := mel.ndim == 2:\n        mel = mel.unsqueeze(0)\n    if kwargs:\n        options = replace(options, **kwargs)\n    result = DecodingTask(model, options).run(mel)\n    return result[0] if single else result",
+        "type": "code",
+        "location": "/whisper/decoding.py:813-826"
+    },
+    "243": {
+        "file_id": 18,
+        "content": "This function takes a mel spectrogram and options as inputs, and uses a decoding task to perform speech recognition. If the mel spectrogram has 2 dimensions (single audio file), it is reshaped to have 3 dimensions (for batch processing). The options can be updated with additional keyword arguments. It then runs the decoding task with the model and options, returning the first result if a single audio file was input, or all results otherwise.",
+        "type": "comment"
+    },
+    "244": {
+        "file_id": 19,
+        "content": "/whisper/model.py",
+        "type": "filepath"
+    },
+    "245": {
+        "file_id": 19,
+        "content": "The code presents an audio-to-text conversion model using encoder-decoder architecture, with convolutional layers, attention blocks, and layer normalization for efficient processing.",
+        "type": "summary"
+    },
+    "246": {
+        "file_id": 19,
+        "content": "import base64\nimport gzip\nfrom dataclasses import dataclass\nfrom typing import Dict, Iterable, Optional\nimport numpy as np\nimport torch\nimport torch.nn.functional as F\nfrom torch import Tensor, nn\nfrom .decoding import decode as decode_function\nfrom .decoding import detect_language as detect_language_function\nfrom .transcribe import transcribe as transcribe_function\n@dataclass\nclass ModelDimensions:\n    n_mels: int\n    n_audio_ctx: int\n    n_audio_state: int\n    n_audio_head: int\n    n_audio_layer: int\n    n_vocab: int\n    n_text_ctx: int\n    n_text_state: int\n    n_text_head: int\n    n_text_layer: int\nclass LayerNorm(nn.LayerNorm):\n    def forward(self, x: Tensor) -> Tensor:\n        return super().forward(x.float()).type(x.dtype)\nclass Linear(nn.Linear):\n    def forward(self, x: Tensor) -> Tensor:\n        return F.linear(\n            x,\n            self.weight.to(x.dtype),\n            None if self.bias is None else self.bias.to(x.dtype),\n        )\nclass Conv1d(nn.Conv1d):\n    def _conv_forward(\n        self, x: Tensor, weight: Tensor, bias: Optional[Tensor]",
+        "type": "code",
+        "location": "/whisper/model.py:1-46"
+    },
+    "247": {
+        "file_id": 19,
+        "content": "The code imports necessary libraries and defines several classes and functions for a machine learning model. It includes LayerNorm, Linear, and Conv1d classes that are subclasses of torch.nn.Module with custom forward methods. ModelDimensions class is also defined to store the dimensions needed for the model's architecture. The code snippet seems to be part of a larger ML model implementation.",
+        "type": "comment"
+    },
+    "248": {
+        "file_id": 19,
+        "content": "    ) -> Tensor:\n        return super()._conv_forward(\n            x, weight.to(x.dtype), None if bias is None else bias.to(x.dtype)\n        )\ndef sinusoids(length, channels, max_timescale=10000):\n    \"\"\"Returns sinusoids for positional embedding\"\"\"\n    assert channels % 2 == 0\n    log_timescale_increment = np.log(max_timescale) / (channels // 2 - 1)\n    inv_timescales = torch.exp(-log_timescale_increment * torch.arange(channels // 2))\n    scaled_time = torch.arange(length)[:, np.newaxis] * inv_timescales[np.newaxis, :]\n    return torch.cat([torch.sin(scaled_time), torch.cos(scaled_time)], dim=1)\nclass MultiHeadAttention(nn.Module):\n    def __init__(self, n_state: int, n_head: int):\n        super().__init__()\n        self.n_head = n_head\n        self.query = Linear(n_state, n_state)\n        self.key = Linear(n_state, n_state, bias=False)\n        self.value = Linear(n_state, n_state)\n        self.out = Linear(n_state, n_state)\n    def forward(\n        self,\n        x: Tensor,\n        xa: Optional[Tensor] = None,",
+        "type": "code",
+        "location": "/whisper/model.py:47-74"
+    },
+    "249": {
+        "file_id": 19,
+        "content": "Method \"_conv_forward\" is a convolution forward pass.\nFunction \"sinusoids\" returns sinusoids for positional embedding.\nClass \"MultiHeadAttention\" is a multi-head attention layer implementation.",
+        "type": "comment"
+    },
+    "250": {
+        "file_id": 19,
+        "content": "        mask: Optional[Tensor] = None,\n        kv_cache: Optional[dict] = None,\n    ):\n        q = self.query(x)\n        if kv_cache is None or xa is None or self.key not in kv_cache:\n            # hooks, if installed (i.e. kv_cache is not None), will prepend the cached kv tensors;\n            # otherwise, perform key/value projections for self- or cross-attention as usual.\n            k = self.key(x if xa is None else xa)\n            v = self.value(x if xa is None else xa)\n        else:\n            # for cross-attention, calculate keys and values once and reuse in subsequent calls.\n            k = kv_cache[self.key]\n            v = kv_cache[self.value]\n        wv, qk = self.qkv_attention(q, k, v, mask)\n        return self.out(wv), qk\n    def qkv_attention(\n        self, q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None\n    ):\n        n_batch, n_ctx, n_state = q.shape\n        scale = (n_state // self.n_head) ** -0.25\n        q = q.view(*q.shape[:2], self.n_head, -1).permute(0, 2, 1, 3) * scale",
+        "type": "code",
+        "location": "/whisper/model.py:75-98"
+    },
+    "251": {
+        "file_id": 19,
+        "content": "This code defines a function that performs multi-head attention, either self or cross-attention. It takes input x and optionally pre-computed key and value tensors (kv_cache), and a mask for the attention mechanism. The function projects the input into query q and key k vectors, and then calculates the weighted sum of the value vector using the dot product between q and k, resulting in wv (weighted values) and qk (query keys).",
+        "type": "comment"
+    },
+    "252": {
+        "file_id": 19,
+        "content": "        k = k.view(*k.shape[:2], self.n_head, -1).permute(0, 2, 3, 1) * scale\n        v = v.view(*v.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)\n        qk = q @ k\n        if mask is not None:\n            qk = qk + mask[:n_ctx, :n_ctx]\n        qk = qk.float()\n        w = F.softmax(qk, dim=-1).to(q.dtype)\n        return (w @ v).permute(0, 2, 1, 3).flatten(start_dim=2), qk.detach()\nclass ResidualAttentionBlock(nn.Module):\n    def __init__(self, n_state: int, n_head: int, cross_attention: bool = False):\n        super().__init__()\n        self.attn = MultiHeadAttention(n_state, n_head)\n        self.attn_ln = LayerNorm(n_state)\n        self.cross_attn = (\n            MultiHeadAttention(n_state, n_head) if cross_attention else None\n        )\n        self.cross_attn_ln = LayerNorm(n_state) if cross_attention else None\n        n_mlp = n_state * 4\n        self.mlp = nn.Sequential(\n            Linear(n_state, n_mlp), nn.GELU(), Linear(n_mlp, n_state)\n        )\n        self.mlp_ln = LayerNorm(n_state)\n    def forward(",
+        "type": "code",
+        "location": "/whisper/model.py:99-129"
+    },
+    "253": {
+        "file_id": 19,
+        "content": "The code is defining a Residual Attention Block with MultiHeadAttention, layer normalization, and MLP. The block takes in an input of n_state size, splits it into n_head number of heads for attention, applies layer normalization before and after the attention mechanism, and after the MLP. It also has an optional cross-attention feature if specified during initialization.",
+        "type": "comment"
+    },
+    "254": {
+        "file_id": 19,
+        "content": "        self,\n        x: Tensor,\n        xa: Optional[Tensor] = None,\n        mask: Optional[Tensor] = None,\n        kv_cache: Optional[dict] = None,\n    ):\n        x = x + self.attn(self.attn_ln(x), mask=mask, kv_cache=kv_cache)[0]\n        if self.cross_attn:\n            x = x + self.cross_attn(self.cross_attn_ln(x), xa, kv_cache=kv_cache)[0]\n        x = x + self.mlp(self.mlp_ln(x))\n        return x\nclass AudioEncoder(nn.Module):\n    def __init__(\n        self, n_mels: int, n_ctx: int, n_state: int, n_head: int, n_layer: int\n    ):\n        super().__init__()\n        self.conv1 = Conv1d(n_mels, n_state, kernel_size=3, padding=1)\n        self.conv2 = Conv1d(n_state, n_state, kernel_size=3, stride=2, padding=1)\n        self.register_buffer(\"positional_embedding\", sinusoids(n_ctx, n_state))\n        self.blocks: Iterable[ResidualAttentionBlock] = nn.ModuleList(\n            [ResidualAttentionBlock(n_state, n_head) for _ in range(n_layer)]\n        )\n        self.ln_post = LayerNorm(n_state)\n    def forward(self, x: Tensor):",
+        "type": "code",
+        "location": "/whisper/model.py:130-157"
+    },
+    "255": {
+        "file_id": 19,
+        "content": "In the given code, a function is defined that applies multiple layers (attention blocks and MLP) to the input tensor 'x' and returns the output. The AudioEncoder class initializes the necessary modules and buffers for processing an audio signal.",
+        "type": "comment"
+    },
+    "256": {
+        "file_id": 19,
+        "content": "        \"\"\"\n        x : torch.Tensor, shape = (batch_size, n_mels, n_ctx)\n            the mel spectrogram of the audio\n        \"\"\"\n        x = F.gelu(self.conv1(x))\n        x = F.gelu(self.conv2(x))\n        x = x.permute(0, 2, 1)\n        assert x.shape[1:] == self.positional_embedding.shape, \"incorrect audio shape\"\n        x = (x + self.positional_embedding).to(x.dtype)\n        for block in self.blocks:\n            x = block(x)\n        x = self.ln_post(x)\n        return x\nclass TextDecoder(nn.Module):\n    def __init__(\n        self, n_vocab: int, n_ctx: int, n_state: int, n_head: int, n_layer: int\n    ):\n        super().__init__()\n        self.token_embedding = nn.Embedding(n_vocab, n_state)\n        self.positional_embedding = nn.Parameter(torch.empty(n_ctx, n_state))\n        self.blocks: Iterable[ResidualAttentionBlock] = nn.ModuleList(\n            [\n                ResidualAttentionBlock(n_state, n_head, cross_attention=True)\n                for _ in range(n_layer)\n            ]\n        )\n        self.ln = LayerNorm(n_state)",
+        "type": "code",
+        "location": "/whisper/model.py:158-191"
+    },
+    "257": {
+        "file_id": 19,
+        "content": "The code defines a model for audio-to-text conversion. The `model.py` file contains a class called `WhisperModel`, which is an encoder-decoder architecture. It takes the mel spectrogram of the audio as input and outputs the corresponding text. The model consists of convolutional layers, positional embedding, residual attention blocks, and layer normalization. The `TextDecoder` class represents the decoder part of the model, which includes an embedding layer, positional embedding, residual attention blocks, and a layer normalization layer.",
+        "type": "comment"
+    },
+    "258": {
+        "file_id": 19,
+        "content": "        mask = torch.empty(n_ctx, n_ctx).fill_(-np.inf).triu_(1)\n        self.register_buffer(\"mask\", mask, persistent=False)\n    def forward(self, x: Tensor, xa: Tensor, kv_cache: Optional[dict] = None):\n        \"\"\"\n        x : torch.LongTensor, shape = (batch_size, <= n_ctx)\n            the text tokens\n        xa : torch.Tensor, shape = (batch_size, n_audio_ctx, n_audio_state)\n            the encoded audio features to be attended on\n        \"\"\"\n        offset = next(iter(kv_cache.values())).shape[1] if kv_cache else 0\n        x = (\n            self.token_embedding(x)\n            + self.positional_embedding[offset : offset + x.shape[-1]]\n        )\n        x = x.to(xa.dtype)\n        for block in self.blocks:\n            x = block(x, xa, mask=self.mask, kv_cache=kv_cache)\n        x = self.ln(x)\n        logits = (\n            x @ torch.transpose(self.token_embedding.weight.to(x.dtype), 0, 1)\n        ).float()\n        return logits\nclass Whisper(nn.Module):\n    def __init__(self, dims: ModelDimensions):\n        super().__init__()",
+        "type": "code",
+        "location": "/whisper/model.py:193-223"
+    },
+    "259": {
+        "file_id": 19,
+        "content": "This code defines a Whisper model with an attention mechanism for processing both text and audio features. The `forward` method takes in text tokens, encoded audio features, and optionally a cache dictionary to perform forward pass. It applies token and positional embeddings, converts the input tensors to the same data type, iterates through the blocks of self-attention layers, applies layer normalization, and finally computes logits for predictions. The mask is used to ignore the upper triangular part of the attention matrix.",
+        "type": "comment"
+    },
+    "260": {
+        "file_id": 19,
+        "content": "        self.dims = dims\n        self.encoder = AudioEncoder(\n            self.dims.n_mels,\n            self.dims.n_audio_ctx,\n            self.dims.n_audio_state,\n            self.dims.n_audio_head,\n            self.dims.n_audio_layer,\n        )\n        self.decoder = TextDecoder(\n            self.dims.n_vocab,\n            self.dims.n_text_ctx,\n            self.dims.n_text_state,\n            self.dims.n_text_head,\n            self.dims.n_text_layer,\n        )\n        # use the last half among the decoder layers for time alignment by default;\n        # to use a specific set of heads, see `set_alignment_heads()` below.\n        all_heads = torch.zeros(\n            self.dims.n_text_layer, self.dims.n_text_head, dtype=torch.bool\n        )\n        all_heads[self.dims.n_text_layer // 2 :] = True\n        self.register_buffer(\"alignment_heads\", all_heads.to_sparse(), persistent=False)\n    def set_alignment_heads(self, dump: bytes):\n        array = np.frombuffer(\n            gzip.decompress(base64.b85decode(dump)), dtype=bool",
+        "type": "code",
+        "location": "/whisper/model.py:224-249"
+    },
+    "261": {
+        "file_id": 19,
+        "content": "This code initializes a Whisper model with specified dimensions, sets up encoder and decoder layers, and registers a buffer for time alignment heads.",
+        "type": "comment"
+    },
+    "262": {
+        "file_id": 19,
+        "content": "        ).copy()\n        mask = torch.from_numpy(array).reshape(\n            self.dims.n_text_layer, self.dims.n_text_head\n        )\n        self.register_buffer(\"alignment_heads\", mask.to_sparse(), persistent=False)\n    def embed_audio(self, mel: torch.Tensor):\n        return self.encoder(mel)\n    def logits(self, tokens: torch.Tensor, audio_features: torch.Tensor):\n        return self.decoder(tokens, audio_features)\n    def forward(\n        self, mel: torch.Tensor, tokens: torch.Tensor\n    ) -> Dict[str, torch.Tensor]:\n        return self.decoder(tokens, self.encoder(mel))\n    @property\n    def device(self):\n        return next(self.parameters()).device\n    @property\n    def is_multilingual(self):\n        return self.dims.n_vocab >= 51865\n    @property\n    def num_languages(self):\n        return self.dims.n_vocab - 51765 - int(self.is_multilingual)\n    def install_kv_cache_hooks(self, cache: Optional[dict] = None):\n        \"\"\"\n        The `MultiHeadAttention` module optionally accepts `kv_cache` which stores the key and value",
+        "type": "code",
+        "location": "/whisper/model.py:250-281"
+    },
+    "263": {
+        "file_id": 19,
+        "content": "This code defines a model for audio-text processing, likely for a task like speech recognition or translation. It includes an encoder and decoder network, as well as a MultiHeadAttention module with a mask for alignment between text and audio. The `embed_audio` method processes audio features using the encoder, while the `logits` method combines tokens and audio features for prediction. The `forward` function returns predictions using either tokens or audio features. The class also includes properties for device and language-related information, as well as a method to install cache hooks in the MultiHeadAttention module if needed.",
+        "type": "comment"
+    },
+    "264": {
+        "file_id": 19,
+        "content": "        tensors calculated for the previous positions. This method returns a dictionary that stores\n        all caches, and the necessary hooks for the key and value projection modules that save the\n        intermediate tensors to be reused during later calculations.\n        Returns\n        -------\n        cache : Dict[nn.Module, torch.Tensor]\n            A dictionary object mapping the key/value projection modules to its cache\n        hooks : List[RemovableHandle]\n            List of PyTorch RemovableHandle objects to stop the hooks to be called\n        \"\"\"\n        cache = {**cache} if cache is not None else {}\n        hooks = []\n        def save_to_cache(module, _, output):\n            if module not in cache or output.shape[1] > self.dims.n_text_ctx:\n                # save as-is, for the first token or cross attention\n                cache[module] = output\n            else:\n                cache[module] = torch.cat([cache[module], output], dim=1).detach()\n            return cache[module]\n        def install_hooks(layer: nn.Module):",
+        "type": "code",
+        "location": "/whisper/model.py:282-304"
+    },
+    "265": {
+        "file_id": 19,
+        "content": "This code defines a method that calculates tensors for the previous positions and returns a dictionary storing caches of key/value projection modules. It also provides hooks to save intermediate tensors for later calculations.",
+        "type": "comment"
+    },
+    "266": {
+        "file_id": 19,
+        "content": "            if isinstance(layer, MultiHeadAttention):\n                hooks.append(layer.key.register_forward_hook(save_to_cache))\n                hooks.append(layer.value.register_forward_hook(save_to_cache))\n        self.decoder.apply(install_hooks)\n        return cache, hooks\n    detect_language = detect_language_function\n    transcribe = transcribe_function\n    decode = decode_function",
+        "type": "code",
+        "location": "/whisper/model.py:305-314"
+    },
+    "267": {
+        "file_id": 19,
+        "content": "Checks if the layer is a MultiHeadAttention, then registers forward hooks on key and value of that layer. Applies hooks to the decoder, returns cache and hooks.",
+        "type": "comment"
+    },
+    "268": {
+        "file_id": 20,
+        "content": "/whisper/timing.py",
+        "type": "filepath"
+    },
+    "269": {
+        "file_id": 20,
+        "content": "The code applies median filtering and dynamic time warping for comparing sequences, calculates text-to-speech alignment using probabilities, removes hooks, normalizes weights, and merges words with punctuation in an alignment. It also adjusts word timings, considers sentence end marks, and stores probabilities.",
+        "type": "summary"
+    },
+    "270": {
+        "file_id": 20,
+        "content": "import itertools\nimport subprocess\nimport warnings\nfrom dataclasses import dataclass\nfrom typing import TYPE_CHECKING, List\nimport numba\nimport numpy as np\nimport torch\nimport torch.nn.functional as F\nfrom .audio import HOP_LENGTH, SAMPLE_RATE, TOKENS_PER_SECOND\nfrom .tokenizer import Tokenizer\nif TYPE_CHECKING:\n    from .model import Whisper\ndef median_filter(x: torch.Tensor, filter_width: int):\n    \"\"\"Apply a median filter of width `filter_width` along the last dimension of `x`\"\"\"\n    pad_width = filter_width // 2\n    if x.shape[-1] <= pad_width:\n        # F.pad requires the padding width to be smaller than the input dimension\n        return x\n    if (ndim := x.ndim) <= 2:\n        # `F.pad` does not support 1D or 2D inputs for reflect padding but supports 3D and 4D\n        x = x[None, None, :]\n    assert (\n        filter_width > 0 and filter_width % 2 == 1\n    ), \"`filter_width` should be an odd number\"\n    result = None\n    x = F.pad(x, (filter_width // 2, filter_width // 2, 0, 0), mode=\"reflect\")\n    if x.is_cuda:",
+        "type": "code",
+        "location": "/whisper/timing.py:1-36"
+    },
+    "271": {
+        "file_id": 20,
+        "content": "This function applies a median filter to the input tensor `x` along the last dimension, specified by `filter_width`. It also handles padding and supports 3D or 4D inputs.",
+        "type": "comment"
+    },
+    "272": {
+        "file_id": 20,
+        "content": "        try:\n            from .triton_ops import median_filter_cuda\n            result = median_filter_cuda(x, filter_width)\n        except (RuntimeError, subprocess.CalledProcessError):\n            warnings.warn(\n                \"Failed to launch Triton kernels, likely due to missing CUDA toolkit; \"\n                \"falling back to a slower median kernel implementation...\"\n            )\n    if result is None:\n        # sort() is faster than torch.median (https://github.com/pytorch/pytorch/issues/51450)\n        result = x.unfold(-1, filter_width, 1).sort()[0][..., filter_width // 2]\n    if ndim <= 2:\n        result = result[0, 0]\n    return result\n@numba.jit(nopython=True)\ndef backtrace(trace: np.ndarray):\n    i = trace.shape[0] - 1\n    j = trace.shape[1] - 1\n    trace[0, :] = 2\n    trace[:, 0] = 1\n    result = []\n    while i > 0 or j > 0:\n        result.append((i - 1, j - 1))\n        if trace[i, j] == 0:\n            i -= 1\n            j -= 1\n        elif trace[i, j] == 1:\n            i -= 1\n        elif trace[i, j] == 2:",
+        "type": "code",
+        "location": "/whisper/timing.py:37-73"
+    },
+    "273": {
+        "file_id": 20,
+        "content": "The code attempts to apply a median filter with CUDA if available, and falls back to a slower implementation otherwise. It also includes a function for backtracking through the filtered data.",
+        "type": "comment"
+    },
+    "274": {
+        "file_id": 20,
+        "content": "            j -= 1\n        else:\n            raise ValueError(\"Unexpected trace[i, j]\")\n    result = np.array(result)\n    return result[::-1, :].T\n@numba.jit(nopython=True, parallel=True)\ndef dtw_cpu(x: np.ndarray):\n    N, M = x.shape\n    cost = np.ones((N + 1, M + 1), dtype=np.float32) * np.inf\n    trace = -np.ones((N + 1, M + 1), dtype=np.float32)\n    cost[0, 0] = 0\n    for j in range(1, M + 1):\n        for i in range(1, N + 1):\n            c0 = cost[i - 1, j - 1]\n            c1 = cost[i - 1, j]\n            c2 = cost[i, j - 1]\n            if c0 < c1 and c0 < c2:\n                c, t = c0, 0\n            elif c1 < c0 and c1 < c2:\n                c, t = c1, 1\n            else:\n                c, t = c2, 2\n            cost[i, j] = x[i - 1, j - 1] + c\n            trace[i, j] = t\n    return backtrace(trace)\ndef dtw_cuda(x, BLOCK_SIZE=1024):\n    from .triton_ops import dtw_kernel\n    M, N = x.shape\n    assert M < BLOCK_SIZE, f\"M should be smaller than {BLOCK_SIZE=}\"\n    x_skew = (\n        F.pad(x, (0, M + 1), value=np.inf).flatten()[: M * (N + M)].reshape(M, N + M)",
+        "type": "code",
+        "location": "/whisper/timing.py:74-115"
+    },
+    "275": {
+        "file_id": 20,
+        "content": "This code contains two functions, `dtw_cpu` and `dtw_cuda`, which implement dynamic time warping (DTW) algorithms using different backends. The `dtw_cpu` function implements the DTW algorithm on the CPU using numpy, while the `dtw_cuda` function uses CUDA for GPU acceleration. The code defines variables, initializes arrays, and performs calculations based on the chosen backend.",
+        "type": "comment"
+    },
+    "276": {
+        "file_id": 20,
+        "content": "    )\n    x_skew = x_skew.T.contiguous()\n    cost = torch.ones(N + M + 2, M + 2) * np.inf\n    cost[0, 0] = 0\n    cost = cost.cuda()\n    trace = torch.zeros_like(cost, dtype=torch.int32)\n    dtw_kernel[(1,)](\n        cost,\n        trace,\n        x_skew,\n        x_skew.stride(0),\n        cost.stride(0),\n        trace.stride(0),\n        N,\n        M,\n        BLOCK_SIZE=BLOCK_SIZE,\n    )\n    trace = trace.T.flatten()[: (M + 1) * (M + N + 3)].reshape(M + 1, M + N + 3)[\n        :, : N + 1\n    ]\n    return backtrace(trace.cpu().numpy())\ndef dtw(x: torch.Tensor) -> np.ndarray:\n    if x.is_cuda:\n        try:\n            return dtw_cuda(x)\n        except (RuntimeError, subprocess.CalledProcessError):\n            warnings.warn(\n                \"Failed to launch Triton kernels, likely due to missing CUDA toolkit; \"\n                \"falling back to a slower DTW implementation...\"\n            )\n    return dtw_cpu(x.double().cpu().numpy())\n@dataclass\nclass WordTiming:\n    word: str\n    tokens: List[int]\n    start: float\n    end: float\n    probability: float",
+        "type": "code",
+        "location": "/whisper/timing.py:116-160"
+    },
+    "277": {
+        "file_id": 20,
+        "content": "This code implements the dynamic time warping (DTW) algorithm for comparing sequences of data points. The code includes CUDA-accelerated and CPU versions of DTW functions, as well as a class for storing word timing information.",
+        "type": "comment"
+    },
+    "278": {
+        "file_id": 20,
+        "content": "def find_alignment(\n    model: \"Whisper\",\n    tokenizer: Tokenizer,\n    text_tokens: List[int],\n    mel: torch.Tensor,\n    num_frames: int,\n    *,\n    medfilt_width: int = 7,\n    qk_scale: float = 1.0,\n) -> List[WordTiming]:\n    if len(text_tokens) == 0:\n        return []\n    tokens = torch.tensor(\n        [\n            *tokenizer.sot_sequence,\n            tokenizer.no_timestamps,\n            *text_tokens,\n            tokenizer.eot,\n        ]\n    ).to(model.device)\n    # install hooks on the cross attention layers to retrieve the attention weights\n    QKs = [None] * model.dims.n_text_layer\n    hooks = [\n        block.cross_attn.register_forward_hook(\n            lambda _, ins, outs, index=i: QKs.__setitem__(index, outs[-1][0])\n        )\n        for i, block in enumerate(model.decoder.blocks)\n    ]\n    with torch.no_grad():\n        logits = model(mel.unsqueeze(0), tokens.unsqueeze(0))[0]\n        sampled_logits = logits[len(tokenizer.sot_sequence) :, : tokenizer.eot]\n        token_probs = sampled_logits.softmax(dim=-1)",
+        "type": "code",
+        "location": "/whisper/timing.py:163-197"
+    },
+    "279": {
+        "file_id": 20,
+        "content": "This function finds the alignment between model output and input text tokens. It first creates a tensor of tokens including start-of-text (SOT), no timestamp, text tokens, and end-of-text (EOT). Then, it installs hooks on cross attention layers to retrieve attention weights. Finally, it computes logits and token probabilities using the model and tokenizer.",
+        "type": "comment"
+    },
+    "280": {
+        "file_id": 20,
+        "content": "        text_token_probs = token_probs[np.arange(len(text_tokens)), text_tokens]\n        text_token_probs = text_token_probs.tolist()\n    for hook in hooks:\n        hook.remove()\n    # heads * tokens * frames\n    weights = torch.stack([QKs[_l][_h] for _l, _h in model.alignment_heads.indices().T])\n    weights = weights[:, :, : num_frames // 2]\n    weights = (weights * qk_scale).softmax(dim=-1)\n    std, mean = torch.std_mean(weights, dim=-2, keepdim=True, unbiased=False)\n    weights = (weights - mean) / std\n    weights = median_filter(weights, medfilt_width)\n    matrix = weights.mean(axis=0)\n    matrix = matrix[len(tokenizer.sot_sequence) : -1]\n    text_indices, time_indices = dtw(-matrix)\n    words, word_tokens = tokenizer.split_to_word_tokens(text_tokens + [tokenizer.eot])\n    if len(word_tokens) <= 1:\n        # return on eot only\n        # >>> np.pad([], (1, 0))\n        # array([0.])\n        # This results in crashes when we lookup jump_times with float, like\n        # IndexError: arrays used as indices must be of integer (or boolean) type",
+        "type": "code",
+        "location": "/whisper/timing.py:198-222"
+    },
+    "281": {
+        "file_id": 20,
+        "content": "This code calculates text-to-speech alignment using Dynamic Time Warping (DTW) algorithm. It first computes text and time token probabilities, removes hooks if any, stacks the query and key matrices from the model's alignment heads, selects relevant frames, normalizes the weights, applies median filtering, calculates mean matrix, excludes start-of-text (SOT) and end-of-text (EOT) tokens, computes DTW using text and time indices, splits text into word tokens, and finally returns if there is only one word token.",
+        "type": "comment"
+    },
+    "282": {
+        "file_id": 20,
+        "content": "        return []\n    word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens[:-1]]), (1, 0))\n    jumps = np.pad(np.diff(text_indices), (1, 0), constant_values=1).astype(bool)\n    jump_times = time_indices[jumps] / TOKENS_PER_SECOND\n    start_times = jump_times[word_boundaries[:-1]]\n    end_times = jump_times[word_boundaries[1:]]\n    word_probabilities = [\n        np.mean(text_token_probs[i:j])\n        for i, j in zip(word_boundaries[:-1], word_boundaries[1:])\n    ]\n    return [\n        WordTiming(word, tokens, start, end, probability)\n        for word, tokens, start, end, probability in zip(\n            words, word_tokens, start_times, end_times, word_probabilities\n        )\n    ]\ndef merge_punctuations(alignment: List[WordTiming], prepended: str, appended: str):\n    # merge prepended punctuations\n    i = len(alignment) - 2\n    j = len(alignment) - 1\n    while i >= 0:\n        previous = alignment[i]\n        following = alignment[j]\n        if previous.word.startswith(\" \") and previous.word.strip() in prepended:",
+        "type": "code",
+        "location": "/whisper/timing.py:223-250"
+    },
+    "283": {
+        "file_id": 20,
+        "content": "Function to calculate timing and probabilities for each word in the text\n\nThis function calculates start and end times for each word, as well as their probability. It returns a list of WordTiming objects containing word information with their respective timings and probabilities.",
+        "type": "comment"
+    },
+    "284": {
+        "file_id": 20,
+        "content": "            # prepend it to the following word\n            following.word = previous.word + following.word\n            following.tokens = previous.tokens + following.tokens\n            previous.word = \"\"\n            previous.tokens = []\n        else:\n            j = i\n        i -= 1\n    # merge appended punctuations\n    i = 0\n    j = 1\n    while j < len(alignment):\n        previous = alignment[i]\n        following = alignment[j]\n        if not previous.word.endswith(\" \") and following.word in appended:\n            # append it to the previous word\n            previous.word = previous.word + following.word\n            previous.tokens = previous.tokens + following.tokens\n            following.word = \"\"\n            following.tokens = []\n        else:\n            i = j\n        j += 1\ndef add_word_timestamps(\n    *,\n    segments: List[dict],\n    model: \"Whisper\",\n    tokenizer: Tokenizer,\n    mel: torch.Tensor,\n    num_frames: int,\n    prepend_punctuations: str = \"\\\"'“¿([{-\",\n    append_punctuations: str = \"\\\"'.。,，!！?？:：”)]}、\",",
+        "type": "code",
+        "location": "/whisper/timing.py:251-285"
+    },
+    "285": {
+        "file_id": 20,
+        "content": "This code is responsible for merging words and timestamps in a given alignment. It first prepends the next word with any previously appended punctuations, then iterates over the alignment to merge words that follow non-space ending words with appended punctuations by concatenating them. This function takes segments, model, tokenizer, mel spectrogram, number of frames, and optional parameters for prepend and append punctuation.",
+        "type": "comment"
+    },
+    "286": {
+        "file_id": 20,
+        "content": "    last_speech_timestamp: float,\n    **kwargs,\n):\n    if len(segments) == 0:\n        return\n    text_tokens_per_segment = [\n        [token for token in segment[\"tokens\"] if token < tokenizer.eot]\n        for segment in segments\n    ]\n    text_tokens = list(itertools.chain.from_iterable(text_tokens_per_segment))\n    alignment = find_alignment(model, tokenizer, text_tokens, mel, num_frames, **kwargs)\n    word_durations = np.array([t.end - t.start for t in alignment])\n    word_durations = word_durations[word_durations.nonzero()]\n    median_duration = np.median(word_durations) if len(word_durations) > 0 else 0.0\n    median_duration = min(0.7, float(median_duration))\n    max_duration = median_duration * 2\n    # hack: truncate long words at sentence boundaries.\n    # a better segmentation algorithm based on VAD should be able to replace this.\n    if len(word_durations) > 0:\n        sentence_end_marks = \".。!！?？\"\n        # ensure words at sentence boundaries are not longer than twice the median word duration.\n        for i in range(1, len(alignment)):",
+        "type": "code",
+        "location": "/whisper/timing.py:286-310"
+    },
+    "287": {
+        "file_id": 20,
+        "content": "Calculates median word duration and truncates long words at sentence boundaries for better speech synthesis.",
+        "type": "comment"
+    },
+    "288": {
+        "file_id": 20,
+        "content": "            if alignment[i].end - alignment[i].start > max_duration:\n                if alignment[i].word in sentence_end_marks:\n                    alignment[i].end = alignment[i].start + max_duration\n                elif alignment[i - 1].word in sentence_end_marks:\n                    alignment[i].start = alignment[i].end - max_duration\n    merge_punctuations(alignment, prepend_punctuations, append_punctuations)\n    time_offset = segments[0][\"seek\"] * HOP_LENGTH / SAMPLE_RATE\n    word_index = 0\n    for segment, text_tokens in zip(segments, text_tokens_per_segment):\n        saved_tokens = 0\n        words = []\n        while word_index < len(alignment) and saved_tokens < len(text_tokens):\n            timing = alignment[word_index]\n            if timing.word:\n                words.append(\n                    dict(\n                        word=timing.word,\n                        start=round(time_offset + timing.start, 2),\n                        end=round(time_offset + timing.end, 2),\n                        probability=timing.probability,",
+        "type": "code",
+        "location": "/whisper/timing.py:311-335"
+    },
+    "289": {
+        "file_id": 20,
+        "content": "This code is adjusting the timing of words in an alignment list based on a maximum duration and sentence end marks. It also calculates time offsets for segments and extracts words from the alignment, storing their start and end times along with probabilities.",
+        "type": "comment"
+    },
+    "290": {
+        "file_id": 20,
+        "content": "                    )\n                )\n            saved_tokens += len(timing.tokens)\n            word_index += 1\n        # hack: truncate long words at segment boundaries.\n        # a better segmentation algorithm based on VAD should be able to replace this.\n        if len(words) > 0:\n            # ensure the first and second word after a pause is not longer than\n            # twice the median word duration.\n            if words[0][\"end\"] - last_speech_timestamp > median_duration * 4 and (\n                words[0][\"end\"] - words[0][\"start\"] > max_duration\n                or (\n                    len(words) > 1\n                    and words[1][\"end\"] - words[0][\"start\"] > max_duration * 2\n                )\n            ):\n                if (\n                    len(words) > 1\n                    and words[1][\"end\"] - words[1][\"start\"] > max_duration\n                ):\n                    boundary = max(words[1][\"end\"] / 2, words[1][\"end\"] - max_duration)\n                    words[0][\"end\"] = words[1][\"start\"] = boundary",
+        "type": "code",
+        "location": "/whisper/timing.py:336-359"
+    },
+    "291": {
+        "file_id": 20,
+        "content": "This code is performing a segmentation algorithm for speech by truncating long words at segment boundaries. It checks the duration of words and ensures that no word exceeds twice the median word duration or that the second word after a pause does not exceed the maximum duration. If necessary, it adjusts the word endings to fit these criteria.",
+        "type": "comment"
+    },
+    "292": {
+        "file_id": 20,
+        "content": "                words[0][\"start\"] = max(0, words[0][\"end\"] - max_duration)\n            # prefer the segment-level start timestamp if the first word is too long.\n            if (\n                segment[\"start\"] < words[0][\"end\"]\n                and segment[\"start\"] - 0.5 > words[0][\"start\"]\n            ):\n                words[0][\"start\"] = max(\n                    0, min(words[0][\"end\"] - median_duration, segment[\"start\"])\n                )\n            else:\n                segment[\"start\"] = words[0][\"start\"]\n            # prefer the segment-level end timestamp if the last word is too long.\n            if (\n                segment[\"end\"] > words[-1][\"start\"]\n                and segment[\"end\"] + 0.5 < words[-1][\"end\"]\n            ):\n                words[-1][\"end\"] = max(\n                    words[-1][\"start\"] + median_duration, segment[\"end\"]\n                )\n            else:\n                segment[\"end\"] = words[-1][\"end\"]\n            last_speech_timestamp = segment[\"end\"]\n        segment[\"words\"] = words",
+        "type": "code",
+        "location": "/whisper/timing.py:360-386"
+    },
+    "293": {
+        "file_id": 20,
+        "content": "This code adjusts word start and end timestamps to fit within the segment timestamps. It prefers segment-level timestamps if a word extends beyond the segment, ensuring the segment remains complete.",
+        "type": "comment"
+    },
+    "294": {
+        "file_id": 21,
+        "content": "/whisper/tokenizer.py",
+        "type": "filepath"
+    },
+    "295": {
+        "file_id": 21,
+        "content": "The Tokenizer class in the code uses tiktoken library for efficient text tokenization, supporting various languages and special tokens for different tasks such as translation and transcribe, while also handling speaker tags, non-speech annotations, EOT, SOT, and noise suppression for improved performance.",
+        "type": "summary"
+    },
+    "296": {
+        "file_id": 21,
+        "content": "import base64\nimport os\nimport string\nfrom dataclasses import dataclass, field\nfrom functools import cached_property, lru_cache\nfrom typing import Dict, List, Optional, Tuple\nimport tiktoken\nLANGUAGES = {\n    \"en\": \"english\",\n    \"zh\": \"chinese\",\n    \"de\": \"german\",\n    \"es\": \"spanish\",\n    \"ru\": \"russian\",\n    \"ko\": \"korean\",\n    \"fr\": \"french\",\n    \"ja\": \"japanese\",\n    \"pt\": \"portuguese\",\n    \"tr\": \"turkish\",\n    \"pl\": \"polish\",\n    \"ca\": \"catalan\",\n    \"nl\": \"dutch\",\n    \"ar\": \"arabic\",\n    \"sv\": \"swedish\",\n    \"it\": \"italian\",\n    \"id\": \"indonesian\",\n    \"hi\": \"hindi\",\n    \"fi\": \"finnish\",\n    \"vi\": \"vietnamese\",\n    \"he\": \"hebrew\",\n    \"uk\": \"ukrainian\",\n    \"el\": \"greek\",\n    \"ms\": \"malay\",\n    \"cs\": \"czech\",\n    \"ro\": \"romanian\",\n    \"da\": \"danish\",\n    \"hu\": \"hungarian\",\n    \"ta\": \"tamil\",\n    \"no\": \"norwegian\",\n    \"th\": \"thai\",\n    \"ur\": \"urdu\",\n    \"hr\": \"croatian\",\n    \"bg\": \"bulgarian\",\n    \"lt\": \"lithuanian\",\n    \"la\": \"latin\",\n    \"mi\": \"maori\",\n    \"ml\": \"malayalam\",\n    \"cy\": \"welsh\",\n    \"sk\": \"slovak\",\n    \"te\": \"telugu\",",
+        "type": "code",
+        "location": "/whisper/tokenizer.py:1-51"
+    },
+    "297": {
+        "file_id": 21,
+        "content": "This code is defining a dictionary of language codes and their corresponding language names.",
+        "type": "comment"
+    },
+    "298": {
+        "file_id": 21,
+        "content": "    \"fa\": \"persian\",\n    \"lv\": \"latvian\",\n    \"bn\": \"bengali\",\n    \"sr\": \"serbian\",\n    \"az\": \"azerbaijani\",\n    \"sl\": \"slovenian\",\n    \"kn\": \"kannada\",\n    \"et\": \"estonian\",\n    \"mk\": \"macedonian\",\n    \"br\": \"breton\",\n    \"eu\": \"basque\",\n    \"is\": \"icelandic\",\n    \"hy\": \"armenian\",\n    \"ne\": \"nepali\",\n    \"mn\": \"mongolian\",\n    \"bs\": \"bosnian\",\n    \"kk\": \"kazakh\",\n    \"sq\": \"albanian\",\n    \"sw\": \"swahili\",\n    \"gl\": \"galician\",\n    \"mr\": \"marathi\",\n    \"pa\": \"punjabi\",\n    \"si\": \"sinhala\",\n    \"km\": \"khmer\",\n    \"sn\": \"shona\",\n    \"yo\": \"yoruba\",\n    \"so\": \"somali\",\n    \"af\": \"afrikaans\",\n    \"oc\": \"occitan\",\n    \"ka\": \"georgian\",\n    \"be\": \"belarusian\",\n    \"tg\": \"tajik\",\n    \"sd\": \"sindhi\",\n    \"gu\": \"gujarati\",\n    \"am\": \"amharic\",\n    \"yi\": \"yiddish\",\n    \"lo\": \"lao\",\n    \"uz\": \"uzbek\",\n    \"fo\": \"faroese\",\n    \"ht\": \"haitian creole\",\n    \"ps\": \"pashto\",\n    \"tk\": \"turkmen\",\n    \"nn\": \"nynorsk\",\n    \"mt\": \"maltese\",\n    \"sa\": \"sanskrit\",\n    \"lb\": \"luxembourgish\",\n    \"my\": \"myanmar\",\n    \"bo\": \"tibetan\",\n    \"tl\": \"tagalog\",\n    \"mg\": \"malagasy\",",
+        "type": "code",
+        "location": "/whisper/tokenizer.py:52-101"
+    },
+    "299": {
+        "file_id": 21,
+        "content": "This code contains a dictionary where keys are language codes and values are the corresponding language names. The languages represented here are diverse, covering various regions and scripts.",
+        "type": "comment"
+    }
+}

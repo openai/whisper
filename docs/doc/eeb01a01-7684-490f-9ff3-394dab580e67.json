@@ -1,0 +1,15 @@
+{
+    "summary": "The process involves importing modules, checking system platform and architecture, defining setup parameters for a Python package with its name, version, description, requirements, and including package installation requirements from \"requirements.txt\" to set up the package for command-line execution and additional development dependencies.",
+    "details": [
+        {
+            "comment": "Code imports necessary modules, checks the system platform and processor architecture to append specific requirement, defines setup parameters for a Python package (including its name, version, description, requirements, etc.), and includes package installation requirements from \"requirements.txt\".",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/setup.py\":0-34",
+            "content": "import platform\nimport sys\nfrom pathlib import Path\nimport pkg_resources\nfrom setuptools import find_packages, setup\ndef read_version(fname=\"whisper/version.py\"):\n    exec(compile(open(fname, encoding=\"utf-8\").read(), fname, \"exec\"))\n    return locals()[\"__version__\"]\nrequirements = []\nif sys.platform.startswith(\"linux\") and platform.machine() == \"x86_64\":\n    requirements.append(\"triton>=2.0.0,<3\")\nsetup(\n    name=\"openai-whisper\",\n    py_modules=[\"whisper\"],\n    version=read_version(),\n    description=\"Robust Speech Recognition via Large-Scale Weak Supervision\",\n    long_description=open(\"README.md\", encoding=\"utf-8\").read(),\n    long_description_content_type=\"text/markdown\",\n    readme=\"README.md\",\n    python_requires=\">=3.8\",\n    author=\"OpenAI\",\n    url=\"https://github.com/openai/whisper\",\n    license=\"MIT\",\n    packages=find_packages(exclude=[\"tests*\"]),\n    install_requires=[\n        str(r)\n        for r in pkg_resources.parse_requirements(\n            Path(__file__).with_name(\"requirements.txt\").open()\n        )"
+        },
+        {
+            "comment": "Setting up a Python package for command-line execution, including extra dependencies for development.",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/setup.py\":35-41",
+            "content": "    ],\n    entry_points={\n        \"console_scripts\": [\"whisper=whisper.transcribe:cli\"],\n    },\n    include_package_data=True,\n    extras_require={\"dev\": [\"pytest\", \"scipy\", \"black\", \"flake8\", \"isort\"]},\n)"
+        }
+    ]
+}

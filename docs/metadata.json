@@ -1,0 +1,155 @@
+{
+    "url": {
+        "full": "https://github.com/james4ever0/whisper",
+        "partial": "james4ever0/whisper"
+    },
+    "file_mapping": {
+        "0": {
+            "filepath": "/CHANGELOG.md",
+            "entry_id": 0,
+            "language_id": "plain-text"
+        },
+        "1": {
+            "filepath": "/README.md",
+            "entry_id": 14,
+            "language_id": "markdown"
+        },
+        "2": {
+            "filepath": "/model-card.md",
+            "entry_id": 30,
+            "language_id": "markdown"
+        },
+        "3": {
+            "filepath": "/pyproject.toml",
+            "entry_id": 46,
+            "language_id": "toml"
+        },
+        "4": {
+            "filepath": "/requirements.txt",
+            "entry_id": 50,
+            "language_id": "plain-text"
+        },
+        "5": {
+            "filepath": "/setup.py",
+            "entry_id": 54,
+            "language_id": "python"
+        },
+        "6": {
+            "filepath": "/data/README.md",
+            "entry_id": 60,
+            "language_id": "markdown"
+        },
+        "7": {
+            "filepath": "/notebooks/LibriSpeech.py",
+            "entry_id": 74,
+            "language_id": "python"
+        },
+        "8": {
+            "filepath": "/notebooks/Multilingual_ASR.py",
+            "entry_id": 82,
+            "language_id": "python"
+        },
+        "9": {
+            "filepath": "/tests/conftest.py",
+            "entry_id": 110,
+            "language_id": "python"
+        },
+        "10": {
+            "filepath": "/tests/test_audio.py",
+            "entry_id": 114,
+            "language_id": "python"
+        },
+        "11": {
+            "filepath": "/tests/test_normalizer.py",
+            "entry_id": 118,
+            "language_id": "python"
+        },
+        "12": {
+            "filepath": "/tests/test_timing.py",
+            "entry_id": 128,
+            "language_id": "python"
+        },
+        "13": {
+            "filepath": "/tests/test_tokenizer.py",
+            "entry_id": 136,
+            "language_id": "python"
+        },
+        "14": {
+            "filepath": "/tests/test_transcribe.py",
+            "entry_id": 142,
+            "language_id": "python"
+        },
+        "15": {
+            "filepath": "/whisper/__init__.py",
+            "entry_id": 148,
+            "language_id": "python"
+        },
+        "16": {
+            "filepath": "/whisper/__main__.py",
+            "entry_id": 164,
+            "language_id": "python"
+        },
+        "17": {
+            "filepath": "/whisper/audio.py",
+            "entry_id": 168,
+            "language_id": "python"
+        },
+        "18": {
+            "filepath": "/whisper/decoding.py",
+            "entry_id": 180,
+            "language_id": "python"
+        },
+        "19": {
+            "filepath": "/whisper/model.py",
+            "entry_id": 244,
+            "language_id": "python"
+        },
+        "20": {
+            "filepath": "/whisper/timing.py",
+            "entry_id": 268,
+            "language_id": "python"
+        },
+        "21": {
+            "filepath": "/whisper/tokenizer.py",
+            "entry_id": 294,
+            "language_id": "python"
+        },
+        "22": {
+            "filepath": "/whisper/transcribe.py",
+            "entry_id": 320,
+            "language_id": "python"
+        },
+        "23": {
+            "filepath": "/whisper/triton_ops.py",
+            "entry_id": 378,
+            "language_id": "python"
+        },
+        "24": {
+            "filepath": "/whisper/utils.py",
+            "entry_id": 388,
+            "language_id": "python"
+        },
+        "25": {
+            "filepath": "/whisper/version.py",
+            "entry_id": 412,
+            "language_id": "python"
+        },
+        "26": {
+            "filepath": "/whisper/normalizers/__init__.py",
+            "entry_id": 416,
+            "language_id": "python"
+        },
+        "27": {
+            "filepath": "/whisper/normalizers/basic.py",
+            "entry_id": 420,
+            "language_id": "python"
+        },
+        "28": {
+            "filepath": "/whisper/normalizers/english.py",
+            "entry_id": 426,
+            "language_id": "python"
+        }
+    },
+    "project_name": "whisper",
+    "split_count": 5
+}

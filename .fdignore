@@ -1,0 +1,5 @@
+docs
+*.{png,svg,in,tiktoken,npz,flac,json,ipynb}
+LICENSE
+.*
+*/.*

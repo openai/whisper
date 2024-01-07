@@ -1,0 +1,543 @@
+{
+    "0": {
+        "file_id": 0,
+        "content": "/CHANGELOG.md",
+        "type": "filepath"
+    },
+    "1": {
+        "file_id": 0,
+        "content": "The CHANGELOG.md file documents updates, bug fixes, and new features for the openai/whisper project across multiple versions, with the latest release available on PyPI tagged as v20230117.",
+        "type": "summary"
+    },
+    "2": {
+        "file_id": 0,
+        "content": "# CHANGELOG\n## [v20231117](https://github.com/openai/whisper/releases/tag/v20231117)\n* Relax triton requirements for compatibility with pytorch 2.1 and newer ([#1802](https://github.com/openai/whisper/pull/1802))\n## [v20231106](https://github.com/openai/whisper/releases/tag/v20231106)\n* large-v3 ([#1761](https://github.com/openai/whisper/pull/1761))\n## [v20231105](https://github.com/openai/whisper/releases/tag/v20231105)\n* remove tiktoken pin ([#1759](https://github.com/openai/whisper/pull/1759))\n* docs: Disambiguation of the term \"relative speed\" in the README ([#1751](https://github.com/openai/whisper/pull/1751))\n* allow_pickle=False while loading of mel matrix IN audio.py ([#1511](https://github.com/openai/whisper/pull/1511))\n* handling transcribe exceptions. ([#1682](https://github.com/openai/whisper/pull/1682))\n* Add new option to generate subtitles by a specific number of words ([#1729](https://github.com/openai/whisper/pull/1729))\n* Fix exception when an audio file with no speech is provided ([#1396](https://github.com/openai/whisper/pull/1396))",
+        "type": "code",
+        "location": "/CHANGELOG.md:1-18"
+    },
+    "3": {
+        "file_id": 0,
+        "content": "This code contains the changelog for the \"openai/whisper\" project, listing new features and bug fixes in each release.",
+        "type": "comment"
+    },
+    "4": {
+        "file_id": 0,
+        "content": "## [v20230918](https://github.com/openai/whisper/releases/tag/v20230918)\n* Add .pre-commit-config.yaml ([#1528](https://github.com/openai/whisper/pull/1528))\n* fix doc of TextDecoder ([#1526](https://github.com/openai/whisper/pull/1526))\n* Update model-card.md ([#1643](https://github.com/openai/whisper/pull/1643))\n* word timing tweaks ([#1559](https://github.com/openai/whisper/pull/1559))\n* Avoid rearranging all caches ([#1483](https://github.com/openai/whisper/pull/1483))\n* Improve timestamp heuristics. ([#1461](https://github.com/openai/whisper/pull/1461))\n* fix condition_on_previous_text ([#1224](https://github.com/openai/whisper/pull/1224))\n* Fix numba depreceation notice ([#1233](https://github.com/openai/whisper/pull/1233))\n* Updated README.md to provide more insight on BLEU and specific appendices ([#1236](https://github.com/openai/whisper/pull/1236))\n* Avoid computing higher temperatures on no_speech segments ([#1279](https://github.com/openai/whisper/pull/1279))\n* Dropped unused execute bit from mel_filters.npz. ([#1254](https://github.com/openai/whisper/pull/1254))",
+        "type": "code",
+        "location": "/CHANGELOG.md:20-32"
+    },
+    "5": {
+        "file_id": 0,
+        "content": "This code snippet represents the CHANGELOG.md file for a project, providing a summary of changes made in each version of the software. The comments describe various enhancements and fixes implemented in this specific version v20230918, such as adding .pre-commit-config.yaml, fixing docs for TextDecoder, updating model-card.md, and more.",
+        "type": "comment"
+    },
+    "6": {
+        "file_id": 0,
+        "content": "* Drop ffmpeg-python dependency and call ffmpeg directly. ([#1242](https://github.com/openai/whisper/pull/1242))\n* Python 3.11 ([#1171](https://github.com/openai/whisper/pull/1171))\n* Update decoding.py ([#1219](https://github.com/openai/whisper/pull/1219))\n* Update decoding.py ([#1155](https://github.com/openai/whisper/pull/1155))\n* Update README.md to reference tiktoken ([#1105](https://github.com/openai/whisper/pull/1105))\n* Implement max line width and max line count, and make word highlighting optional ([#1184](https://github.com/openai/whisper/pull/1184))\n* Squash long words at window and sentence boundaries. ([#1114](https://github.com/openai/whisper/pull/1114))\n* python-publish.yml: bump actions version to fix node warning ([#1211](https://github.com/openai/whisper/pull/1211))\n* Update tokenizer.py ([#1163](https://github.com/openai/whisper/pull/1163))\n## [v20230314](https://github.com/openai/whisper/releases/tag/v20230314)\n* abort find_alignment on empty input ([#1090](https://github.com/openai/whisper/pull/1090))",
+        "type": "code",
+        "location": "/CHANGELOG.md:33-45"
+    },
+    "7": {
+        "file_id": 0,
+        "content": "This code contains a list of changes made to the Whisper project. These changes include updating dependencies, modifying Python versions, and enhancing certain functionalities in various files. The most recent version is v20230314, which has its own release tag.",
+        "type": "comment"
+    },
+    "8": {
+        "file_id": 0,
+        "content": "* Fix truncated words list when the replacement character is decoded ([#1089](https://github.com/openai/whisper/pull/1089))\n* fix github language stats getting dominated by jupyter notebook ([#1076](https://github.com/openai/whisper/pull/1076))\n* Fix alignment between the segments and the list of words ([#1087](https://github.com/openai/whisper/pull/1087))\n* Use tiktoken ([#1044](https://github.com/openai/whisper/pull/1044))\n## [v20230308](https://github.com/openai/whisper/releases/tag/v20230308)\n* kwargs in decode() for convenience ([#1061](https://github.com/openai/whisper/pull/1061))\n* fix all_tokens handling that caused more repetitions and discrepancy in JSON ([#1060](https://github.com/openai/whisper/pull/1060))\n* fix typo in CHANGELOG.md\n## [v20230307](https://github.com/openai/whisper/releases/tag/v20230307)\n* Fix the repetition/hallucination issue identified in #1046 ([#1052](https://github.com/openai/whisper/pull/1052))\n* Use triton==2.0.0 ([#1053](https://github.com/openai/whisper/pull/1053))",
+        "type": "code",
+        "location": "/CHANGELOG.md:46-60"
+    },
+    "9": {
+        "file_id": 0,
+        "content": "This code snippet contains the recent changes made to the openai/whisper repository. It includes bug fixes, feature improvements, and version releases. The latest release is v20230308 with fixes for typo in CHANGELOG.md, kwargs in decode(), and handling all_tokens. Previous release was v20230307 with fixes for repetition/hallucination issue and using triton==2.0.0.",
+        "type": "comment"
+    },
+    "10": {
+        "file_id": 0,
+        "content": "* Install triton in x86_64 linux only ([#1051](https://github.com/openai/whisper/pull/1051))\n* update setup.py to specify python >= 3.8 requirement\n## [v20230306](https://github.com/openai/whisper/releases/tag/v20230306)\n* remove auxiliary audio extension ([#1021](https://github.com/openai/whisper/pull/1021))\n* apply formatting with `black`, `isort`, and `flake8` ([#1038](https://github.com/openai/whisper/pull/1038))\n* word-level timestamps in `transcribe()` ([#869](https://github.com/openai/whisper/pull/869))\n* Decoding improvements ([#1033](https://github.com/openai/whisper/pull/1033))\n* Update README.md ([#894](https://github.com/openai/whisper/pull/894))\n* Fix infinite loop caused by incorrect timestamp tokens prediction ([#914](https://github.com/openai/whisper/pull/914))\n* drop python 3.7 support ([#889](https://github.com/openai/whisper/pull/889))\n## [v20230124](https://github.com/openai/whisper/releases/tag/v20230124)\n* handle printing even if sys.stdout.buffer is not available ([#887](https://github.com/openai/whisper/pull/887))",
+        "type": "code",
+        "location": "/CHANGELOG.md:61-76"
+    },
+    "11": {
+        "file_id": 0,
+        "content": "This code snippet is from the CHANGELOG.md file and it contains a list of changes made to the project in different commits, along with their respective issue numbers and links to the pull requests. Each commit has a description of the changes it introduces, including bug fixes, improvements, updates, and other modifications. The version numbers are also included for easy reference.",
+        "type": "comment"
+    },
+    "12": {
+        "file_id": 0,
+        "content": "* Add TSV formatted output in transcript, using integer start/end time in milliseconds ([#228](https://github.com/openai/whisper/pull/228))\n* Added `--output_format` option ([#333](https://github.com/openai/whisper/pull/333))\n* Handle `XDG_CACHE_HOME` properly for `download_root` ([#864](https://github.com/openai/whisper/pull/864))\n* use stdout for printing transcription progress ([#867](https://github.com/openai/whisper/pull/867))\n* Fix bug where mm is mistakenly replaced with hmm in e.g. 20mm ([#659](https://github.com/openai/whisper/pull/659))\n* print '?' if a letter can't be encoded using the system default encoding ([#859](https://github.com/openai/whisper/pull/859))\n## [v20230117](https://github.com/openai/whisper/releases/tag/v20230117)\nThe first versioned release available on [PyPI](https://pypi.org/project/openai-whisper/)",
+        "type": "code",
+        "location": "/CHANGELOG.md:77-86"
+    },
+    "13": {
+        "file_id": 0,
+        "content": "This section of the code details recent changes and updates to the openai/whisper project. It mentions bug fixes, new features, and versioning information. The latest release is tagged as v20230117 and is available on PyPI.",
+        "type": "comment"
+    },
+    "14": {
+        "file_id": 1,
+        "content": "/README.md",
+        "type": "filepath"
+    },
+    "15": {
+        "file_id": 1,
+        "content": "Whisper is a versatile speech recognition model that uses Transformer models and multitask training for diverse languages, offering installation setup instructions and providing information on available model sizes. The library's performance in audio transcription and translation across various languages can be demonstrated using Python integration for audio processing, model detection, language identification, and text decoding.",
+        "type": "summary"
+    },
+    "16": {
+        "file_id": 1,
+        "content": "# Whisper\n[[Blog]](https://openai.com/blog/whisper)\n[[Paper]](https://arxiv.org/abs/2212.04356)\n[[Model card]](https://github.com/openai/whisper/blob/main/model-card.md)\n[[Colab example]](https://colab.research.google.com/github/openai/whisper/blob/master/notebooks/LibriSpeech.ipynb)\nWhisper is a general-purpose speech recognition model. It is trained on a large dataset of diverse audio and is also a multitasking model that can perform multilingual speech recognition, speech translation, and language identification.\n## Approach\n![Approach](https://raw.githubusercontent.com/openai/whisper/main/approach.png)\nA Transformer sequence-to-sequence model is trained on various speech processing tasks, including multilingual speech recognition, speech translation, spoken language identification, and voice activity detection. These tasks are jointly represented as a sequence of tokens to be predicted by the decoder, allowing a single model to replace many stages of a traditional speech-processing pipelin",
+        "type": "code",
+        "location": "/README.md:1-15"
+    },
+    "17": {
+        "file_id": 1,
+        "content": "This code is a brief introduction to Whisper, a general-purpose speech recognition model. It mentions that it's trained on diverse audio and can perform multilingual tasks like speech recognition, translation, language identification, and voice activity detection. The approach uses Transformer sequence-to-sequence models.",
+        "type": "comment"
+    },
+    "18": {
+        "file_id": 1,
+        "content": "e. The multitask training format uses a set of special tokens that serve as task specifiers or classification targets.\n## Setup\nWe used Python 3.9.9 and [PyTorch](https://pytorch.org/) 1.10.1 to train and test our models, but the codebase is expected to be compatible with Python 3.8-3.11 and recent PyTorch versions. The codebase also depends on a few Python packages, most notably [OpenAI's tiktoken](https://github.com/openai/tiktoken) for their fast tokenizer implementation. You can download and install (or update to) the latest release of Whisper with the following command:\n    pip install -U openai-whisper\nAlternatively, the following command will pull and install the latest commit from this repository, along with its Python dependencies:\n    pip install git+https://github.com/openai/whisper.git \nTo update the package to the latest version of this repository, please run:\n    pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git\nIt also requires the comma",
+        "type": "code",
+        "location": "/README.md:15-32"
+    },
+    "19": {
+        "file_id": 1,
+        "content": "Explains the multitask training format using task specifiers or classification targets.\nDetails installation setup, including Python and PyTorch versions, package dependencies, and installation methods.",
+        "type": "comment"
+    },
+    "20": {
+        "file_id": 1,
+        "content": "nd-line tool [`ffmpeg`](https://ffmpeg.org/) to be installed on your system, which is available from most package managers:\n```bash\n# on Ubuntu or Debian\nsudo apt update && sudo apt install ffmpeg\n# on Arch Linux\nsudo pacman -S ffmpeg\n# on MacOS using Homebrew (https://brew.sh/)\nbrew install ffmpeg\n# on Windows using Chocolatey (https://chocolatey.org/)\nchoco install ffmpeg\n# on Windows using Scoop (https://scoop.sh/)\nscoop install ffmpeg\n```\nYou may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken](https://github.com/openai/tiktoken) does not provide a pre-built wheel for your platform. If you see installation errors during the `pip install` command above, please follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install Rust development environment. Additionally, you may need to configure the `PATH` environment variable, e.g. `export PATH=\"$HOME/.cargo/bin:$PATH\"`. If the installation fails with `No module named 'setuptools_rust'`, you need to install `setuptools_rust`, e.g. by running:",
+        "type": "code",
+        "location": "/README.md:32-51"
+    },
+    "21": {
+        "file_id": 1,
+        "content": "Installing FFmpeg using various package managers.\nRust installation instructions in case Tiktoken doesn't provide a wheel for your platform.",
+        "type": "comment"
+    },
+    "22": {
+        "file_id": 1,
+        "content": "```bash\npip install setuptools-rust\n```\n## Available models and languages\nThere are five model sizes, four with English-only versions, offering speed and accuracy tradeoffs. Below are the names of the available models and their approximate memory requirements and inference speed relative to the large model; actual speed may vary depending on many factors including the available hardware.\n|  Size  | Parameters | English-only model | Multilingual model | Required VRAM | Relative speed |\n|:------:|:----------:|:------------------:|:------------------:|:-------------:|:--------------:|\n|  tiny  |    39 M    |     `tiny.en`      |       `tiny`       |     ~1 GB     |      ~32x      |\n|  base  |    74 M    |     `base.en`      |       `base`       |     ~1 GB     |      ~16x      |\n| small  |   244 M    |     `small.en`     |      `small`       |     ~2 GB     |      ~6x       |\n| medium |   769 M    |    `medium.en`     |      `medium`      |     ~5 GB     |      ~2x       |\n| large  |   1550 M   |        N/A         |      `large`       |    ~10 GB     |       1x       |",
+        "type": "code",
+        "location": "/README.md:53-68"
+    },
+    "23": {
+        "file_id": 1,
+        "content": "This code describes the available model sizes for a certain tool, their memory requirements, and inference speed relative to the large model. It provides information on English-only models as well as multilingual models, with the actual speed varying depending on factors like hardware.",
+        "type": "comment"
+    },
+    "24": {
+        "file_id": 1,
+        "content": "The `.en` models for English-only applications tend to perform better, especially for the `tiny.en` and `base.en` models. We observed that the difference becomes less significant for the `small.en` and `medium.en` models.\nWhisper's performance varies widely depending on the language. The figure below shows a performance breakdown of `large-v3` and `large-v2` models by language, using WERs (word error rates) or CER (character error rates, shown in *Italic*) evaluated on the Common Voice 15 and Fleurs datasets. Additional WER/CER metrics corresponding to the other models and datasets can be found in Appendix D.1, D.2, and D.4 of [the paper](https://arxiv.org/abs/2212.04356), as well as the BLEU (Bilingual Evaluation Understudy) scores for translation in Appendix D.3.\n![WER breakdown by language](https://github.com/openai/whisper/assets/266841/f4619d66-1058-4005-8f67-a9d811b77c62)\n## Command-line usage\nThe following command will transcribe speech in audio files, using the `medium` model:\n    whisper audio.flac audio.mp3 audio.wav --model medium",
+        "type": "code",
+        "location": "/README.md:70-82"
+    },
+    "25": {
+        "file_id": 1,
+        "content": "This code describes the performance of Whisper models for different languages and provides a command-line usage example to transcribe audio files using the \"medium\" model. The figure shows word error rates (WER) or character error rates (CER) evaluated on Common Voice 15 and Fleurs datasets. Additional metrics can be found in the paper linked.",
+        "type": "comment"
+    },
+    "26": {
+        "file_id": 1,
+        "content": "The default setting (which selects the `small` model) works well for transcribing English. To transcribe an audio file containing non-English speech, you can specify the language using the `--language` option:\n    whisper japanese.wav --language Japanese\nAdding `--task translate` will translate the speech into English:\n    whisper japanese.wav --language Japanese --task translate\nRun the following to view all available options:\n    whisper --help\nSee [tokenizer.py](https://github.com/openai/whisper/blob/main/whisper/tokenizer.py) for the list of all available languages.\n## Python usage\nTranscription can also be performed within Python: \n```python\nimport whisper\nmodel = whisper.load_model(\"base\")\nresult = model.transcribe(\"audio.mp3\")\nprint(result[\"text\"])\n```\nInternally, the `transcribe()` method reads the entire file and processes the audio with a sliding 30-second window, performing autoregressive sequence-to-sequence predictions on each window.\nBelow is an example usage of `whisper.detect_language()` and `whisper.decode()` which provide lower-level access to the model.",
+        "type": "code",
+        "location": "/README.md:84-113"
+    },
+    "27": {
+        "file_id": 1,
+        "content": "Code performs audio transcription and translation using the Whisper library.\n\n- Specify language using `--language` option for non-English speech.\n- Use `--task translate` to translate speech into English.\n- View available options with `whisper --help`.\n- Perform transcription within Python using `load_model`, `transcribe`, and `result[\"text\"]`.\n- Internally, `transcribe()` method processes audio with sliding 30-second windows.",
+        "type": "comment"
+    },
+    "28": {
+        "file_id": 1,
+        "content": "```python\nimport whisper\nmodel = whisper.load_model(\"base\")\n# load audio and pad/trim it to fit 30 seconds\naudio = whisper.load_audio(\"audio.mp3\")\naudio = whisper.pad_or_trim(audio)\n# make log-Mel spectrogram and move to the same device as the model\nmel = whisper.log_mel_spectrogram(audio).to(model.device)\n# detect the spoken language\n_, probs = model.detect_language(mel)\nprint(f\"Detected language: {max(probs, key=probs.get)}\")\n# decode the audio\noptions = whisper.DecodingOptions()\nresult = whisper.decode(model, mel, options)\n# print the recognized text\nprint(result.text)\n```\n## More examples\nPlease use the [🙌 Show and tell](https://github.com/openai/whisper/discussions/categories/show-and-tell) category in Discussions for sharing more example usages of Whisper and third-party extensions such as web demos, integrations with other tools, ports for different platforms, etc.\n## License\nWhisper's code and model weights are released under the MIT License. See [LICENSE](https://github.com/openai/whisper/blob/main/LICENSE) for further details.",
+        "type": "code",
+        "location": "/README.md:115-146"
+    },
+    "29": {
+        "file_id": 1,
+        "content": "This code is using the Whisper library to detect and decode spoken language from an audio file. It first loads the audio file, pads or trims it to fit within 30 seconds, then creates a log-Mel spectrogram of the audio and moves it to the device that the model is on. The code uses the Whisper model to detect the spoken language, prints out the detected language with its corresponding probability, and finally decodes the audio using the Whisper DecodingOptions to obtain the recognized text which it then prints out.",
+        "type": "comment"
+    },
+    "30": {
+        "file_id": 2,
+        "content": "/model-card.md",
+        "type": "filepath"
+    },
+    "31": {
+        "file_id": 2,
+        "content": "Whisper AI model is a strong speech recognition and translation tool in English and 10 other languages, with varying performance based on training data; high accuracy but faces challenges such as hallucinations, lower-resource language limitations, and economic/surveillance concerns.",
+        "type": "summary"
+    },
+    "32": {
+        "file_id": 2,
+        "content": "# Model Card: Whisper\nThis is the official codebase for running the automatic speech recognition (ASR) models (Whisper models) trained and released by OpenAI.\nFollowing [Model Cards for Model Reporting (Mitchell et al.)](https://arxiv.org/abs/1810.03993), we're providing some information about the automatic speech recognition model. More information on how these models were trained and evaluated can be found [in the paper](https://arxiv.org/abs/2212.04356).\n## Model Details\nThe Whisper models are trained for speech recognition and translation tasks, capable of transcribing speech audio into the text in the language it is spoken (ASR) as well as translated into English (speech translation). Researchers at OpenAI developed the models to study the robustness of speech processing systems trained under large-scale weak supervision. There are 9 models of different sizes and capabilities, summarized in the following table.\n|  Size  | Parameters | English-only model | Multilingual model |  \n|:------:|:----------:|:------------------:|:------------------:|",
+        "type": "code",
+        "location": "/model-card.md:1-13"
+    },
+    "33": {
+        "file_id": 2,
+        "content": "Model Card: Whisper - Official codebase for OpenAI's ASR models trained and released by them. Provides info on model details, sizes, and capabilities including English-only and multilingual models.",
+        "type": "comment"
+    },
+    "34": {
+        "file_id": 2,
+        "content": "|  tiny  |    39 M    |         ✓          |         ✓          |\n|  base  |    74 M    |         ✓          |         ✓          |\n| small  |   244 M    |         ✓          |         ✓          |\n| medium |   769 M    |         ✓          |         ✓          |\n| large  |   1550 M   |                    |         ✓          |\nIn December 2022, we [released an improved large model named `large-v2`](https://github.com/openai/whisper/discussions/661), and `large-v3` in November 2023.\n### Release date\nSeptember 2022 (original series), December 2022 (`large-v2`), and November 2023 (`large-v3`)\n### Model type\nSequence-to-sequence ASR (automatic speech recognition) and speech translation model\n### Paper & samples\n[Paper](https://arxiv.org/abs/2212.04356) / [Blog](https://openai.com/blog/whisper)\n## Model Use\n### Evaluated Use\nThe primary intended users of these models are AI researchers studying the robustness, generalization, capabilities, biases, and constraints of the current model. However, Whisper i",
+        "type": "code",
+        "location": "/model-card.md:14-40"
+    },
+    "35": {
+        "file_id": 2,
+        "content": "This code provides details about Whisper, an automatic speech recognition and speech translation model. It includes information on the available model sizes, release dates, and a link to the associated paper and blog post. The primary intended users are AI researchers for studying various aspects of the model's performance.",
+        "type": "comment"
+    },
+    "36": {
+        "file_id": 2,
+        "content": "s also potentially quite useful as an ASR solution for developers, especially for English speech recognition. We recognize that once models are released, it is impossible to restrict access to only “intended” uses or to draw reasonable guidelines around what is or is not research.\nThe models are primarily trained and evaluated on ASR and speech translation to English tasks. They show strong ASR results in ~10 languages. They may exhibit additional capabilities, particularly if fine-tuned on certain tasks like voice activity detection, speaker classification, or speaker diarization but have not been robustly evaluated in these areas. We strongly recommend that users perform robust evaluations of the models in a particular context and domain before deploying them.\nIn particular, we caution against using Whisper models to transcribe recordings of individuals taken without their consent or purporting to use these models for any kind of subjective classification. We recommend against use in h",
+        "type": "code",
+        "location": "/model-card.md:40-44"
+    },
+    "37": {
+        "file_id": 2,
+        "content": "This model is suitable for ASR, particularly English speech recognition. Primarily trained and evaluated on ASR and speech translation to English tasks. Show strong results in ~10 languages. Additional capabilities may arise if fine-tuned. Robust evaluations are recommended before deployment. Caution against using without consent or subjective classification.",
+        "type": "comment"
+    },
+    "38": {
+        "file_id": 2,
+        "content": "igh-risk domains like decision-making contexts, where flaws in accuracy can lead to pronounced flaws in outcomes. The models are intended to transcribe and translate speech, use of the model for classification is not only not evaluated but also not appropriate, particularly to infer human attributes.\n## Training Data\nThe models are trained on 680,000 hours of audio and the corresponding transcripts collected from the internet. 65% of this data (or 438,000 hours) represents English-language audio and matched English transcripts, roughly 18% (or 126,000 hours) represents non-English audio and English transcripts, while the final 17% (or 117,000 hours) represents non-English audio and the corresponding transcript. This non-English data represents 98 different languages. \nAs discussed in [the accompanying paper](https://arxiv.org/abs/2212.04356), we see that performance on transcription in a given language is directly correlated with the amount of training data we employ in that language.\n## Performance and Limitations",
+        "type": "code",
+        "location": "/model-card.md:44-54"
+    },
+    "39": {
+        "file_id": 2,
+        "content": "The model is trained on 680,000 hours of audio and transcripts collected from the internet. The performance on transcription in a given language depends on the amount of training data used for that language. It's not suitable for classification or inferring human attributes.",
+        "type": "comment"
+    },
+    "40": {
+        "file_id": 2,
+        "content": "Our studies show that, over many existing ASR systems, the models exhibit improved robustness to accents, background noise, and technical language, as well as zero-shot translation from multiple languages into English; and that accuracy on speech recognition and translation is near the state-of-the-art level. \nHowever, because the models are trained in a weakly supervised manner using large-scale noisy data, the predictions may include texts that are not actually spoken in the audio input (i.e. hallucination). We hypothesize that this happens because, given their general knowledge of language, the models combine trying to predict the next word in audio with trying to transcribe the audio itself.\nOur models perform unevenly across languages, and we observe lower accuracy on low-resource and/or low-discoverability languages or languages where we have less training data. The models also exhibit disparate performance on different accents and dialects of particular languages, which may includ",
+        "type": "code",
+        "location": "/model-card.md:56-60"
+    },
+    "41": {
+        "file_id": 2,
+        "content": "The code discusses the performance of ASR (Automatic Speech Recognition) systems based on trained models. It highlights the improved robustness against accents, background noise, and technical language with near state-of-the-art accuracy for speech recognition and translation. However, it also mentions potential hallucinations in predictions due to weak supervision and uneven performance across languages and accents.",
+        "type": "comment"
+    },
+    "42": {
+        "file_id": 2,
+        "content": "e a higher word error rate across speakers of different genders, races, ages, or other demographic criteria. Our full evaluation results are presented in [the paper accompanying this release](https://arxiv.org/abs/2212.04356).\nIn addition, the sequence-to-sequence architecture of the model makes it prone to generating repetitive texts, which can be mitigated to some degree by beam search and temperature scheduling but not perfectly. Further analysis of these limitations is provided in [the paper](https://arxiv.org/abs/2212.04356). It is likely that this behavior and hallucinations may be worse in lower-resource and/or lower-discoverability languages.\n## Broader Implications\nWe anticipate that Whisper models’ transcription capabilities may be used for improving accessibility tools. While Whisper models cannot be used for real-time transcription out of the box – their speed and size suggest that others may be able to build applications on top of them that allow for near-real-time speech rec",
+        "type": "code",
+        "location": "/model-card.md:60-67"
+    },
+    "43": {
+        "file_id": 2,
+        "content": "The model may have a higher word error rate for different demographics, generates repetitive texts, and limitations could be worse in lower-resource languages. It can potentially improve accessibility tools but not suitable for real-time transcription out of the box.",
+        "type": "comment"
+    },
+    "44": {
+        "file_id": 2,
+        "content": "ognition and translation. The real value of beneficial applications built on top of Whisper models suggests that the disparate performance of these models may have real economic implications.\nThere are also potential dual-use concerns that come with releasing Whisper. While we hope the technology will be used primarily for beneficial purposes, making ASR technology more accessible could enable more actors to build capable surveillance technologies or scale up existing surveillance efforts, as the speed and accuracy allow for affordable automatic transcription and translation of large volumes of audio communication. Moreover, these models may have some capabilities to recognize specific individuals out of the box, which in turn presents safety concerns related both to dual use and disparate performance. In practice, we expect that the cost of transcription is not the limiting factor of scaling up surveillance projects.",
+        "type": "code",
+        "location": "/model-card.md:67-69"
+    },
+    "45": {
+        "file_id": 2,
+        "content": "This code discusses the potential economic implications and dual-use concerns of releasing Whisper models. It mentions the benefits for beneficial applications, but also warns about the possibility of increased surveillance due to improved ASR technology accessibility. Additionally, it highlights safety concerns related to individual recognition capabilities.",
+        "type": "comment"
+    },
+    "46": {
+        "file_id": 3,
+        "content": "/pyproject.toml",
+        "type": "filepath"
+    },
+    "47": {
+        "file_id": 3,
+        "content": "Configures Black and Isort tools for formatting Python code according to their respective profiles.",
+        "type": "summary"
+    },
+    "48": {
+        "file_id": 3,
+        "content": "[tool.black]\n[tool.isort]\nprofile = \"black\"\ninclude_trailing_comma = true\nline_length = 88\nmulti_line_output = 3",
+        "type": "code",
+        "location": "/pyproject.toml:1-7"
+    },
+    "49": {
+        "file_id": 3,
+        "content": "Configures Black and Isort tools for formatting Python code according to their respective profiles.",
+        "type": "comment"
+    },
+    "50": {
+        "file_id": 4,
+        "content": "/requirements.txt",
+        "type": "filepath"
+    },
+    "51": {
+        "file_id": 4,
+        "content": "This code specifies the required Python packages for the project. These include Numba, NumPy, PyTorch, Tqdm, More-Itertools, and Tiktoken. Additionally, it requires Triton version greater than or equal to 2.0.0 but less than 3, only on Linux platforms (x86_64 or linux2).",
+        "type": "summary"
+    },
+    "52": {
+        "file_id": 4,
+        "content": "numba\nnumpy\ntorch\ntqdm\nmore-itertools\ntiktoken\ntriton>=2.0.0,<3;platform_machine==\"x86_64\" and sys_platform==\"linux\" or sys_platform==\"linux2\"",
+        "type": "code",
+        "location": "/requirements.txt:1-7"
+    },
+    "53": {
+        "file_id": 4,
+        "content": "This code specifies the required Python packages for the project. These include Numba, NumPy, PyTorch, Tqdm, More-Itertools, and Tiktoken. Additionally, it requires Triton version greater than or equal to 2.0.0 but less than 3, only on Linux platforms (x86_64 or linux2).",
+        "type": "comment"
+    },
+    "54": {
+        "file_id": 5,
+        "content": "/setup.py",
+        "type": "filepath"
+    },
+    "55": {
+        "file_id": 5,
+        "content": "The process involves importing modules, checking system platform and architecture, defining setup parameters for a Python package with its name, version, description, requirements, and including package installation requirements from \"requirements.txt\" to set up the package for command-line execution and additional development dependencies.",
+        "type": "summary"
+    },
+    "56": {
+        "file_id": 5,
+        "content": "import platform\nimport sys\nfrom pathlib import Path\nimport pkg_resources\nfrom setuptools import find_packages, setup\ndef read_version(fname=\"whisper/version.py\"):\n    exec(compile(open(fname, encoding=\"utf-8\").read(), fname, \"exec\"))\n    return locals()[\"__version__\"]\nrequirements = []\nif sys.platform.startswith(\"linux\") and platform.machine() == \"x86_64\":\n    requirements.append(\"triton>=2.0.0,<3\")\nsetup(\n    name=\"openai-whisper\",\n    py_modules=[\"whisper\"],\n    version=read_version(),\n    description=\"Robust Speech Recognition via Large-Scale Weak Supervision\",\n    long_description=open(\"README.md\", encoding=\"utf-8\").read(),\n    long_description_content_type=\"text/markdown\",\n    readme=\"README.md\",\n    python_requires=\">=3.8\",\n    author=\"OpenAI\",\n    url=\"https://github.com/openai/whisper\",\n    license=\"MIT\",\n    packages=find_packages(exclude=[\"tests*\"]),\n    install_requires=[\n        str(r)\n        for r in pkg_resources.parse_requirements(\n            Path(__file__).with_name(\"requirements.txt\").open()\n        )",
+        "type": "code",
+        "location": "/setup.py:1-35"
+    },
+    "57": {
+        "file_id": 5,
+        "content": "Code imports necessary modules, checks the system platform and processor architecture to append specific requirement, defines setup parameters for a Python package (including its name, version, description, requirements, etc.), and includes package installation requirements from \"requirements.txt\".",
+        "type": "comment"
+    },
+    "58": {
+        "file_id": 5,
+        "content": "    ],\n    entry_points={\n        \"console_scripts\": [\"whisper=whisper.transcribe:cli\"],\n    },\n    include_package_data=True,\n    extras_require={\"dev\": [\"pytest\", \"scipy\", \"black\", \"flake8\", \"isort\"]},\n)",
+        "type": "code",
+        "location": "/setup.py:36-42"
+    },
+    "59": {
+        "file_id": 5,
+        "content": "Setting up a Python package for command-line execution, including extra dependencies for development.",
+        "type": "comment"
+    },
+    "60": {
+        "file_id": 6,
+        "content": "/data/README.md",
+        "type": "filepath"
+    },
+    "61": {
+        "file_id": 6,
+        "content": "The code converts Wav.scp files to WAV format, preprocesses datasets like WSJ, CORAAL, and CHiME-6, provides timings and labels for The Late Show with Stephen Colbert dataset, and discusses multilingual datasets Kincaid46, Earnings-21, Earnings-22.",
+        "type": "summary"
+    },
+    "62": {
+        "file_id": 6,
+        "content": "This directory supplements the paper with more details on how we prepared the data for evaluation, to help replicate our experiments. \n## Short-form English-only datasets\n### LibriSpeech\nWe used the test-clean and test-other splits from the [LibriSpeech ASR corpus](https://www.openslr.org/12).\n### TED-LIUM 3\nWe used the test split of [TED-LIUM Release 3](https://www.openslr.org/51/), using the segmented manual transcripts included in the release.\n### Common Voice 5.1\nWe downloaded the English subset of Common Voice Corpus 5.1 from [the official website](https://commonvoice.mozilla.org/en/datasets)\n### Artie\nWe used the [Artie bias corpus](https://github.com/artie-inc/artie-bias-corpus). This is a subset of the Common Voice dataset.\n### CallHome & Switchboard\nWe used the two corpora from [LDC2002S09](https://catalog.ldc.upenn.edu/LDC2002S09) and [LDC2002T43](https://catalog.ldc.upenn.edu/LDC2002T43) and followed the [eval2000_data_prep.sh](https://github.com/kaldi-asr/kaldi/blob/master/egs/fisher_",
+        "type": "code",
+        "location": "/data/README.md:1-23"
+    },
+    "63": {
+        "file_id": 6,
+        "content": "This file provides details on how data was prepared for evaluation in a research project, including the datasets used and their sources.",
+        "type": "comment"
+    },
+    "64": {
+        "file_id": 6,
+        "content": "swbd/s5/local/eval2000_data_prep.sh) script for preprocessing. The `wav.scp` files can be converted to WAV files with the following bash commands:\n```bash\nmkdir -p wav\nwhile read name cmd; do\n    echo $name\n    echo ${cmd/\\|/} wav/$name.wav | bash\ndone < wav.scp\n```\n### WSJ\nWe used [LDC93S6B](https://catalog.ldc.upenn.edu/LDC93S6B) and [LDC94S13B](https://catalog.ldc.upenn.edu/LDC94S13B) and followed the [s5 recipe](https://github.com/kaldi-asr/kaldi/tree/master/egs/wsj/s5) to preprocess the dataset.\n### CORAAL\nWe used the 231 interviews from [CORAAL (v. 2021.07)](https://oraal.uoregon.edu/coraal) and used the segmentations from [the FairSpeech project](https://github.com/stanford-policylab/asr-disparities/blob/master/input/CORAAL_transcripts.csv).\n### CHiME-6\nWe downloaded the [CHiME-5 dataset](https://spandh.dcs.shef.ac.uk//chime_challenge/CHiME5/download.html) and followed the stage 0 of the [s5_track1 recipe](https://github.com/kaldi-asr/kaldi/tree/master/egs/chime6/s5_track1) to create the CHi",
+        "type": "code",
+        "location": "/data/README.md:23-44"
+    },
+    "65": {
+        "file_id": 6,
+        "content": "This code is converting `wav.scp` files to WAV files using bash commands. It is used in the preprocessing of datasets like WSJ, CORAAL, and CHiME-6. The code follows specific recipes for each dataset's preprocessing steps.",
+        "type": "comment"
+    },
+    "66": {
+        "file_id": 6,
+        "content": "ME-6 dataset which fixes synchronization. We then used the binaural recordings (`*_P??.wav`) and the corresponding transcripts.\n### AMI-IHM, AMI-SDM1\nWe preprocessed the [AMI Corpus](https://groups.inf.ed.ac.uk/ami/corpus/overview.shtml) by following the stage 0 ad 2 of the [s5b recipe](https://github.com/kaldi-asr/kaldi/tree/master/egs/ami/s5b).\n## Long-form English-only datasets\n### TED-LIUM 3\nTo create a long-form transcription dataset from the [TED-LIUM3](https://www.openslr.org/51/) dataset, we sliced the audio between the beginning of the first labeled segment and the end of the last labeled segment of each talk, and we used the concatenated text as the label. Below are the timestamps used for slicing each of the 11 TED talks in the test split.   \n| Filename            | Begin time (s) | End time (s) |\n|---------------------|----------------|--------------|\n| DanBarber_2010      | 16.09          | 1116.24      |\n| JaneMcGonigal_2010  | 15.476         | 1187.61      |\n| BillGates_2010      | 15.861         | 1656.94      |",
+        "type": "code",
+        "location": "/data/README.md:44-61"
+    },
+    "67": {
+        "file_id": 6,
+        "content": "Code describes data preprocessing steps for various datasets used in the project. It mentions using specific recipes and slicing audio files based on labeled segments.",
+        "type": "comment"
+    },
+    "68": {
+        "file_id": 6,
+        "content": "| TomWujec_2010U      | 16.26          | 402.17       |\n| GaryFlake_2010      | 16.06          | 367.14       |\n| EricMead_2009P      | 18.434         | 536.44       |\n| MichaelSpecter_2010 | 16.11          | 979.312      |\n| DanielKahneman_2010 | 15.8           | 1199.44      |\n| AimeeMullins_2009P  | 17.82          | 1296.59      |\n| JamesCameron_2010   | 16.75          | 1010.65      |\n| RobertGupta_2010U   | 16.8           | 387.03       |\n### Meanwhile\nThis dataset consists of 64 segments from The Late Show with Stephen Colbert. The YouTube video ID, start and end timestamps, and the labels can be found in [meanwhile.json](meanwhile.json). The labels are collected from the closed-caption data for each video and corrected with manual inspection.\n### Rev16\nWe use a subset of 16 files from the 30 podcast episodes in [Rev.AI's Podcast Transcription Benchmark](https://www.rev.ai/blog/podcast-transcription-benchmark-part-1/), after finding that there are multiple cases where a significant portion ",
+        "type": "code",
+        "location": "/data/README.md:62-77"
+    },
+    "69": {
+        "file_id": 6,
+        "content": "The table contains timings and labels for videos in The Late Show with Stephen Colbert dataset. Meanwhile.json is the source of YouTube video IDs, start and end times, and corrected labels collected from closed-caption data. Rev16 uses a subset of 16 podcast episodes from Rev.AI's Podcast Transcription Benchmark after discovering multiple cases with significant portions affected.",
+        "type": "comment"
+    },
+    "70": {
+        "file_id": 6,
+        "content": "of the audio and the labels did not match, mostly on the parts introducing the sponsors. We selected 16 episodes that do not have this error, whose \"file number\" are:\n    3 4 9 10 11 14 17 18 20 21 23 24 26 27 29 32\n### Kincaid46\nThis dataset consists of 46 audio files and the corresponding transcripts compiled in the blog article [Which automatic transcription service is the most accurate - 2018](https://medium.com/descript/which-automatic-transcription-service-is-the-most-accurate-2018-2e859b23ed19) by Jason Kincaid. We used the 46 audio files and reference transcripts from the Airtable widget in the article.\nFor the human transcription benchmark in the paper, we use a subset of 25 examples from this data, whose \"Ref ID\" are:\n    2 4 5 8 9 10 12 13 14 16 19 21 23 25 26 28 29 30 33 35 36 37 42 43 45\n### Earnings-21, Earnings-22\nFor these datasets, we used the files available in [the speech-datasets repository](https://github.com/revdotcom/speech-datasets), as of their `202206` version.\n### CORAAL",
+        "type": "code",
+        "location": "/data/README.md:77-93"
+    },
+    "71": {
+        "file_id": 6,
+        "content": "The code is listing datasets used in the project. It mentions that 16 episodes were selected from a dataset where audio and labels did not match, and provides a list of file numbers for these episodes. The code then explains that the dataset \"Kincaid46\" consists of 46 audio files and their reference transcripts obtained from an article by Jason Kincaid. For the human transcription benchmark in the paper, 25 examples are used with specific \"Ref IDs\". Two more datasets, Earnings-21 and Earnings-22, were sourced from the speech-datasets repository's 202206 version. Finally, there is a mention of dataset CORAAL, but its description or source is not given in this code chunk.",
+        "type": "comment"
+    },
+    "72": {
+        "file_id": 6,
+        "content": "We used the 231 interviews from [CORAAL (v. 2021.07)](https://oraal.uoregon.edu/coraal) and used the full-length interview files and transcripts.\n## Multilingual datasets\n### Multilingual LibriSpeech\nWe used the test splits from each language in [the Multilingual LibriSpeech (MLS) corpus](https://www.openslr.org/94/).\n### Fleurs\nWe collected audio files and transcripts using the implementation available as [HuggingFace datasets](https://huggingface.co/datasets/google/fleurs/blob/main/fleurs.py). To use as a translation dataset, we matched the numerical utterance IDs to find the corresponding transcript in English.   \n### VoxPopuli\nWe used the `get_asr_data.py` script from [the official repository](https://github.com/facebookresearch/voxpopuli) to collect the ASR data in 14 languages. \n### Common Voice 9\nWe downloaded the Common Voice Corpus 9 from [the official website](https://commonvoice.mozilla.org/en/datasets)\n### CoVOST 2\nWe collected the `X into English` data collected using [the official repository](https://github.com/facebookresearch/covost).",
+        "type": "code",
+        "location": "/data/README.md:95-118"
+    },
+    "73": {
+        "file_id": 6,
+        "content": "This code provides information about various multilingual datasets used in the project, such as CORAAL, Multilingual LibriSpeech, Fleurs, VoxPopuli, Common Voice 9, and CoVOST 2. It also mentions how each dataset was collected or obtained by providing links to their respective official repositories or websites.",
+        "type": "comment"
+    },
+    "74": {
+        "file_id": 7,
+        "content": "/notebooks/LibriSpeech.py",
+        "type": "filepath"
+    },
+    "75": {
+        "file_id": 7,
+        "content": "The code initializes a LibriSpeech dataset, installs Whisper and its dependencies, loads the test-clean split, performs inference for transcription, stores results in a pandas DataFrame, cleans up text, calculates WER, and prints it out.",
+        "type": "summary"
+    },
+    "76": {
+        "file_id": 7,
+        "content": "#!/usr/bin/env python\n# coding: utf-8\n# # Installing Whisper\n# \n# The commands below will install the Python packages needed to use Whisper models and evaluate the transcription results.\n# In[1]:\nget_ipython().system(' pip install git+https://github.com/openai/whisper.git')\nget_ipython().system(' pip install jiwer')\n# # Loading the LibriSpeech dataset\n# \n# The following will load the test-clean split of the LibriSpeech corpus using torchaudio.\n# In[2]:\nimport os\nimport numpy as np\ntry:\n    import tensorflow  # required in Colab to avoid protobuf compatibility issues\nexcept ImportError:\n    pass\nimport torch\nimport pandas as pd\nimport whisper\nimport torchaudio\nfrom tqdm.notebook import tqdm\nDEVICE = \"cuda\" if torch.cuda.is_available() else \"cpu\"\n# In[3]:\nclass LibriSpeech(torch.utils.data.Dataset):\n    \"\"\"\n    A simple class to wrap LibriSpeech and trim/pad the audio to 30 seconds.\n    It will drop the last few seconds of a very small portion of the utterances.\n    \"\"\"\n    def __init__(self, split=\"test-clean\", device=DEVICE):",
+        "type": "code",
+        "location": "/notebooks/LibriSpeech.py:1-49"
+    },
+    "77": {
+        "file_id": 7,
+        "content": "Installation of Whisper and loading the LibriSpeech dataset.\n- Installs required packages for using Whisper models.\n- Loads test-clean split of LibriSpeech corpus using torchaudio.",
+        "type": "comment"
+    },
+    "78": {
+        "file_id": 7,
+        "content": "        self.dataset = torchaudio.datasets.LIBRISPEECH(\n            root=os.path.expanduser(\"~/.cache\"),\n            url=split,\n            download=True,\n        )\n        self.device = device\n    def __len__(self):\n        return len(self.dataset)\n    def __getitem__(self, item):\n        audio, sample_rate, text, _, _, _ = self.dataset[item]\n        assert sample_rate == 16000\n        audio = whisper.pad_or_trim(audio.flatten()).to(self.device)\n        mel = whisper.log_mel_spectrogram(audio)\n        return (mel, text)\n# In[4]:\ndataset = LibriSpeech(\"test-clean\")\nloader = torch.utils.data.DataLoader(dataset, batch_size=16)\n# # Running inference on the dataset using a base Whisper model\n# \n# The following will take a few minutes to transcribe all utterances in the dataset.\n# In[5]:\nmodel = whisper.load_model(\"base.en\")\nprint(\n    f\"Model is {'multilingual' if model.is_multilingual else 'English-only'} \"\n    f\"and has {sum(np.prod(p.shape) for p in model.parameters()):,} parameters.\"\n)\n# In[6]:\n# predict without timestamps for short-form transcription",
+        "type": "code",
+        "location": "/notebooks/LibriSpeech.py:50-93"
+    },
+    "79": {
+        "file_id": 7,
+        "content": "This code initializes a LibriSpeech dataset, loads a Whisper model, and then runs inference on the dataset to perform transcription.",
+        "type": "comment"
+    },
+    "80": {
+        "file_id": 7,
+        "content": "options = whisper.DecodingOptions(language=\"en\", without_timestamps=True)\n# In[7]:\nhypotheses = []\nreferences = []\nfor mels, texts in tqdm(loader):\n    results = model.decode(mels, options)\n    hypotheses.extend([result.text for result in results])\n    references.extend(texts)\n# In[8]:\ndata = pd.DataFrame(dict(hypothesis=hypotheses, reference=references))\ndata\n# # Calculating the word error rate\n# \n# Now, we use our English normalizer implementation to standardize the transcription and calculate the WER.\n# In[9]:\nimport jiwer\nfrom whisper.normalizers import EnglishTextNormalizer\nnormalizer = EnglishTextNormalizer()\n# In[10]:\ndata[\"hypothesis_clean\"] = [normalizer(text) for text in data[\"hypothesis\"]]\ndata[\"reference_clean\"] = [normalizer(text) for text in data[\"reference\"]]\ndata\n# In[11]:\nwer = jiwer.wer(list(data[\"reference_clean\"]), list(data[\"hypothesis_clean\"]))\nprint(f\"WER: {wer * 100:.2f} %\")",
+        "type": "code",
+        "location": "/notebooks/LibriSpeech.py:94-142"
+    },
+    "81": {
+        "file_id": 7,
+        "content": "This code uses the Whisper library to transcribe audio data (in mel spectrogram format) and stores the transcriptions and corresponding references in a pandas DataFrame. It then applies an English text normalizer to clean up the transcriptions, calculates the Word Error Rate (WER), and prints it out.",
+        "type": "comment"
+    },
+    "82": {
+        "file_id": 8,
+        "content": "/notebooks/Multilingual_ASR.py",
+        "type": "filepath"
+    },
+    "83": {
+        "file_id": 8,
+        "content": "The code performs package installation, handles tar files and audio/transcriptions, trains language models using Whisper methods for transcription and translation, stores results in lists, generates DataFrame output, ensures font availability, and accurately displays text across languages. It processes first 10 dataset examples to generate logits, attention weights, and aligns audio signal with tokens, displaying word-level timestamps and segmented words using a notebook.",
+        "type": "summary"
+    },
+    "84": {
+        "file_id": 8,
+        "content": "#!/usr/bin/env python\n# coding: utf-8\n# # Installing Whisper\n# \n# The commands below will install the Python packages needed to use Whisper models and evaluate the transcription results.\n# In[1]:\nget_ipython().system(' pip install git+https://github.com/openai/whisper.git')\n# In[2]:\nimport io\nimport os\nimport numpy as np\ntry:\n    import tensorflow  # required in Colab to avoid protobuf compatibility issues\nexcept ImportError:\n    pass\nimport torch\nimport pandas as pd\nimport urllib\nimport tarfile\nimport whisper\nimport torchaudio\nfrom scipy.io import wavfile\nfrom tqdm.notebook import tqdm\npd.options.display.max_rows = 100\npd.options.display.max_colwidth = 1000\nDEVICE = \"cuda\" if torch.cuda.is_available() else \"cpu\"\n# # Loading the Fleurs dataset\n# \n# Select the language of the Fleur dataset to download. Please note that the transcription and translation performance varies widely depending on the language. Appendix D.2 in the paper contains the performance breakdown by language.\n# In[3]:\nimport ipywidgets as widgets\nla",
+        "type": "code",
+        "location": "/notebooks/Multilingual_ASR.py:1-51"
+    },
+    "85": {
+        "file_id": 8,
+        "content": "The code is installing the Whisper package and loading the Fleurs dataset. It is written in Python, requires TensorFlow, TorchAudio, and Scipy libraries, and uses widgets from ipywidgets library for user interaction. The language of the Fleur dataset can be selected by the user.",
+        "type": "comment"
+    },
+    "86": {
+        "file_id": 8,
+        "content": "nguages = {\"af_za\": \"Afrikaans\", \"am_et\": \"Amharic\", \"ar_eg\": \"Arabic\", \"as_in\": \"Assamese\", \"az_az\": \"Azerbaijani\", \"be_by\": \"Belarusian\", \"bg_bg\": \"Bulgarian\", \"bn_in\": \"Bengali\", \"bs_ba\": \"Bosnian\", \"ca_es\": \"Catalan\", \"cmn_hans_cn\": \"Chinese\", \"cs_cz\": \"Czech\", \"cy_gb\": \"Welsh\", \"da_dk\": \"Danish\", \"de_de\": \"German\", \"el_gr\": \"Greek\", \"en_us\": \"English\", \"es_419\": \"Spanish\", \"et_ee\": \"Estonian\", \"fa_ir\": \"Persian\", \"fi_fi\": \"Finnish\", \"fil_ph\": \"Tagalog\", \"fr_fr\": \"French\", \"gl_es\": \"Galician\", \"gu_in\": \"Gujarati\", \"ha_ng\": \"Hausa\", \"he_il\": \"Hebrew\", \"hi_in\": \"Hindi\", \"hr_hr\": \"Croatian\", \"hu_hu\": \"Hungarian\", \"hy_am\": \"Armenian\", \"id_id\": \"Indonesian\", \"is_is\": \"Icelandic\", \"it_it\": \"Italian\", \"ja_jp\": \"Japanese\", \"jv_id\": \"Javanese\", \"ka_ge\": \"Georgian\", \"kk_kz\": \"Kazakh\", \"km_kh\": \"Khmer\", \"kn_in\": \"Kannada\", \"ko_kr\": \"Korean\", \"lb_lu\": \"Luxembourgish\", \"ln_cd\": \"Lingala\", \"lo_la\": \"Lao\", \"lt_lt\": \"Lithuanian\", \"lv_lv\": \"Latvian\", \"mi_nz\": \"Maori\", \"mk_mk\": \"Macedonian\", \"ml_in\"",
+        "type": "code",
+        "location": "/notebooks/Multilingual_ASR.py:51-51"
+    },
+    "87": {
+        "file_id": 8,
+        "content": "This code defines a dictionary mapping language codes to their respective names.",
+        "type": "comment"
+    },
+    "88": {
+        "file_id": 8,
+        "content": ": \"Malayalam\", \"mn_mn\": \"Mongolian\", \"mr_in\": \"Marathi\", \"ms_my\": \"Malay\", \"mt_mt\": \"Maltese\", \"my_mm\": \"Myanmar\", \"nb_no\": \"Norwegian\", \"ne_np\": \"Nepali\", \"nl_nl\": \"Dutch\", \"oc_fr\": \"Occitan\", \"pa_in\": \"Punjabi\", \"pl_pl\": \"Polish\", \"ps_af\": \"Pashto\", \"pt_br\": \"Portuguese\", \"ro_ro\": \"Romanian\", \"ru_ru\": \"Russian\", \"sd_in\": \"Sindhi\", \"sk_sk\": \"Slovak\", \"sl_si\": \"Slovenian\", \"sn_zw\": \"Shona\", \"so_so\": \"Somali\", \"sr_rs\": \"Serbian\", \"sv_se\": \"Swedish\", \"sw_ke\": \"Swahili\", \"ta_in\": \"Tamil\", \"te_in\": \"Telugu\", \"tg_tj\": \"Tajik\", \"th_th\": \"Thai\", \"tr_tr\": \"Turkish\", \"uk_ua\": \"Ukrainian\", \"ur_pk\": \"Urdu\", \"uz_uz\": \"Uzbek\", \"vi_vn\": \"Vietnamese\", \"yo_ng\": \"Yoruba\"}\nselection = widgets.Dropdown(\n    options=[(\"Select language\", None), (\"----------\", None)] + sorted([(f\"{v} ({k})\", k) for k, v in languages.items()]),\n    value=\"ko_kr\",\n    description='Language:',\n    disabled=False,\n)\nselection\n# In[4]:\nlang = selection.value\nlanguage = languages[lang]\nassert lang is not None, \"Please select a language\"\nprint(f\"Selected language: {language} ({lang})\")",
+        "type": "code",
+        "location": "/notebooks/Multilingual_ASR.py:51-69"
+    },
+    "89": {
+        "file_id": 8,
+        "content": "The code creates a dropdown menu with language options, allows the user to select a language, and asserts that a language is selected before printing the chosen language.",
+        "type": "comment"
+    },
+    "90": {
+        "file_id": 8,
+        "content": "# In[5]:\ndef download(url: str, target_path: str):\n    with urllib.request.urlopen(url) as source, open(target_path, \"wb\") as output:\n        with tqdm(total=int(source.info().get(\"Content-Length\")), ncols=80, unit='iB', unit_scale=True, unit_divisor=1024) as loop:\n            while True:\n                buffer = source.read(8192)\n                if not buffer:\n                    break\n                output.write(buffer)\n                loop.update(len(buffer))\nclass Fleurs(torch.utils.data.Dataset):\n    \"\"\"\n    A simple class to wrap Fleurs and subsample a portion of the dataset as needed.\n    \"\"\"\n    def __init__(self, lang, split=\"test\", subsample_rate=1, device=DEVICE):\n        url = f\"https://storage.googleapis.com/xtreme_translations/FLEURS102/{lang}.tar.gz\"\n        tar_path = os.path.expanduser(f\"~/.cache/fleurs/{lang}.tgz\")\n        os.makedirs(os.path.dirname(tar_path), exist_ok=True)\n        if not os.path.exists(tar_path):\n            download(url, tar_path)\n        all_audio = {}\n        with tarfile.open(tar_path, \"r:gz\") as tar:",
+        "type": "code",
+        "location": "/notebooks/Multilingual_ASR.py:72-100"
+    },
+    "91": {
+        "file_id": 8,
+        "content": "This function `download` takes a URL and target path as parameters, downloads the file from the given URL to the specified target path.\nThe class `Fleurs` is a wrapper for the Fleurs dataset that allows for data subsampling and supports different languages. It initializes with language, split (train or test), subsample rate, and device.\nIt creates a download link and a target path for the file, ensures the necessary directory exists, and if the file doesn't exist, it calls the `download` function to download it.\nThe class also initializes an empty dictionary `all_audio` to store the dataset audios, opens the tar archive using `tarfile.open`, and proceeds with further operations.",
+        "type": "comment"
+    },
+    "92": {
+        "file_id": 8,
+        "content": "            for member in tar.getmembers():\n                name = member.name\n                if name.endswith(f\"{split}.tsv\"):\n                    labels = pd.read_table(tar.extractfile(member), names=(\"id\", \"file_name\", \"raw_transcription\", \"transcription\", \"_\", \"num_samples\", \"gender\"))\n                if f\"/{split}/\" in name and name.endswith(\".wav\"):\n                    audio_bytes = tar.extractfile(member).read()\n                    all_audio[os.path.basename(name)] = wavfile.read(io.BytesIO(audio_bytes))[1]                    \n        self.labels = labels.to_dict(\"records\")[::subsample_rate]\n        self.all_audio = all_audio\n        self.device = device\n    def __len__(self):\n        return len(self.labels)\n    def __getitem__(self, item):\n        record = self.labels[item]\n        audio = torch.from_numpy(self.all_audio[record[\"file_name\"]].copy())\n        text = record[\"transcription\"]\n        return (audio, text)\n# In[6]:\ndataset = Fleurs(lang, subsample_rate=10)  # subsample 10% of the dataset for a quick demo",
+        "type": "code",
+        "location": "/notebooks/Multilingual_ASR.py:101-128"
+    },
+    "93": {
+        "file_id": 8,
+        "content": "This code reads data from a tar file, extracts audio files and transcriptions, and creates a dataset for language model training.",
+        "type": "comment"
+    },
+    "94": {
+        "file_id": 8,
+        "content": "# # Running inference on the dataset using a medium Whisper model\n# \n# The following will take a few minutes to transcribe and translate utterances in the dataset.\n# In[7]:\nmodel = whisper.load_model(\"medium\")\nprint(\n    f\"Model is {'multilingual' if model.is_multilingual else 'English-only'} \"\n    f\"and has {sum(np.prod(p.shape) for p in model.parameters()):,} parameters.\"\n)\n# In[8]:\noptions = dict(language=language, beam_size=5, best_of=5)\ntranscribe_options = dict(task=\"transcribe\", **options)\ntranslate_options = dict(task=\"translate\", **options)\n# In[9]:\nreferences = []\ntranscriptions = []\ntranslations = []\nfor audio, text in tqdm(dataset):\n    transcription = model.transcribe(audio, **transcribe_options)[\"text\"]\n    translation = model.transcribe(audio, **translate_options)[\"text\"]\n    transcriptions.append(transcription)\n    translations.append(translation)\n    references.append(text)\n# In[10]:\ndata = pd.DataFrame(dict(reference=references, transcription=transcriptions, translation=translations))\ndata\n# # Word-level timestamps using attention weights",
+        "type": "code",
+        "location": "/notebooks/Multilingual_ASR.py:131-176"
+    },
+    "95": {
+        "file_id": 8,
+        "content": "Loading a medium Whisper model and printing its properties, transcribing and translating audio files from the dataset using multilingual or English-only options, storing transcriptions and translations in lists, creating a pandas DataFrame with the results.",
+        "type": "comment"
+    },
+    "96": {
+        "file_id": 8,
+        "content": "# \n# Below, we use the cross-attention weights to determine more granular, word-level timestamps. It uses a set of heuristics and dynamic time warping (DTW) to find the alignment between the audio and the transcript.\n# In[11]:\nget_ipython().system(' pip install dtw-python')\n# In[12]:\nimport string\nimport matplotlib.pyplot as plt\nimport matplotlib.font_manager as fm\nimport matplotlib.ticker as ticker\nfrom IPython.display import display, HTML\nfrom whisper.tokenizer import get_tokenizer\nfrom dtw import dtw\nfrom scipy.ndimage import median_filter\nget_ipython().run_line_magic('matplotlib', 'inline')\nget_ipython().run_line_magic('config', 'InlineBackend.figure_format = \"retina\"')\n# In[13]:\nAUDIO_SAMPLES_PER_TOKEN = whisper.audio.HOP_LENGTH * 2\nAUDIO_TIME_PER_TOKEN = AUDIO_SAMPLES_PER_TOKEN / whisper.audio.SAMPLE_RATE\nmedfilt_width = 7\nqk_scale = 1.0\ntokenizer = get_tokenizer(model.is_multilingual, language=languages[lang])\n# In[14]:\n# This part downloads a repackaged version of the Noto Sans font (either CJK or non-CJK)",
+        "type": "code",
+        "location": "/notebooks/Multilingual_ASR.py:177-218"
+    },
+    "97": {
+        "file_id": 8,
+        "content": "The code is downloading a repackaged version of the Noto Sans font, likely for use in displaying text. This ensures that the text can be displayed correctly across different languages and character sets.",
+        "type": "comment"
+    },
+    "98": {
+        "file_id": 8,
+        "content": "# to render various languages in Matplotlib figures.\nif languages[lang] in {\"Chinese\", \"Japanese\", \"Korean\"}:\n    font = \"GoNotoCJKCore.ttf\"\nelse:\n    font = \"GoNotoCurrent.ttf\"\nfont_release = \"https://github.com/satbyy/go-noto-universal/releases/download/v5.2\"\nif not os.path.exists(font):\n    download(f\"{font_release}/{font}\", font)\nprop = fm.FontProperties(fname=font)\nprops = {'fontproperties': prop}\n# In[15]:\ndef split_tokens_on_unicode(tokens: torch.Tensor):\n    words = []\n    word_tokens = []\n    current_tokens = []\n    for token in tokens.tolist():\n        current_tokens.append(token)\n        decoded = tokenizer.decode_with_timestamps(current_tokens)\n        if \"\\ufffd\" not in decoded:\n            words.append(decoded)\n            word_tokens.append(current_tokens)\n            current_tokens = []\n    return words, word_tokens\n# In[16]:\ndef split_tokens_on_spaces(tokens: torch.Tensor):\n    subwords, subword_tokens_list = split_tokens_on_unicode(tokens)\n    words = []\n    word_tokens = []\n    for subword, subword_tokens in zip(subwords, subword_tokens_list):",
+        "type": "code",
+        "location": "/notebooks/Multilingual_ASR.py:219-261"
+    },
+    "99": {
+        "file_id": 8,
+        "content": "This code handles text rendering for various languages in Matplotlib figures and defines two functions for splitting tokens into words based on unicode or spaces. It downloads the necessary font if it doesn't exist, and then returns the words and corresponding token lists from a given set of tokens.",
+        "type": "comment"
+    }
+}

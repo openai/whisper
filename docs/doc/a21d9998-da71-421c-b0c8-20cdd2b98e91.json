@@ -1,0 +1,10 @@
+{
+    "summary": "This test function checks if the audio loading and log mel spectrogram calculation is correct. It tests if the audio's shape, sample rate, and standard deviation are within expected ranges, verifies that the calculated mel spectrograms from audio file and directly from audio are equal, and ensures that the max-min difference of the mel spectrogram is less than or equal to 2.0.",
+    "details": [
+        {
+            "comment": "This test function checks if the audio loading and log mel spectrogram calculation is correct. It tests if the audio's shape, sample rate, and standard deviation are within expected ranges, verifies that the calculated mel spectrograms from audio file and directly from audio are equal, and ensures that the max-min difference of the mel spectrogram is less than or equal to 2.0.",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/tests/test_audio.py\":0-18",
+            "content": "import os.path\nimport numpy as np\nfrom whisper.audio import SAMPLE_RATE, load_audio, log_mel_spectrogram\ndef test_audio():\n    audio_path = os.path.join(os.path.dirname(__file__), \"jfk.flac\")\n    audio = load_audio(audio_path)\n    assert audio.ndim == 1\n    assert SAMPLE_RATE * 10 < audio.shape[0] < SAMPLE_RATE * 12\n    assert 0 < audio.std() < 1\n    mel_from_audio = log_mel_spectrogram(audio)\n    mel_from_file = log_mel_spectrogram(audio_path)\n    assert np.allclose(mel_from_audio, mel_from_file)\n    assert mel_from_audio.max() - mel_from_audio.min() <= 2.0"
+        }
+    ]
+}

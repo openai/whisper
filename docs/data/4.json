@@ -1,0 +1,372 @@
+{
+    "400": {
+        "file_id": 24,
+        "content": "                        if (\n                            line_len > 0\n                            and has_room\n                            and not long_pause\n                            and not seg_break\n                        ):\n                            # line continuation\n                            line_len += len(timing[\"word\"])\n                        else:\n                            # new line\n                            timing[\"word\"] = timing[\"word\"].strip()\n                            if (\n                                len(subtitle) > 0\n                                and max_line_count is not None\n                                and (long_pause or line_count >= max_line_count)\n                                or seg_break\n                            ):\n                                # subtitle break\n                                yield subtitle\n                                subtitle = []\n                                line_count = 1\n                            elif line_len > 0:\n                                # line break",
+        "type": "code",
+        "location": "/whisper/utils.py:164-186"
+    },
+    "401": {
+        "file_id": 24,
+        "content": "If line length > 0, has room, not a long pause, and not a segment break, increment line_len with word length. Otherwise, strip timing[\"word\"], check if subtitle is not empty, max line count not None, long pause or at max lines count, or segment break. If true, yield the subtitle and reset subtitle, line count to 1. Else, break the line",
+        "type": "comment"
+    },
+    "402": {
+        "file_id": 24,
+        "content": "                                line_count += 1\n                                timing[\"word\"] = \"\\n\" + timing[\"word\"]\n                            line_len = len(timing[\"word\"].strip())\n                        subtitle.append(timing)\n                        last = timing[\"start\"]\n                    chunk_index += max_words_per_line\n            if len(subtitle) > 0:\n                yield subtitle\n        if len(result[\"segments\"]) > 0 and \"words\" in result[\"segments\"][0]:\n            for subtitle in iterate_subtitles():\n                subtitle_start = self.format_timestamp(subtitle[0][\"start\"])\n                subtitle_end = self.format_timestamp(subtitle[-1][\"end\"])\n                subtitle_text = \"\".join([word[\"word\"] for word in subtitle])\n                if highlight_words:\n                    last = subtitle_start\n                    all_words = [timing[\"word\"] for timing in subtitle]\n                    for i, this_word in enumerate(subtitle):\n                        start = self.format_timestamp(this_word[\"start\"])",
+        "type": "code",
+        "location": "/whisper/utils.py:187-205"
+    },
+    "403": {
+        "file_id": 24,
+        "content": "Iterating through subtitles and yielding each one, formatting start and end timestamps.",
+        "type": "comment"
+    },
+    "404": {
+        "file_id": 24,
+        "content": "                        end = self.format_timestamp(this_word[\"end\"])\n                        if last != start:\n                            yield last, start, subtitle_text\n                        yield start, end, \"\".join(\n                            [\n                                re.sub(r\"^(\\s*)(.*)$\", r\"\\1<u>\\2</u>\", word)\n                                if j == i\n                                else word\n                                for j, word in enumerate(all_words)\n                            ]\n                        )\n                        last = end\n                else:\n                    yield subtitle_start, subtitle_end, subtitle_text\n        else:\n            for segment in result[\"segments\"]:\n                segment_start = self.format_timestamp(segment[\"start\"])\n                segment_end = self.format_timestamp(segment[\"end\"])\n                segment_text = segment[\"text\"].strip().replace(\"-->\", \"->\")\n                yield segment_start, segment_end, segment_text\n    def format_timestamp(self, seconds: float):",
+        "type": "code",
+        "location": "/whisper/utils.py:206-228"
+    },
+    "405": {
+        "file_id": 24,
+        "content": "Iterates through subtitle data and formats start/end times for display. Applies underline formatting to specified words within the text. Yields segment start/end times with corresponding texts for display.",
+        "type": "comment"
+    },
+    "406": {
+        "file_id": 24,
+        "content": "        return format_timestamp(\n            seconds=seconds,\n            always_include_hours=self.always_include_hours,\n            decimal_marker=self.decimal_marker,\n        )\nclass WriteVTT(SubtitlesWriter):\n    extension: str = \"vtt\"\n    always_include_hours: bool = False\n    decimal_marker: str = \".\"\n    def write_result(\n        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n    ):\n        print(\"WEBVTT\\n\", file=file)\n        for start, end, text in self.iterate_result(result, options, **kwargs):\n            print(f\"{start} --> {end}\\n{text}\\n\", file=file, flush=True)\nclass WriteSRT(SubtitlesWriter):\n    extension: str = \"srt\"\n    always_include_hours: bool = True\n    decimal_marker: str = \",\"\n    def write_result(\n        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n    ):\n        for i, (start, end, text) in enumerate(\n            self.iterate_result(result, options, **kwargs), start=1\n        ):\n            print(f\"{i}\\n{start} --> {end}\\n{text}\\n\", file=file, flush=True)",
+        "type": "code",
+        "location": "/whisper/utils.py:229-260"
+    },
+    "407": {
+        "file_id": 24,
+        "content": "utils.py:228-259 defines two classes WriteVTT and WriteSRT, which inherit from the SubtitlesWriter class. Both classes have a write_result method that writes subtitle information in either VTT or SRT format to the specified file. The write_result method iterates over the result dictionary using the iterate_result method and prints formatted start, end, and text lines for each subtitle. WriteVTT has always_include_hours=False and decimal_marker=\".\" while WriteSRT has always_include_hours=True and decimal_marker=\",\"",
+        "type": "comment"
+    },
+    "408": {
+        "file_id": 24,
+        "content": "class WriteTSV(ResultWriter):\n    \"\"\"\n    Write a transcript to a file in TSV (tab-separated values) format containing lines like:\n    <start time in integer milliseconds>\\t<end time in integer milliseconds>\\t<transcript text>\n    Using integer milliseconds as start and end times means there's no chance of interference from\n    an environment setting a language encoding that causes the decimal in a floating point number\n    to appear as a comma; also is faster and more efficient to parse & store, e.g., in C++.\n    \"\"\"\n    extension: str = \"tsv\"\n    def write_result(\n        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n    ):\n        print(\"start\", \"end\", \"text\", sep=\"\\t\", file=file)\n        for segment in result[\"segments\"]:\n            print(round(1000 * segment[\"start\"]), file=file, end=\"\\t\")\n            print(round(1000 * segment[\"end\"]), file=file, end=\"\\t\")\n            print(segment[\"text\"].strip().replace(\"\\t\", \" \"), file=file, flush=True)\nclass WriteJSON(ResultWriter):",
+        "type": "code",
+        "location": "/whisper/utils.py:263-285"
+    },
+    "409": {
+        "file_id": 24,
+        "content": "This code defines two classes, `WriteTSV` and `WriteJSON`, both of which inherit from the `ResultWriter` class. The `WriteTSV` class is responsible for writing transcripts to a file in TSV format. It takes a dictionary `result` as input along with an optional `options` dictionary. It prints each segment's start time, end time, and text to the file separated by tabs.\n\nThe `WriteJSON` class, on the other hand, writes the result as JSON format. Both classes implement the `write_result()` method which takes in a `result` dictionary, a `file` object to write to, an optional `options` dictionary, and any additional keyword arguments.\n\nIn summary: Code defines two ResultWriter subclasses (WriteTSV, WriteJSON) for writing transcripts to files in TSV and JSON format respectively.",
+        "type": "comment"
+    },
+    "410": {
+        "file_id": 24,
+        "content": "    extension: str = \"json\"\n    def write_result(\n        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n    ):\n        json.dump(result, file)\ndef get_writer(\n    output_format: str, output_dir: str\n) -> Callable[[dict, TextIO, dict], None]:\n    writers = {\n        \"txt\": WriteTXT,\n        \"vtt\": WriteVTT,\n        \"srt\": WriteSRT,\n        \"tsv\": WriteTSV,\n        \"json\": WriteJSON,\n    }\n    if output_format == \"all\":\n        all_writers = [writer(output_dir) for writer in writers.values()]\n        def write_all(\n            result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n        ):\n            for writer in all_writers:\n                writer(result, file, options, **kwargs)\n        return write_all\n    return writers[output_format](output_dir)",
+        "type": "code",
+        "location": "/whisper/utils.py:286-316"
+    },
+    "411": {
+        "file_id": 24,
+        "content": "The code defines a function `write_result` that writes a dictionary to a file in JSON format. It also provides a `get_writer` function that returns a writer function based on the output format specified (either a specific format or \"all\" for all available formats). If \"all\" is specified, it creates a writer function that can write files in all supported formats.",
+        "type": "comment"
+    },
+    "412": {
+        "file_id": 25,
+        "content": "/whisper/version.py",
+        "type": "filepath"
+    },
+    "413": {
+        "file_id": 25,
+        "content": "This code sets the version number for the \"whisper\" library to \"20231117\".",
+        "type": "summary"
+    },
+    "414": {
+        "file_id": 25,
+        "content": "__version__ = \"20231117\"",
+        "type": "code",
+        "location": "/whisper/version.py:1-1"
+    },
+    "415": {
+        "file_id": 25,
+        "content": "This code sets the version number for the \"whisper\" library to \"20231117\".",
+        "type": "comment"
+    },
+    "416": {
+        "file_id": 26,
+        "content": "/whisper/normalizers/__init__.py",
+        "type": "filepath"
+    },
+    "417": {
+        "file_id": 26,
+        "content": "Importing BasicTextNormalizer and EnglishTextNormalizer from respective modules.",
+        "type": "summary"
+    },
+    "418": {
+        "file_id": 26,
+        "content": "from .basic import BasicTextNormalizer as BasicTextNormalizer\nfrom .english import EnglishTextNormalizer as EnglishTextNormalizer",
+        "type": "code",
+        "location": "/whisper/normalizers/__init__.py:1-2"
+    },
+    "419": {
+        "file_id": 26,
+        "content": "Importing BasicTextNormalizer and EnglishTextNormalizer from respective modules.",
+        "type": "comment"
+    },
+    "420": {
+        "file_id": 27,
+        "content": "/whisper/normalizers/basic.py",
+        "type": "filepath"
+    },
+    "421": {
+        "file_id": 27,
+        "content": "The code normalizes text by removing symbols, punctuation, and diacritics using NFKD normalization. It keeps specified characters and splits letters if instructed while also dropping words within brackets or parentheses.",
+        "type": "summary"
+    },
+    "422": {
+        "file_id": 27,
+        "content": "import re\nimport unicodedata\nimport regex\n# non-ASCII letters that are not separated by \"NFKD\" normalization\nADDITIONAL_DIACRITICS = {\n    \"œ\": \"oe\",\n    \"Œ\": \"OE\",\n    \"ø\": \"o\",\n    \"Ø\": \"O\",\n    \"æ\": \"ae\",\n    \"Æ\": \"AE\",\n    \"ß\": \"ss\",\n    \"ẞ\": \"SS\",\n    \"đ\": \"d\",\n    \"Đ\": \"D\",\n    \"ð\": \"d\",\n    \"Ð\": \"D\",\n    \"þ\": \"th\",\n    \"Þ\": \"th\",\n    \"ł\": \"l\",\n    \"Ł\": \"L\",\n}\ndef remove_symbols_and_diacritics(s: str, keep=\"\"):\n    \"\"\"\n    Replace any other markers, symbols, and punctuations with a space,\n    and drop any diacritics (category 'Mn' and some manual mappings)\n    \"\"\"\n    return \"\".join(\n        c\n        if c in keep\n        else ADDITIONAL_DIACRITICS[c]\n        if c in ADDITIONAL_DIACRITICS\n        else \"\"\n        if unicodedata.category(c) == \"Mn\"\n        else \" \"\n        if unicodedata.category(c)[0] in \"MSP\"\n        else c\n        for c in unicodedata.normalize(\"NFKD\", s)\n    )\ndef remove_symbols(s: str):\n    \"\"\"\n    Replace any other markers, symbols, punctuations with a space, keeping diacritics\n    \"\"\"\n    return \"\".join(",
+        "type": "code",
+        "location": "/whisper/normalizers/basic.py:1-50"
+    },
+    "423": {
+        "file_id": 27,
+        "content": "This code defines functions to remove symbols, punctuations, and diacritics from a string. It first normalizes the input string using \"NFKD\" normalization, then replaces non-ASCII letters with their ASCII equivalents, keeps specified characters, and removes other markers, symbols, and punctuations by replacing them with spaces. The \"remove_symbols_and_diacritics\" function also drops diacritics in addition to the symbol processing.",
+        "type": "comment"
+    },
+    "424": {
+        "file_id": 27,
+        "content": "        \" \" if unicodedata.category(c)[0] in \"MSP\" else c\n        for c in unicodedata.normalize(\"NFKC\", s)\n    )\nclass BasicTextNormalizer:\n    def __init__(self, remove_diacritics: bool = False, split_letters: bool = False):\n        self.clean = (\n            remove_symbols_and_diacritics if remove_diacritics else remove_symbols\n        )\n        self.split_letters = split_letters\n    def __call__(self, s: str):\n        s = s.lower()\n        s = re.sub(r\"[<\\[][^>\\]]*[>\\]]\", \"\", s)  # remove words between brackets\n        s = re.sub(r\"\\(([^)]+?)\\)\", \"\", s)  # remove words between parenthesis\n        s = self.clean(s).lower()\n        if self.split_letters:\n            s = \" \".join(regex.findall(r\"\\X\", s, regex.U))\n        s = re.sub(\n            r\"\\s+\", \" \", s\n        )  # replace any successive whitespace characters with a space\n        return s",
+        "type": "code",
+        "location": "/whisper/normalizers/basic.py:51-76"
+    },
+    "425": {
+        "file_id": 27,
+        "content": "This code is a text normalizer that removes symbols, diacritics, and splits letters if specified. It also removes words between brackets and parentheses, and replaces successive whitespace characters with a single space.",
+        "type": "comment"
+    },
+    "426": {
+        "file_id": 28,
+        "content": "/whisper/normalizers/english.py",
+        "type": "filepath"
+    },
+    "427": {
+        "file_id": 28,
+        "content": "The EnglishNumberNormalizer class handles spelled-out numbers and applies normalization functions for conversions, while the code contains two classes: \"EnglishSpellingNormalizer\" and \"EnglishTextNormalizer,\" which apply regular expressions to standardize spellings and adjust whitespace in text.",
+        "type": "summary"
+    },
+    "428": {
+        "file_id": 28,
+        "content": "import json\nimport os\nimport re\nfrom fractions import Fraction\nfrom typing import Iterator, List, Match, Optional, Union\nfrom more_itertools import windowed\nfrom .basic import remove_symbols_and_diacritics\nclass EnglishNumberNormalizer:\n    \"\"\"\n    Convert any spelled-out numbers into arabic numbers, while handling:\n    - remove any commas\n    - keep the suffixes such as: `1960s`, `274th`, `32nd`, etc.\n    - spell out currency symbols after the number. e.g. `$20 million` -> `20000000 dollars`\n    - spell out `one` and `ones`\n    - interpret successive single-digit numbers as nominal: `one oh one` -> `101`\n    \"\"\"\n    def __init__(self):\n        super().__init__()\n        self.zeros = {\"o\", \"oh\", \"zero\"}\n        self.ones = {\n            name: i\n            for i, name in enumerate(\n                [\n                    \"one\",\n                    \"two\",\n                    \"three\",\n                    \"four\",\n                    \"five\",\n                    \"six\",\n                    \"seven\",\n                    \"eight\",",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:1-38"
+    },
+    "429": {
+        "file_id": 28,
+        "content": "EnglishNumberNormalizer class definition with properties for handling various spelled-out numbers and currency symbols.",
+        "type": "comment"
+    },
+    "430": {
+        "file_id": 28,
+        "content": "                    \"nine\",\n                    \"ten\",\n                    \"eleven\",\n                    \"twelve\",\n                    \"thirteen\",\n                    \"fourteen\",\n                    \"fifteen\",\n                    \"sixteen\",\n                    \"seventeen\",\n                    \"eighteen\",\n                    \"nineteen\",\n                ],\n                start=1,\n            )\n        }\n        self.ones_plural = {\n            \"sixes\" if name == \"six\" else name + \"s\": (value, \"s\")\n            for name, value in self.ones.items()\n        }\n        self.ones_ordinal = {\n            \"zeroth\": (0, \"th\"),\n            \"first\": (1, \"st\"),\n            \"second\": (2, \"nd\"),\n            \"third\": (3, \"rd\"),\n            \"fifth\": (5, \"th\"),\n            \"twelfth\": (12, \"th\"),\n            **{\n                name + (\"h\" if name.endswith(\"t\") else \"th\"): (value, \"th\")\n                for name, value in self.ones.items()\n                if value > 3 and value != 5 and value != 12\n            },\n        }\n        self.ones_suffixed = {**self.ones_plural, **self.ones_ordinal}",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:39-71"
+    },
+    "431": {
+        "file_id": 28,
+        "content": "This code is defining various mappings for numbers 1-20, including plural form, ordinal form, and suffixed forms. It handles exceptions for specific numbers like \"twelfth\" with a suffix \"th\". The final result is a dictionary of these different number variations called \"ones_suffixed\".",
+        "type": "comment"
+    },
+    "432": {
+        "file_id": 28,
+        "content": "        self.tens = {\n            \"twenty\": 20,\n            \"thirty\": 30,\n            \"forty\": 40,\n            \"fifty\": 50,\n            \"sixty\": 60,\n            \"seventy\": 70,\n            \"eighty\": 80,\n            \"ninety\": 90,\n        }\n        self.tens_plural = {\n            name.replace(\"y\", \"ies\"): (value, \"s\") for name, value in self.tens.items()\n        }\n        self.tens_ordinal = {\n            name.replace(\"y\", \"ieth\"): (value, \"th\")\n            for name, value in self.tens.items()\n        }\n        self.tens_suffixed = {**self.tens_plural, **self.tens_ordinal}\n        self.multipliers = {\n            \"hundred\": 100,\n            \"thousand\": 1_000,\n            \"million\": 1_000_000,\n            \"billion\": 1_000_000_000,\n            \"trillion\": 1_000_000_000_000,\n            \"quadrillion\": 1_000_000_000_000_000,\n            \"quintillion\": 1_000_000_000_000_000_000,\n            \"sextillion\": 1_000_000_000_000_000_000_000,\n            \"septillion\": 1_000_000_000_000_000_000_000_000,\n            \"octillion\": 1_000_000_000_000_000_000_000_000_000,",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:73-102"
+    },
+    "433": {
+        "file_id": 28,
+        "content": "The code defines various number normalizations for English language. It includes tens, tens plural, tens ordinal and multipliers as dictionaries to handle different number representations in text.",
+        "type": "comment"
+    },
+    "434": {
+        "file_id": 28,
+        "content": "            \"nonillion\": 1_000_000_000_000_000_000_000_000_000_000,\n            \"decillion\": 1_000_000_000_000_000_000_000_000_000_000_000,\n        }\n        self.multipliers_plural = {\n            name + \"s\": (value, \"s\") for name, value in self.multipliers.items()\n        }\n        self.multipliers_ordinal = {\n            name + \"th\": (value, \"th\") for name, value in self.multipliers.items()\n        }\n        self.multipliers_suffixed = {\n            **self.multipliers_plural,\n            **self.multipliers_ordinal,\n        }\n        self.decimals = {*self.ones, *self.tens, *self.zeros}\n        self.preceding_prefixers = {\n            \"minus\": \"-\",\n            \"negative\": \"-\",\n            \"plus\": \"+\",\n            \"positive\": \"+\",\n        }\n        self.following_prefixers = {\n            \"pound\": \"£\",\n            \"pounds\": \"£\",\n            \"euro\": \"€\",\n            \"euros\": \"€\",\n            \"dollar\": \"$\",\n            \"dollars\": \"$\",\n            \"cent\": \"¢\",\n            \"cents\": \"¢\",\n        }\n        self.prefixes = set(",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:103-134"
+    },
+    "435": {
+        "file_id": 28,
+        "content": "This code defines various prefixes and multipliers for English numbers. It creates dictionaries for plural, ordinal, and suffixed forms of the numbers. The code also includes a dictionary for decimal values and separate dictionaries for preceding and following prefixes like currency symbols. Finally, it defines a set of prefixes used in the code.",
+        "type": "comment"
+    },
+    "436": {
+        "file_id": 28,
+        "content": "            list(self.preceding_prefixers.values())\n            + list(self.following_prefixers.values())\n        )\n        self.suffixers = {\n            \"per\": {\"cent\": \"%\"},\n            \"percent\": \"%\",\n        }\n        self.specials = {\"and\", \"double\", \"triple\", \"point\"}\n        self.words = set(\n            [\n                key\n                for mapping in [\n                    self.zeros,\n                    self.ones,\n                    self.ones_suffixed,\n                    self.tens,\n                    self.tens_suffixed,\n                    self.multipliers,\n                    self.multipliers_suffixed,\n                    self.preceding_prefixers,\n                    self.following_prefixers,\n                    self.suffixers,\n                    self.specials,\n                ]\n                for key in mapping\n            ]\n        )\n        self.literal_words = {\"one\", \"ones\"}\n    def process_words(self, words: List[str]) -> Iterator[str]:\n        prefix: Optional[str] = None\n        value: Optional[Union[str, int]] = None",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:135-167"
+    },
+    "437": {
+        "file_id": 28,
+        "content": "The code defines a class with various mappings and sets of words. It initializes instance variables for preceding and following prefixers, suffixes, special words, and literal words. The process_words method takes a list of words as input and returns an iterator of processed strings.",
+        "type": "comment"
+    },
+    "438": {
+        "file_id": 28,
+        "content": "        skip = False\n        def to_fraction(s: str):\n            try:\n                return Fraction(s)\n            except ValueError:\n                return None\n        def output(result: Union[str, int]):\n            nonlocal prefix, value\n            result = str(result)\n            if prefix is not None:\n                result = prefix + result\n            value = None\n            prefix = None\n            return result\n        if len(words) == 0:\n            return\n        for prev, current, next in windowed([None] + words + [None], 3):\n            if skip:\n                skip = False\n                continue\n            next_is_numeric = next is not None and re.match(r\"^\\d+(\\.\\d+)?$\", next)\n            has_prefix = current[0] in self.prefixes\n            current_without_prefix = current[1:] if has_prefix else current\n            if re.match(r\"^\\d+(\\.\\d+)?$\", current_without_prefix):\n                # arabic numbers (potentially with signs and fractions)\n                f = to_fraction(current_without_prefix)",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:168-198"
+    },
+    "439": {
+        "file_id": 28,
+        "content": "This code defines functions for normalizing English text. It checks if the current word is a number and handles fractions, skips over words marked as \"skip\", and processes words with or without prefixes.",
+        "type": "comment"
+    },
+    "440": {
+        "file_id": 28,
+        "content": "                assert f is not None\n                if value is not None:\n                    if isinstance(value, str) and value.endswith(\".\"):\n                        # concatenate decimals / ip address components\n                        value = str(value) + str(current)\n                        continue\n                    else:\n                        yield output(value)\n                prefix = current[0] if has_prefix else prefix\n                if f.denominator == 1:\n                    value = f.numerator  # store integers as int\n                else:\n                    value = current_without_prefix\n            elif current not in self.words:\n                # non-numeric words\n                if value is not None:\n                    yield output(value)\n                yield output(current)\n            elif current in self.zeros:\n                value = str(value or \"\") + \"0\"\n            elif current in self.ones:\n                ones = self.ones[current]\n                if value is None:\n                    value = ones",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:199-224"
+    },
+    "441": {
+        "file_id": 28,
+        "content": "This code is handling various cases of number normalization. It checks if the value is a string ending with \".\", concatenates decimals/IP address components, handles numeric and non-numeric words, zeros, and ones.",
+        "type": "comment"
+    },
+    "442": {
+        "file_id": 28,
+        "content": "                elif isinstance(value, str) or prev in self.ones:\n                    if (\n                        prev in self.tens and ones < 10\n                    ):  # replace the last zero with the digit\n                        assert value[-1] == \"0\"\n                        value = value[:-1] + str(ones)\n                    else:\n                        value = str(value) + str(ones)\n                elif ones < 10:\n                    if value % 10 == 0:\n                        value += ones\n                    else:\n                        value = str(value) + str(ones)\n                else:  # eleven to nineteen\n                    if value % 100 == 0:\n                        value += ones\n                    else:\n                        value = str(value) + str(ones)\n            elif current in self.ones_suffixed:\n                # ordinal or cardinal; yield the number right away\n                ones, suffix = self.ones_suffixed[current]\n                if value is None:\n                    yield output(str(ones) + suffix)",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:225-247"
+    },
+    "443": {
+        "file_id": 28,
+        "content": "This code snippet is part of a normalizer function for the English language. It handles different cases to convert numbers into spoken words, including handling tens and ones place values, as well as cardinal or ordinal numbers. If the previous number had a \"0\" at the end and the one's digit is less than 10, it replaces the last zero with the digit. If the one's digit is less than 10 but the current value is not ending in a zero, it concatenates the string representation of the current value and the ones. If the one's digit is 11 to 19, it appends the ones digit if the current value is divisible by 100 or simply concatenates the string representation of the current value and the ones. If the current number is in the 'ones_suffixed' list, it yields the number with the appropriate suffix.",
+        "type": "comment"
+    },
+    "444": {
+        "file_id": 28,
+        "content": "                elif isinstance(value, str) or prev in self.ones:\n                    if prev in self.tens and ones < 10:\n                        assert value[-1] == \"0\"\n                        yield output(value[:-1] + str(ones) + suffix)\n                    else:\n                        yield output(str(value) + str(ones) + suffix)\n                elif ones < 10:\n                    if value % 10 == 0:\n                        yield output(str(value + ones) + suffix)\n                    else:\n                        yield output(str(value) + str(ones) + suffix)\n                else:  # eleven to nineteen\n                    if value % 100 == 0:\n                        yield output(str(value + ones) + suffix)\n                    else:\n                        yield output(str(value) + str(ones) + suffix)\n                value = None\n            elif current in self.tens:\n                tens = self.tens[current]\n                if value is None:\n                    value = tens\n                elif isinstance(value, str):",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:248-269"
+    },
+    "445": {
+        "file_id": 28,
+        "content": "This code snippet is handling the conversion of numbers to words in English. It checks if the number is a multiple of 10, and handles values from 11 to 19, 20 to 29, etc., separately. It also deals with cases where the value is a string or a single digit number (ones place).",
+        "type": "comment"
+    },
+    "446": {
+        "file_id": 28,
+        "content": "                    value = str(value) + str(tens)\n                else:\n                    if value % 100 == 0:\n                        value += tens\n                    else:\n                        value = str(value) + str(tens)\n            elif current in self.tens_suffixed:\n                # ordinal or cardinal; yield the number right away\n                tens, suffix = self.tens_suffixed[current]\n                if value is None:\n                    yield output(str(tens) + suffix)\n                elif isinstance(value, str):\n                    yield output(str(value) + str(tens) + suffix)\n                else:\n                    if value % 100 == 0:\n                        yield output(str(value + tens) + suffix)\n                    else:\n                        yield output(str(value) + str(tens) + suffix)\n            elif current in self.multipliers:\n                multiplier = self.multipliers[current]\n                if value is None:\n                    value = multiplier\n                elif isinstance(value, str) or value == 0:",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:270-292"
+    },
+    "447": {
+        "file_id": 28,
+        "content": "This code is part of a normalizer for the English language. It handles converting numbers into words based on their position and value. The code checks if the number has a specific digit and adds the corresponding suffix or multiplies by a specific factor depending on the context.",
+        "type": "comment"
+    },
+    "448": {
+        "file_id": 28,
+        "content": "                    f = to_fraction(value)\n                    p = f * multiplier if f is not None else None\n                    if f is not None and p.denominator == 1:\n                        value = p.numerator\n                    else:\n                        yield output(value)\n                        value = multiplier\n                else:\n                    before = value // 1000 * 1000\n                    residual = value % 1000\n                    value = before + residual * multiplier\n            elif current in self.multipliers_suffixed:\n                multiplier, suffix = self.multipliers_suffixed[current]\n                if value is None:\n                    yield output(str(multiplier) + suffix)\n                elif isinstance(value, str):\n                    f = to_fraction(value)\n                    p = f * multiplier if f is not None else None\n                    if f is not None and p.denominator == 1:\n                        yield output(str(p.numerator) + suffix)\n                    else:",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:293-313"
+    },
+    "449": {
+        "file_id": 28,
+        "content": "This code is used for normalizing English text by converting numbers and their corresponding units to a specific format. It checks the current unit, applies multipliers if necessary, and handles fractions and suffixes appropriately. The output is yielded as a formatted string.",
+        "type": "comment"
+    },
+    "450": {
+        "file_id": 28,
+        "content": "                        yield output(value)\n                        yield output(str(multiplier) + suffix)\n                else:  # int\n                    before = value // 1000 * 1000\n                    residual = value % 1000\n                    value = before + residual * multiplier\n                    yield output(str(value) + suffix)\n                value = None\n            elif current in self.preceding_prefixers:\n                # apply prefix (positive, minus, etc.) if it precedes a number\n                if value is not None:\n                    yield output(value)\n                if next in self.words or next_is_numeric:\n                    prefix = self.preceding_prefixers[current]\n                else:\n                    yield output(current)\n            elif current in self.following_prefixers:\n                # apply prefix (dollars, cents, etc.) only after a number\n                if value is not None:\n                    prefix = self.following_prefixers[current]\n                    yield output(value)",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:314-335"
+    },
+    "451": {
+        "file_id": 28,
+        "content": "This code is responsible for handling the formatting of numbers and appending appropriate suffixes, prefixes or postfixes based on the English language normalization rules. It also takes care of multiplication, preceding and following prefixes application to ensure proper number formatting as per the rules defined in the self.preceding_prefixers and self.following_prefixers dictionaries.",
+        "type": "comment"
+    },
+    "452": {
+        "file_id": 28,
+        "content": "                else:\n                    yield output(current)\n            elif current in self.suffixers:\n                # apply suffix symbols (percent -> '%')\n                if value is not None:\n                    suffix = self.suffixers[current]\n                    if isinstance(suffix, dict):\n                        if next in suffix:\n                            yield output(str(value) + suffix[next])\n                            skip = True\n                        else:\n                            yield output(value)\n                            yield output(current)\n                    else:\n                        yield output(str(value) + suffix)\n                else:\n                    yield output(current)\n            elif current in self.specials:\n                if next not in self.words and not next_is_numeric:\n                    # apply special handling only if the next word can be numeric\n                    if value is not None:\n                        yield output(value)\n                    yield output(current)",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:336-358"
+    },
+    "453": {
+        "file_id": 28,
+        "content": "Applies suffix symbols (e.g., percent -> '%'), special handling to words, and yields output based on conditions.",
+        "type": "comment"
+    },
+    "454": {
+        "file_id": 28,
+        "content": "                elif current == \"and\":\n                    # ignore \"and\" after hundreds, thousands, etc.\n                    if prev not in self.multipliers:\n                        if value is not None:\n                            yield output(value)\n                        yield output(current)\n                elif current == \"double\" or current == \"triple\":\n                    if next in self.ones or next in self.zeros:\n                        repeats = 2 if current == \"double\" else 3\n                        ones = self.ones.get(next, 0)\n                        value = str(value or \"\") + str(ones) * repeats\n                        skip = True\n                    else:\n                        if value is not None:\n                            yield output(value)\n                        yield output(current)\n                elif current == \"point\":\n                    if next in self.decimals or next_is_numeric:\n                        value = str(value or \"\") + \".\"\n                else:\n                    # should all have been covered at this point",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:359-379"
+    },
+    "455": {
+        "file_id": 28,
+        "content": "This code is responsible for normalizing English text and handles specific conditions such as \"and\", \"double\", \"triple\", and \"point\". It processes the text based on the context of previous and next characters, handles numbers with multipliers, repeats values based on the keyword provided, adds a decimal point when appropriate, and ignores certain keywords if they are not in the correct context.",
+        "type": "comment"
+    },
+    "456": {
+        "file_id": 28,
+        "content": "                    raise ValueError(f\"Unexpected token: {current}\")\n            else:\n                # all should have been covered at this point\n                raise ValueError(f\"Unexpected token: {current}\")\n        if value is not None:\n            yield output(value)\n    def preprocess(self, s: str):\n        # replace \"<number> and a half\" with \"<number> point five\"\n        results = []\n        segments = re.split(r\"\\band\\s+a\\s+half\\b\", s)\n        for i, segment in enumerate(segments):\n            if len(segment.strip()) == 0:\n                continue\n            if i == len(segments) - 1:\n                results.append(segment)\n            else:\n                results.append(segment)\n                last_word = segment.rsplit(maxsplit=2)[-1]\n                if last_word in self.decimals or last_word in self.multipliers:\n                    results.append(\"point five\")\n                else:\n                    results.append(\"and a half\")\n        s = \" \".join(results)\n        # put a space at number/letter boundary",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:380-408"
+    },
+    "457": {
+        "file_id": 28,
+        "content": "This code replaces the phrase \"<number> and a half\" with \"<number> point five\" in the given string. It does this by splitting the input string using regular expressions, then rejoining the modified segments with spaces.",
+        "type": "comment"
+    },
+    "458": {
+        "file_id": 28,
+        "content": "        s = re.sub(r\"([a-z])([0-9])\", r\"\\1 \\2\", s)\n        s = re.sub(r\"([0-9])([a-z])\", r\"\\1 \\2\", s)\n        # but remove spaces which could be a suffix\n        s = re.sub(r\"([0-9])\\s+(st|nd|rd|th|s)\\b\", r\"\\1\\2\", s)\n        return s\n    def postprocess(self, s: str):\n        def combine_cents(m: Match):\n            try:\n                currency = m.group(1)\n                integer = m.group(2)\n                cents = int(m.group(3))\n                return f\"{currency}{integer}.{cents:02d}\"\n            except ValueError:\n                return m.string\n        def extract_cents(m: Match):\n            try:\n                return f\"¢{int(m.group(1))}\"\n            except ValueError:\n                return m.string\n        # apply currency postprocessing; \"$2 and ¢7\" -> \"$2.07\"\n        s = re.sub(r\"([€£$])([0-9]+) (?:and )?¢([0-9]{1,2})\\b\", combine_cents, s)\n        s = re.sub(r\"[€£$]0.([0-9]{1,2})\\b\", extract_cents, s)\n        # write \"one(s)\" instead of \"1(s)\", just for the readability\n        s = re.sub(r\"\\b1(s?)\\b\", r\"one\\1\", s)",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:409-438"
+    },
+    "459": {
+        "file_id": 28,
+        "content": "This code is using regular expressions to normalize and process text. It separates numbers and currency, handles ordinal numbers, and replaces single digits with their English word representation for readability.",
+        "type": "comment"
+    },
+    "460": {
+        "file_id": 28,
+        "content": "        return s\n    def __call__(self, s: str):\n        s = self.preprocess(s)\n        s = \" \".join(word for word in self.process_words(s.split()) if word is not None)\n        s = self.postprocess(s)\n        return s\nclass EnglishSpellingNormalizer:\n    \"\"\"\n    Applies British-American spelling mappings as listed in [1].\n    [1] https://www.tysto.com/uk-us-spelling-list.html\n    \"\"\"\n    def __init__(self):\n        mapping_path = os.path.join(os.path.dirname(__file__), \"english.json\")\n        self.mapping = json.load(open(mapping_path))\n    def __call__(self, s: str):\n        return \" \".join(self.mapping.get(word, word) for word in s.split())\nclass EnglishTextNormalizer:\n    def __init__(self):\n        self.ignore_patterns = r\"\\b(hmm|mm|mhm|mmm|uh|um)\\b\"\n        self.replacers = {\n            # common contractions\n            r\"\\bwon't\\b\": \"will not\",\n            r\"\\bcan't\\b\": \"can not\",\n            r\"\\blet's\\b\": \"let us\",\n            r\"\\bain't\\b\": \"aint\",\n            r\"\\by'all\\b\": \"you all\",\n            r\"\\bwanna\\b\": \"want to\",",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:440-475"
+    },
+    "461": {
+        "file_id": 28,
+        "content": "Class \"EnglishSpellingNormalizer\" applies British-American spelling mappings from a JSON file.\nClass \"EnglishTextNormalizer\" normalizes English text by ignoring certain patterns and replacing common contractions.",
+        "type": "comment"
+    },
+    "462": {
+        "file_id": 28,
+        "content": "            r\"\\bgotta\\b\": \"got to\",\n            r\"\\bgonna\\b\": \"going to\",\n            r\"\\bi'ma\\b\": \"i am going to\",\n            r\"\\bimma\\b\": \"i am going to\",\n            r\"\\bwoulda\\b\": \"would have\",\n            r\"\\bcoulda\\b\": \"could have\",\n            r\"\\bshoulda\\b\": \"should have\",\n            r\"\\bma'am\\b\": \"madam\",\n            # contractions in titles/prefixes\n            r\"\\bmr\\b\": \"mister \",\n            r\"\\bmrs\\b\": \"missus \",\n            r\"\\bst\\b\": \"saint \",\n            r\"\\bdr\\b\": \"doctor \",\n            r\"\\bprof\\b\": \"professor \",\n            r\"\\bcapt\\b\": \"captain \",\n            r\"\\bgov\\b\": \"governor \",\n            r\"\\bald\\b\": \"alderman \",\n            r\"\\bgen\\b\": \"general \",\n            r\"\\bsen\\b\": \"senator \",\n            r\"\\brep\\b\": \"representative \",\n            r\"\\bpres\\b\": \"president \",\n            r\"\\brev\\b\": \"reverend \",\n            r\"\\bhon\\b\": \"honorable \",\n            r\"\\basst\\b\": \"assistant \",\n            r\"\\bassoc\\b\": \"associate \",\n            r\"\\blt\\b\": \"lieutenant \",\n            r\"\\bcol\\b\": \"colonel \",",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:476-502"
+    },
+    "463": {
+        "file_id": 28,
+        "content": "This code is defining a list of regular expressions that represent common English contractions and abbreviations. These include phrases like \"gotta\", \"going to\", \"would have\", \"could have\", etc., as well as titles and prefixes such as \"mister\", \"missus\", \"doctor\", etc. The code appears to be part of a natural language processing or text normalization system, where these contractions and abbreviations will likely be expanded or normalized for some purpose.",
+        "type": "comment"
+    },
+    "464": {
+        "file_id": 28,
+        "content": "            r\"\\bjr\\b\": \"junior \",\n            r\"\\bsr\\b\": \"senior \",\n            r\"\\besq\\b\": \"esquire \",\n            # prefect tenses, ideally it should be any past participles, but it's harder..\n            r\"'d been\\b\": \" had been\",\n            r\"'s been\\b\": \" has been\",\n            r\"'d gone\\b\": \" had gone\",\n            r\"'s gone\\b\": \" has gone\",\n            r\"'d done\\b\": \" had done\",  # \"'s done\" is ambiguous\n            r\"'s got\\b\": \" has got\",\n            # general contractions\n            r\"n't\\b\": \" not\",\n            r\"'re\\b\": \" are\",\n            r\"'s\\b\": \" is\",\n            r\"'d\\b\": \" would\",\n            r\"'ll\\b\": \" will\",\n            r\"'t\\b\": \" not\",\n            r\"'ve\\b\": \" have\",\n            r\"'m\\b\": \" am\",\n        }\n        self.standardize_numbers = EnglishNumberNormalizer()\n        self.standardize_spellings = EnglishSpellingNormalizer()\n    def __call__(self, s: str):\n        s = s.lower()\n        s = re.sub(r\"[<\\[][^>\\]]*[>\\]]\", \"\", s)  # remove words between brackets\n        s = re.sub(r\"\\(([^)]+?)\\)\", \"\", s)  # remove words between parenthesis",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:503-530"
+    },
+    "465": {
+        "file_id": 28,
+        "content": "This code defines a normalizer for English language text. It uses regular expressions to replace specific patterns, such as contractions and past participles, with their full forms. It also removes words within brackets and parentheses before returning the processed string.",
+        "type": "comment"
+    },
+    "466": {
+        "file_id": 28,
+        "content": "        s = re.sub(self.ignore_patterns, \"\", s)\n        s = re.sub(r\"\\s+'\", \"'\", s)  # when there's a space before an apostrophe\n        for pattern, replacement in self.replacers.items():\n            s = re.sub(pattern, replacement, s)\n        s = re.sub(r\"(\\d),(\\d)\", r\"\\1\\2\", s)  # remove commas between digits\n        s = re.sub(r\"\\.([^0-9]|$)\", r\" \\1\", s)  # remove periods not followed by numbers\n        s = remove_symbols_and_diacritics(s, keep=\".%$¢€£\")  # keep numeric symbols\n        s = self.standardize_numbers(s)\n        s = self.standardize_spellings(s)\n        # now remove prefix/suffix symbols that are not preceded/followed by numbers\n        s = re.sub(r\"[.$¢€£]([^0-9])\", r\" \\1\", s)\n        s = re.sub(r\"([^0-9])%\", r\"\\1 \", s)\n        s = re.sub(r\"\\s+\", \" \", s)  # replace any successive whitespaces with a space\n        return s",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:531-550"
+    },
+    "467": {
+        "file_id": 28,
+        "content": "Code normalizes English text by removing special characters, standardizing numbers and spellings, and adjusting whitespace.",
+        "type": "comment"
+    }
+}

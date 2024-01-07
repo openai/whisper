@@ -1,0 +1,15 @@
+{
+    "summary": "The code tests the Whisper AI model's transcription functionality on an audio file, checking language, text matching, tokenizer output, and valid timing for words. It asserts the tokenizer starts with \"<|0.00||>\", verifies timings for words, and ensures at least one timing was checked.",
+    "details": [
+        {
+            "comment": "This code is testing the transcription functionality of the Whisper AI model on a given audio file (jfk.flac). It checks if the detected language is English, if the transcribed text matches the expected segments, and if the decoded tokens match the final text output.",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/tests/test_transcribe.py\":0-29",
+            "content": "import os\nimport pytest\nimport torch\nimport whisper\nfrom whisper.tokenizer import get_tokenizer\n@pytest.mark.parametrize(\"model_name\", whisper.available_models())\ndef test_transcribe(model_name: str):\n    device = \"cuda\" if torch.cuda.is_available() else \"cpu\"\n    model = whisper.load_model(model_name).to(device)\n    audio_path = os.path.join(os.path.dirname(__file__), \"jfk.flac\")\n    language = \"en\" if model_name.endswith(\".en\") else None\n    result = model.transcribe(\n        audio_path, language=language, temperature=0.0, word_timestamps=True\n    )\n    assert result[\"language\"] == \"en\"\n    assert result[\"text\"] == \"\".join([s[\"text\"] for s in result[\"segments\"]])\n    transcription = result[\"text\"].lower()\n    assert \"my fellow americans\" in transcription\n    assert \"your country\" in transcription\n    assert \"do for you\" in transcription\n    tokenizer = get_tokenizer(model.is_multilingual, num_languages=model.num_languages)\n    all_tokens = [t for s in result[\"segments\"] for t in s[\"tokens\"]]\n    assert tokenizer.decode(all_tokens) == result[\"text\"]"
+        },
+        {
+            "comment": "This code asserts that the decoded tokens from the tokenizer start with \"<|0.00||>\". It then checks if each timing in the result has a valid start and end time, specifically for the word \"Americans\" it ensures the start time is less than 1.8 and the end time is greater than or equal to 1.8. Finally, it asserts that at least one timing was checked.",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/tests/test_transcribe.py\":30-41",
+            "content": "    assert tokenizer.decode_with_timestamps(all_tokens).startswith(\"<|0.00|>\")\n    timing_checked = False\n    for segment in result[\"segments\"]:\n        for timing in segment[\"words\"]:\n            assert timing[\"start\"] < timing[\"end\"]\n            if timing[\"word\"].strip(\" ,\") == \"Americans\":\n                assert timing[\"start\"] <= 1.8\n                assert timing[\"end\"] >= 1.8\n                timing_checked = True\n    assert timing_checked"
+        }
+    ]
+}

@@ -1,0 +1,10 @@
+{
+    "summary": "This code specifies the required Python packages for the project. These include Numba, NumPy, PyTorch, Tqdm, More-Itertools, and Tiktoken. Additionally, it requires Triton version greater than or equal to 2.0.0 but less than 3, only on Linux platforms (x86_64 or linux2).",
+    "details": [
+        {
+            "comment": "This code specifies the required Python packages for the project. These include Numba, NumPy, PyTorch, Tqdm, More-Itertools, and Tiktoken. Additionally, it requires Triton version greater than or equal to 2.0.0 but less than 3, only on Linux platforms (x86_64 or linux2).",
+            "location": "\"/media/root/Toshiba XG3/works/whisper/docs/src/requirements.txt\":0-6",
+            "content": "numba\nnumpy\ntorch\ntqdm\nmore-itertools\ntiktoken\ntriton>=2.0.0,<3;platform_machine==\"x86_64\" and sys_platform==\"linux\" or sys_platform==\"linux2\""
+        }
+    ]
+}
