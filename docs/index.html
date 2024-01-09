@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- TODO: add debug flag to pop up alert window when error occurs -->
 
 <head>
     <meta charset="UTF-8">
@@ -395,6 +396,7 @@
         // const RESULT_LIMIT = 50;
         const progressOverlay = document.getElementById('progress-overlay');
         const progressBar = document.querySelector('.progress');
+        var isDebugMode = false;
         function navigateToPage(base_filepath, language_id, project_id, detail_filepath = "") {
             // Use a relative path to navigate to a specific page
             let page_param = "codeview.html";
@@ -580,7 +582,7 @@
                     const field = result.field; // "content"
                     const ids = result.result;
                     ids.forEach(id => {
-                        id = id-0 // to integer.
+                        id = id - 0 // to integer.
                         const data_type = data[id].type;
                         const file_id = data[id].file_id;
                         if (searchResultItems[file_id] === undefined) {
@@ -722,7 +724,20 @@
                             hasInputEvent = false;
                             if (!isSearchRunning) {
                                 isSearchRunning = true;
-                                searchInputEventListener();
+                                try {
+                                    searchInputEventListener();
+                                } catch (error) {
+                                    // Print exception info
+                                    console.error(error);
+                                    if (isDebugMode) {
+                                        // Show alert window in debug mode
+                                        console.log(error.message);
+                                        alert("An error occurred when searching: " + error.message);
+                                    } else {
+                                        // Raise exception when not in debug mode
+                                        throw error;
+                                    }
+                                }
                                 isSearchRunning = false;
                             }
                         }
@@ -752,6 +767,8 @@
                 const queryParams = getQueryParams(window.location.search);
                 const query_from_url = queryParams.q;
                 const file_path_from_url = queryParams.file;
+                isDebugMode = queryParams.debug == 'true';
+                if (isDebugMode){console.log("You are in debug mode.")}
                 if (query_from_url != null || query_from_url != undefined) {
                     setTextAndTriggerInputEvent(query_from_url)
                 } else if (file_path_from_url != null || file_path_from_url != undefined) {

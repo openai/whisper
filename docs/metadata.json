@@ -7,12 +7,12 @@
         "0": {
             "filepath": "/CHANGELOG.md",
             "entry_id": 0,
-            "language_id": "markdown"
+            "language_id": "plain-text"
         },
         "1": {
             "filepath": "/README.md",
             "entry_id": 14,
-            "language_id": "markdown"
+            "language_id": "plain-text"
         },
         "2": {
             "filepath": "/model-card.md",
@@ -37,7 +37,7 @@
         "6": {
             "filepath": "/data/README.md",
             "entry_id": 60,
-            "language_id": "plain-text"
+            "language_id": "markdown"
         },
         "7": {
             "filepath": "/notebooks/LibriSpeech.py",
