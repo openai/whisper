@@ -388,7 +388,23 @@
                 const h1_element = document.getElementById('code-path');
                 // h1_element.textContent = code_path.slice('src/'.length);
                 // debugger;
-                h1_element.textContent = project_name + "/" + code_path.slice('src/'.length);
+                // let mycodepath = project_name + "/" + code_path.slice('src/'.length);
+                // `?full=true#${manchor}`
+                let myhtml = `<a href="tree.html?full=true#/">${project_name}</a>`;
+                let myslices = code_path.slice('src/'.length).split('/')
+                // debugger;
+                let accpath = ""
+                for (let i in myslices) {
+                    s = myslices[i];
+                    accpath += ("/" + s)
+                    var maccpath = accpath
+                    if (i != (myslices.length - 1)) {
+                        maccpath = accpath + "/"
+                    }
+                    myhtml += `/<a href="tree.html?full=true#${maccpath}">${s}</a>`
+                }
+
+                h1_element.innerHTML = myhtml;
                 pre_elem.className = `language-${language}`
                 pre_elem.id = "mycode";
                 pre_elem.setAttribute("data-src", code_path);
@@ -413,7 +429,7 @@
         }());
     </script>
     <style>
-/* 
+        /* 
         html, body{
             background-color: transparent;
         } */
