@@ -107,9 +107,13 @@
     </style>
     <link href="https://cdn.jsdelivr.net/npm/prismjs@v1.x/themes/prism.css" rel="stylesheet" />
     <style>
-        code {
+        /* code {
             white-space: pre-wrap !important;
-        }
+        } */
+
+        /* html, body{
+            max-width: 980px;
+        } */
 
         #progress-overlay {
             position: fixed;
@@ -240,15 +244,20 @@
             .search-container {
                 display: flex;
                 border: 1px solid #ccc;
+                /* justify-content: space-between; */
+                /* flex-direction: column; */
+                /* align-items: flex-start; */
             }
 
             .left-half {
-                flex: 0.7;
+                flex: 1;
+                /* align-self: stretch; */
                 overflow-x: auto;
             }
 
             .right-half {
-                flex: 1.3;
+                flex: 1;
+                /* align-self: stretch; */
                 overflow-x: auto;
             }
 
@@ -378,7 +387,8 @@
 
 
 <body>
-
+<div>
+    <!-- <div style="max-width: 980px; margin:0 auto;"> -->
     <div id="progress-overlay">
         <div id="progress-bar">
             <div class="progress"></div>
@@ -606,10 +616,13 @@
                             const pair_id = ((data_type === "code") ? id : (id - 1));
                             if (searchResultItems[file_id].pairs[pair_id] === undefined) {
                                 // console.log(pair_id, pair_id+1, data_type, data[pair_id].location)
-                                let mit = { "left": data[pair_id].content, "right": data[pair_id + 1].content, "location": data[pair_id].location }
+                                let mit = { "left": data[pair_id].content, "right": data[pair_id + 1].content, "location": data[pair_id].location, "hit": [data_type] }
                                 // let mit = { "left": data[pair_id].content, "right": data[pair_id - 1].content, "location": data[pair_id].location }
                                 // console.log(mit)
                                 searchResultItems[file_id].pairs[pair_id] = mit;
+                            }
+                            else {
+                                searchResultItems[file_id].pairs[pair_id].hit.push(data_type)
                             }
                         }
                         // listItem.textContent = `[${field}][${data_type}] ${data[id][field]}`;
@@ -660,7 +673,9 @@
                         code_location_p.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)},  ${JSON.stringify(project_id)}, ${JSON.stringify(pair.location)})`)
 
                         pair_left.appendChild(code_location_p);
+                        // const comment_p = document.createElement('pre');
                         const comment_p = document.createElement('p');
+                        comment_p.setAttribute('style', 'white-space: pre-line;');
                         comment_p.innerHTML = (pair.right);
                         pair_left.appendChild(comment_p);
 
@@ -678,7 +693,9 @@
                         pair_right.appendChild(code_pre);
 
                         pair_container.appendChild(pair_right);
-                        pair_container.appendChild(pair_left);
+                        pair_container.appendChild(pair_left); // comment
+                        // if (pair.hit.indexOf("code") != -1) {
+                        // }// code
                         //pair_container.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)}, ${JSON.stringify(pair.location)})`)
                         item.appendChild(pair_container);
                     }
@@ -791,6 +808,7 @@
         }
         async_main()
     </script>
+    </div>
 </body>
 
 
