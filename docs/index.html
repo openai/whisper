@@ -107,6 +107,10 @@
     </style>
     <link href="https://cdn.jsdelivr.net/npm/prismjs@v1.x/themes/prism.css" rel="stylesheet" />
     <style>
+        code {
+            white-space: pre-wrap !important;
+        }
+
         #progress-overlay {
             position: fixed;
             top: 0;
@@ -238,9 +242,13 @@
                 border: 1px solid #ccc;
             }
 
-            .left-half,
+            .left-half {
+                flex: 0.7;
+                overflow-x: auto;
+            }
+
             .right-half {
-                flex: 1;
+                flex: 1.3;
                 overflow-x: auto;
             }
 
@@ -768,7 +776,7 @@
                 const query_from_url = queryParams.q;
                 const file_path_from_url = queryParams.file;
                 isDebugMode = queryParams.debug == 'true';
-                if (isDebugMode){console.log("You are in debug mode.")}
+                if (isDebugMode) { console.log("You are in debug mode.") }
                 if (query_from_url != null || query_from_url != undefined) {
                     setTextAndTriggerInputEvent(query_from_url)
                 } else if (file_path_from_url != null || file_path_from_url != undefined) {
