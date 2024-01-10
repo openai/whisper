@@ -7,7 +7,7 @@
         "0": {
             "filepath": "/CHANGELOG.md",
             "entry_id": 0,
-            "language_id": "markdown"
+            "language_id": "plain-text"
         },
         "1": {
             "filepath": "/README.md",

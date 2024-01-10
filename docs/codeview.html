@@ -9,10 +9,20 @@
         href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-code-square' viewBox='0 0 16 16'%3E%3Cpath d='M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z'/%3E%3Cpath d='M6.854 4.646a.5.5 0 0 1 0 .708L4.207 8l2.647 2.646a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 0 1 .708 0zm2.292 0a.5.5 0 0 0 0 .708L11.793 8l-2.647 2.646a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708 0z'/%3E%3C/svg%3E"
         type="image/svg+xml">
     <title>Code View</title>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css">
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script> -->
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script> -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.css"
+        data-noprefix />
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
 
     <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-highlight/prism-line-highlight.css">
@@ -191,6 +201,8 @@
                         });
 
                         // if the line-numbers plugin is enabled, then there is no reason for this plugin to display the line numbers
+
+                        // TODO: fix line wrapping problem.
                         if (hasLineNumbers && Prism.plugins.lineNumbers) {
                             var startNode = Prism.plugins.lineNumbers.getLine(pre, start);
                             var endNode = Prism.plugins.lineNumbers.getLine(pre, end);
@@ -289,6 +301,7 @@
 
                 var id = hash.slice(0, hash.lastIndexOf('.'));
                 var pre = document.getElementById(id);
+                // if (pre.classList.contains("wrap_pre")){return}
 
                 if (!pre) {
                     return;
@@ -361,6 +374,13 @@
                 const loaded = pre_elem.getAttribute('data-src-status');
                 if (loaded == "loaded") {
                     applyHash();
+                    // Prism.highlightElement(pre_elem);
+
+                    // Prism.highlightAll()
+                    // pre_elem.classList.add("wrap_pre");
+                    // setTimeout(() => {pre_elem.classList.add("wrap_pre");}, 1000);
+
+                    // pre_elem.style.whiteSpace="pre-wrap !important";
                 } else {
                     setTimeout(conditionalApplyHash, 500)
                 }
@@ -405,12 +425,30 @@
                 }
 
                 h1_element.innerHTML = myhtml;
-                pre_elem.className = `language-${language}`
+                // pre_elem.className = `language-${language}`
                 pre_elem.id = "mycode";
-                pre_elem.setAttribute("data-src", code_path);
+                const code_elem = document.createElement('code');
+                code_elem.className = `language-${language}`
+                var xhr = new XMLHttpRequest();
+                xhr.open('GET', code_path, false); // The third parameter is set to false for synchronous request
+                xhr.send(null);
+                code_elem.textContent = xhr.responseText;
+                pre_elem.appendChild(code_elem);
+                // pre_elem.setAttribute("data-src", code_path);
                 section_elem.appendChild(pre_elem)
-                Prism.highlightElement(pre_elem);
-                conditionalApplyHash();
+                // Prism.highlightAllUnder(pre_elem);
+                Prism.highlightAllUnder(document.getElementById("code-div"));
+                // Prism.highlightAllUnder(document.getElementById("code-section"));
+                if (window.location.hash != "") {
+                    // conditionalApplyHash();
+                    applyHash();
+                } else {
+                    // Prism.highlightAll();
+                    // Prism.highlightElement(pre_elem);
+
+                    // setTimeout(() => {pre_elem.classList.add("wrap_pre");}, 1000);
+                    // pre_elem.style.whiteSpace="pre-wrap !important";
+                }
                 // applyHash();
                 // Prism.highlightElement(pre_elem, () => {applyHash()});
                 // Prism.highlightElement(pre_elem).then(applyHash);
@@ -468,7 +506,20 @@
             /* white-space: pre-wrap; */
             /* Enable vertical scrolling if content exceeds viewport height */
         }
-        code {
+
+        .line-highlight {
+            background-color: rgba(228, 239, 12, 0.07) !important;
+            /* z-index:-10; */
+        }
+
+        /* do this after jump */
+        /* .line-highlight {
+            background-color: rgba(0, 0, 0, 0) !important;
+            background-image: linear-gradient(to right, rgba(121, 96, 72, 0.1) 70%, rgba(121, 96, 72, 0)) !important;
+        } */
+
+        pre {
+            /* white-space: pre-line !important; */
             white-space: pre-wrap !important;
         }
 
@@ -528,14 +579,16 @@
     </style>
 </head>
 
-<body>
+<!-- <body> -->
+
+<body class="line-numbers">
     <header class="container" data-plugin-header="line-numbers">
         <p id="code-path" class="monospace-text">Code Preview</p>
-    </header>
+    </header><div id="code-div">
     <section id="code-section">
         <!-- <pre id="mycode" class="language-python" data-src="code_view_demo.py">
   </pre> -->
-    </section>
+    </section></div>
 </body>
 
 </html>
