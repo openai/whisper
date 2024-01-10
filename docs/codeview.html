@@ -432,7 +432,32 @@
                 var xhr = new XMLHttpRequest();
                 xhr.open('GET', code_path, false); // The third parameter is set to false for synchronous request
                 xhr.send(null);
-                code_elem.textContent = xhr.responseText;
+                if (xhr.status == 200) {
+                    code_elem.textContent = xhr.responseText;
+                } else {
+
+                    var xhr = new XMLHttpRequest();
+                    // TODO: mitigate this evil hack by passing more info of the original project.
+                    var newLink = `https://raw.githubusercontent.com/James4Ever0/${project_name}/main/docs/` + code_path
+                    xhr.open('GET', newLink, false); // The third parameter is set to false for synchronous request
+                    xhr.send(null);
+
+                    if (xhr.status == 200) {
+                        code_elem.textContent = xhr.responseText;
+                    } else {
+
+                        var xhr = new XMLHttpRequest();
+                        // TODO: mitigate this evil hack by passing more info of the original project.
+                        var newLink = `https://raw.githubusercontent.com/James4Ever0/${project_name}/master/docs/` + code_path
+                        xhr.open('GET', newLink, false); // The third parameter is set to false for synchronous request
+                        xhr.send(null);
+
+                        if (xhr.status == 200) {
+                            code_elem.textContent = xhr.responseText;
+                        } else { code_elem.textContent = "Failed to load code." }
+                    }
+                }
+
                 pre_elem.appendChild(code_elem);
                 // pre_elem.setAttribute("data-src", code_path);
                 section_elem.appendChild(pre_elem)
@@ -584,11 +609,13 @@
 <body class="line-numbers">
     <header class="container" data-plugin-header="line-numbers">
         <p id="code-path" class="monospace-text">Code Preview</p>
-    </header><div id="code-div">
-    <section id="code-section">
-        <!-- <pre id="mycode" class="language-python" data-src="code_view_demo.py">
+    </header>
+    <div id="code-div">
+        <section id="code-section">
+            <!-- <pre id="mycode" class="language-python" data-src="code_view_demo.py">
   </pre> -->
-    </section></div>
+        </section>
+    </div>
 </body>
 
 </html>
