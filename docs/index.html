@@ -189,6 +189,8 @@
             .right-half {
                 /*padding-left: 10px;*/
                 padding-right: 10px;
+                overflow-y:auto;
+                overflow-x:auto;
             }
 
             .left-half {
@@ -245,20 +247,27 @@
                 display: flex;
                 border: 1px solid #ccc;
                 /* justify-content: space-between; */
-                /* flex-direction: column; */
+                flex-direction: row;
+                height:min-content;
                 /* align-items: flex-start; */
             }
 
             .left-half {
                 flex: 1;
                 /* align-self: stretch; */
+                height: 100%;
                 overflow-x: auto;
+
+                /* overflow-y: auto; */
             }
 
             .right-half {
                 flex: 1;
+                /* height:100%; */
+
                 /* align-self: stretch; */
-                overflow-x: auto;
+                overflow-x:auto;
+                overflow-y:scroll;
             }
 
             .right-half {
@@ -294,7 +303,9 @@
 
         /* useless now */
         pre {
-            overflow-x: auto;
+            overflow-x:visible!important;
+            overflow-y:visible!important;
+            /* overflow-x: auto; */
             white-space: pre-wrap;
             white-space: -moz-pre-wrap;
             white-space: -pre-wrap;
@@ -387,427 +398,439 @@
 
 
 <body>
-<div>
-    <!-- <div style="max-width: 980px; margin:0 auto;"> -->
-    <div id="progress-overlay">
-        <div id="progress-bar">
-            <div class="progress"></div>
-        </div>
-    </div>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@v1.x/components/prism-core.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/prismjs@v1.x/plugins/autoloader/prism-autoloader.min.js"></script>
-    <header class="container">
-        <h2>Document Index<span class="repository-url"> of:
-                <span id="partial-repository-url"></span></span>
-            <div style="float: right;">
-                <a id="github-link" class="github-icon"><i class="fab fa-github"></i></a>
-                <a id="brief-link" href="tree.html"><i class="bi bi-text-right"></i></a>
+    <div>
+        <!-- <div style="max-width: 980px; margin:0 auto;"> -->
+        <div id="progress-overlay">
+            <div id="progress-bar">
+                <div class="progress"></div>
             </div>
-        </h2>
-        <!-- <div class="search-input-container"> -->
-        <input type="text" id="searchInput" placeholder="Search...">
-    </header>
-    <ul id="searchResults"></ul>
-    <script type="text/javascript" defer>
-        // TODO: paging
-        const RESULT_LIMIT = 15;
-        // const RESULT_LIMIT = 50;
-        const progressOverlay = document.getElementById('progress-overlay');
-        const progressBar = document.querySelector('.progress');
-        var isDebugMode = false;
-        function navigateToPage(base_filepath, language_id, project_id, detail_filepath = "") {
-            // Use a relative path to navigate to a specific page
-            let page_param = "codeview.html";
-            let file_param = 'src' + base_filepath;
-            file_param = encodeURIComponent(file_param);
-            let language_param = language_id
-            let jump_link = `${page_param}?file=${file_param}&language=${language_id}&project=${project_id}`;
-            if (detail_filepath !== "") {
-                let location_range = detail_filepath.slice(base_filepath.length + 1);
-                let location_param = `mycode.${location_range}`;
-                jump_link = `${jump_link}#${location_param}`;
-            }
-            window.location.href = jump_link;
-        }
-        /*async function waitForDOMContentLoaded() {
-            return new Promise(resolve => {
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', resolve);
-                } else {
-                    resolve();
+        </div>
+        <script src="https://cdn.jsdelivr.net/npm/prismjs@v1.x/components/prism-core.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/prismjs@v1.x/plugins/autoloader/prism-autoloader.min.js"></script>
+        <header class="container">
+            <h2>Document Index<span class="repository-url"> of:
+                    <span id="partial-repository-url"></span></span>
+                <div style="float: right;">
+                    <a id="github-link" class="github-icon"><i class="fab fa-github"></i></a>
+                    <a id="brief-link" href="tree.html"><i class="bi bi-text-right"></i></a>
+                </div>
+            </h2>
+            <!-- <div class="search-input-container"> -->
+            <input type="text" id="searchInput" placeholder="Search...">
+        </header>
+        <ul id="searchResults"></ul>
+        <script type="text/javascript" defer>
+            // TODO: paging
+            const RESULT_LIMIT = 15;
+            // const RESULT_LIMIT = 50;
+            const progressOverlay = document.getElementById('progress-overlay');
+            const progressBar = document.querySelector('.progress');
+            var isDebugMode = false;
+            function navigateToPage(base_filepath, language_id, project_id, detail_filepath = "") {
+                // Use a relative path to navigate to a specific page
+                let page_param = "codeview.html";
+                let file_param = 'src' + base_filepath;
+                file_param = encodeURIComponent(file_param);
+                let language_param = language_id
+                let jump_link = `${page_param}?file=${file_param}&language=${language_id}&project=${project_id}`;
+                if (detail_filepath !== "") {
+                    let location_range = detail_filepath.slice(base_filepath.length + 1);
+                    let location_param = `mycode.${location_range}`;
+                    jump_link = `${jump_link}#${location_param}`;
                 }
-            });
-        }
-        */
+                window.location.href = jump_link;
+            }
+            /*async function waitForDOMContentLoaded() {
+                return new Promise(resolve => {
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', resolve);
+                    } else {
+                        resolve();
+                    }
+                });
+            }
+            */
 
-        // Sample data for demonstration
-        // async function async_main() {
-        function async_main() {
+            // Sample data for demonstration
+            // async function async_main() {
+            function async_main() {
 
-            //const metadata_req = await fetch("metadata.json")// load from server
-            //const metadata = JSON.parse(await metadata_req.text())
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', "metadata.json", false); // The third parameter is set to false for synchronous request
-            xhr.send(null);
-            const metadata = JSON.parse(xhr.responseText);
-
-            const github_url = metadata.url.full;
-            const project_id = metadata.project_name;
-            const github_partial_url = metadata.url.partial;
-            const file_mapping = metadata.file_mapping
-            const split_count = metadata.split_count
-
-            var data_var = {}
-            for (let i = 0; i < split_count; i++) {
-                //let data_req = await fetch(`data/${i}.json`)// load from server
-                //let data_part = JSON.parse(await data_req.text())
-
+                //const metadata_req = await fetch("metadata.json")// load from server
+                //const metadata = JSON.parse(await metadata_req.text())
                 var xhr = new XMLHttpRequest();
-                xhr.open('GET', `data/${i}.json`, false); // The third parameter is set to false for synchronous request
+                xhr.open('GET', "metadata.json", false); // The third parameter is set to false for synchronous request
                 xhr.send(null);
-                let data_part = JSON.parse(xhr.responseText);
+                const metadata = JSON.parse(xhr.responseText);
 
-                //data_var = { ...data_part, ...data_var }
-                data_var = Object.assign(data_var, data_part)
-                const progressPercentage = ((i + 1) / split_count) * 100;
-                progressBar.style.width = `${progressPercentage}%`;
-            }
-            progressOverlay.style.display = 'none';
+                const github_url = metadata.url.full;
+                const project_id = metadata.project_name;
+                const github_partial_url = metadata.url.partial;
+                const file_mapping = metadata.file_mapping
+                const split_count = metadata.split_count
 
+                var data_var = {}
+                for (let i = 0; i < split_count; i++) {
+                    //let data_req = await fetch(`data/${i}.json`)// load from server
+                    //let data_part = JSON.parse(await data_req.text())
 
-            const data = data_var // obviously not constant.
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('GET', `data/${i}.json`, false); // The third parameter is set to false for synchronous request
+                    xhr.send(null);
+                    let data_part = JSON.parse(xhr.responseText);
 
-            const data_total_length = Object.keys(data).length;
-            // debugger
-            var sourceCodePaths_v = [];
-            var sourceCodeIndexRanges_v = {};
-            const file_total_count = Object.keys(file_mapping).length;
-            for (let i = 0; i < file_total_count; i++) {
-                sourceCodePaths_v.push(file_mapping[i].filepath)
-                const entry_left = file_mapping[i].entry_id
-                var entry_right;
-                if ((i + 1) > (file_total_count - 1)) {
-                    entry_right = data_total_length
+                    //data_var = { ...data_part, ...data_var }
+                    data_var = Object.assign(data_var, data_part)
+                    const progressPercentage = ((i + 1) / split_count) * 100;
+                    progressBar.style.width = `${progressPercentage}%`;
                 }
-                else {
-                    // console.log(i, i + 1, file_total_count)
-                    entry_right = file_mapping[i + 1].entry_id
-                }
-                if (entry_right == entry_left) {
-                    console.log(i, i + 1, file_total_count, entry_left, entry_right);
-                    debugger
-                }
-                sourceCodeIndexRanges_v[file_mapping[i].filepath] = {
-                    left: entry_left,
-                    right: entry_right
-                }
-            }
-            const sourceCodePaths = sourceCodePaths_v;
-            const sourceCodeIndexRanges = sourceCodeIndexRanges_v;
+                progressOverlay.style.display = 'none';
 
-            // Create a new FlexSearch instance with the required configuration
-            const doc = new FlexSearch.Document({
-                tokenize: "full",
-                document: {
-                    id: "id",
-                    index: ["content"]
-                }
-            });
 
-            // Add the data to the search index
-            Object.keys(data).forEach(id => {
-                doc.add(id, data[id]);
-            });
-            const englishSymbols = ["!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "\\", "]", "^", "_", "`", "{", "|", "}", "~"];
+                const data = data_var // obviously not constant.
 
-            function replaceAll(inputString, searchValue, replaceValue) {
-                return inputString.split(searchValue).join(replaceValue);
-            }
-            function getSubTerms(it) {
-                var m_str = it
-                for (const sym of englishSymbols) {
-                    m_str = replaceAll(m_str, sym, " ");
-                }
-                return m_str.split(" ");
-            }
-
-            const searchInputElem = document.getElementById('searchInput');
-            var isSearchRunning = false;
-            var hasInputEvent = false;
-            var lastInputEventTime = new Date().getTime();
-            function searchInputEventListener() {
-
-                function capitalizeFirstLetter(text) {
-                    return text.charAt(0).toUpperCase() + text.slice(1);
-                }
-                function mutateText(text) {
-                    var lowerText = text.toLowerCase()
-                    var upperText = text.toUpperCase()
-                    var lowerCapitalized = capitalizeFirstLetter(lowerText)
-                    return [text, lowerText, upperText, lowerCapitalized]
-                }
-
-                const searchTerm = searchInputElem.value;
-                const searchSubTerms = getSubTerms(searchTerm);
-                function getHighlightTerms(msubterms) {
-                    var ret = []
-                    for (var it of msubterms) {
-                        if (it.length > 0) {
-                            for (var mut of mutateText(it)) {
-                                if (ret.indexOf(mut) == -1) {
-                                    ret.push(mut);
-                                }
-                            }
-                        }
+                const data_total_length = Object.keys(data).length;
+                // debugger
+                var sourceCodePaths_v = [];
+                var sourceCodeIndexRanges_v = {};
+                const file_total_count = Object.keys(file_mapping).length;
+                for (let i = 0; i < file_total_count; i++) {
+                    sourceCodePaths_v.push(file_mapping[i].filepath)
+                    const entry_left = file_mapping[i].entry_id
+                    var entry_right;
+                    if ((i + 1) > (file_total_count - 1)) {
+                        entry_right = data_total_length
                     }
-                    return ret;
-                }
-
-                // Display the search results
-                const searchResults = document.getElementById('searchResults');
-                searchResults.innerHTML = '';
-                if (searchTerm.length == 0) { return }
-                var isFileSearch = false;
-
-                if (searchTerm.startsWith("/")) {
-                    if (sourceCodePaths.indexOf(searchTerm) != -1) { isFileSearch = true; }
-                }
-                var searchHighlightTerms;
-                var results;
-
-                if (isFileSearch) {
-                    searchHighlightTerms = [];
-                    const queryFileRange = sourceCodeIndexRanges[searchTerm];
-                    var results_v = [];
-                    var ids = []
-                    for (var i = queryFileRange.left; i < queryFileRange.right; i++) {
-                        ids.push(i);
+                    else {
+                        // console.log(i, i + 1, file_total_count)
+                        entry_right = file_mapping[i + 1].entry_id
                     }
-                    var it = { field: 'content', result: ids }
-                    results_v.push(it)
-                    results = results_v;
-                } else {
-                    searchHighlightTerms = getHighlightTerms(searchSubTerms);
-                    results = doc.search(searchTerm, RESULT_LIMIT); // Limiting to 5 results for demonstration
+                    if (entry_right == entry_left) {
+                        console.log(i, i + 1, file_total_count, entry_left, entry_right);
+                        debugger
+                    }
+                    sourceCodeIndexRanges_v[file_mapping[i].filepath] = {
+                        left: entry_left,
+                        right: entry_right
+                    }
                 }
-                // console.log(isFileSearch,results);
+                const sourceCodePaths = sourceCodePaths_v;
+                const sourceCodeIndexRanges = sourceCodeIndexRanges_v;
 
-                const detail_types = ["code", "comment"];
-
-                var searchResultItems = {};
-                var searchResultItemIds = [];
-                results.forEach(result => {
-                    const field = result.field; // "content"
-                    const ids = result.result;
-                    ids.forEach(id => {
-                        id = id - 0 // to integer.
-                        const data_type = data[id].type;
-                        const file_id = data[id].file_id;
-                        if (searchResultItems[file_id] === undefined) {
-                            searchResultItemIds.push(file_id);
-                            const file_metadata = file_mapping[file_id];
-                            const entry_id = file_metadata.entry_id;
-                            const summary = data[entry_id + 1].content;
-                            const filepath = file_metadata.filepath;
-                            const language_id = file_metadata.language_id;
-                            searchResultItems[file_id] = { "header": { "summary": summary, "filepath": filepath }, "pairs": {}, "language_id": language_id };
-                        }
-                        if (detail_types.indexOf(data_type) != -1) {
-                            const pair_id = ((data_type === "code") ? id : (id - 1));
-                            if (searchResultItems[file_id].pairs[pair_id] === undefined) {
-                                // console.log(pair_id, pair_id+1, data_type, data[pair_id].location)
-                                let mit = { "left": data[pair_id].content, "right": data[pair_id + 1].content, "location": data[pair_id].location, "hit": [data_type] }
-                                // let mit = { "left": data[pair_id].content, "right": data[pair_id - 1].content, "location": data[pair_id].location }
-                                // console.log(mit)
-                                searchResultItems[file_id].pairs[pair_id] = mit;
-                            }
-                            else {
-                                searchResultItems[file_id].pairs[pair_id].hit.push(data_type)
-                            }
-                        }
-                        // listItem.textContent = `[${field}][${data_type}] ${data[id][field]}`;
-                        // searchResults.appendChild(listItem);
-                    });
+                // Create a new FlexSearch instance with the required configuration
+                const doc = new FlexSearch.Document({
+                    tokenize: "full",
+                    document: {
+                        id: "id",
+                        index: ["content"]
+                    }
                 });
-                for (var file_id of searchResultItemIds) {
-                    const it = searchResultItems[file_id];
-                    const item = document.createElement('li');
-                    //const item = document.createElement('div');
-                    item.className = "searchItem";
-                    const search_header = document.createElement('div');
-                    search_header.className = "searchItemInfo";
-                    const location_p = document.createElement('p');
-                    location_p.className = "monospace-text codelink";
-                    location_p.innerHTML = (it.header.filepath.slice(1));
 
-                    location_p.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)}, ${JSON.stringify(project_id)})`)
-                    search_header.appendChild(location_p);
+                // Add the data to the search index
+                Object.keys(data).forEach(id => {
+                    doc.add(id, data[id]);
+                });
+                const englishSymbols = ["!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/", ":", ";", "<", "=", ">", "?", "@", "[", "\\", "]", "^", "_", "`", "{", "|", "}", "~"];
 
-                    var skip_summary = false;
-
-                    if (Object.keys(it.pairs).length == 1) {
-                        if (it.pairs[Object.keys(it.pairs)[0]].right == it.header.summary) {
-                            skip_summary = true;
-                        }
+                function replaceAll(inputString, searchValue, replaceValue) {
+                    return inputString.split(searchValue).join(replaceValue);
+                }
+                function getSubTerms(it) {
+                    var m_str = it
+                    for (const sym of englishSymbols) {
+                        m_str = replaceAll(m_str, sym, " ");
                     }
-                    if (!skip_summary) {
-                        const summary_p = document.createElement('p');
-                        summary_p.innerHTML = (it.header.summary);
-                        search_header.appendChild(summary_p);
-                    }
-                    //search_header.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)})`)
-
-
-                    item.appendChild(search_header);
-                    for (var pair_id in it.pairs) {
-
-                        const pair_container = document.createElement('div');
-                        pair_container.className = "search-container";
-                        const pair = it.pairs[pair_id];
-                        const pair_item = document.createElement('div');
-                        const pair_left = document.createElement('div');
-                        pair_left.className = "left-half";
-                        const code_location_p = document.createElement('p');
-                        code_location_p.className = "monospace-text codelink";
-                        code_location_p.innerHTML = (pair.location.slice(1));
-                        code_location_p.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)},  ${JSON.stringify(project_id)}, ${JSON.stringify(pair.location)})`)
-
-                        pair_left.appendChild(code_location_p);
-                        // const comment_p = document.createElement('pre');
-                        const comment_p = document.createElement('p');
-                        comment_p.setAttribute('style', 'white-space: pre-line;');
-                        comment_p.innerHTML = (pair.right);
-                        pair_left.appendChild(comment_p);
-
-                        const pair_right = document.createElement('div');
-                        pair_right.className = "right-half";
-                        const code_pre = document.createElement('pre');
-                        const code_code = document.createElement('code');
-                        code_code.className = `language-${it.language_id}`
-                        // Set the "data-dependencies" attribute
-                        // code_code.setAttribute('data-dependencies', it.language_id+"!");
-                        code_code.textContent = pair.left;
-                        code_pre.appendChild(code_code);
-                        //code_pre.className = "monospace-text";
-                        //code_pre.innerHTML = highlightTerm(pair.left);
-                        pair_right.appendChild(code_pre);
-
-                        pair_container.appendChild(pair_right);
-                        pair_container.appendChild(pair_left); // comment
-                        // if (pair.hit.indexOf("code") != -1) {
-                        // }// code
-                        //pair_container.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)}, ${JSON.stringify(pair.location)})`)
-                        item.appendChild(pair_container);
-                    }
-                    //li_elem = document.createElement('li');
-                    //li_elem.appendChild(item);
-                    //searchResults.appendChild(li_elem);
-
-                    searchResults.appendChild(item);
+                    return m_str.split(" ");
                 }
 
-                Prism.highlightAllUnder(searchResults);
-                // let's try understand that.
-                const markInstance = new Mark(document.getElementById('searchResults'));
-                markInstance.unmark(); // Clear previous marks
-                markInstance.mark(searchHighlightTerms);
-            }
+                const searchInputElem = document.getElementById('searchInput');
+                var isSearchRunning = false;
+                var hasInputEvent = false;
+                var lastInputEventTime = new Date().getTime();
+                function searchInputEventListener() {
 
+                    function capitalizeFirstLetter(text) {
+                        return text.charAt(0).toUpperCase() + text.slice(1);
+                    }
+                    function mutateText(text) {
+                        var lowerText = text.toLowerCase()
+                        var upperText = text.toUpperCase()
+                        var lowerCapitalized = capitalizeFirstLetter(lowerText)
+                        return [text, lowerText, upperText, lowerCapitalized]
+                    }
 
-            function getQueryParams() {
-                var search = window.location.search.substring(1); // Remove leading '?'
-                var queryParams = {};
-                search.split('&').forEach(function (pair) {
-                    var parts = pair.split('=');
-                    var key = decodeURIComponent(parts[0]);
-                    var value = decodeURIComponent(parts[1]);
-                    queryParams[key] = value;
-                });
-                return queryParams;
-            }
-            // Event listener for the search input
-            function registerSearchEventListener() {
-                // this is never called
-                document.getElementById("partial-repository-url").innerText = github_partial_url;
-                document.getElementById("github-link").setAttribute("href", github_url);
-                // get query parameters.
-                // function keyPressListener(event) {
-                //     if (event.key === 'Enter') {
-                //         searchInputEventListener();
-                //     }
-                // }
-                // searchInputElem.addEventListener('keypress',
-                //     // searchInputElem.addEventListener('input',
-                //     // searchInputEventListener
-                //     keyPressListener
-                // );
-                setInterval(() => {
-                    if (hasInputEvent) {
-                        let currentTime = new Date().getTime();
-                        if ((currentTime - lastInputEventTime) > 500) // .5 sec
-                        {
-                            hasInputEvent = false;
-                            if (!isSearchRunning) {
-                                isSearchRunning = true;
-                                try {
-                                    searchInputEventListener();
-                                } catch (error) {
-                                    // Print exception info
-                                    console.error(error);
-                                    if (isDebugMode) {
-                                        // Show alert window in debug mode
-                                        console.log(error.message);
-                                        alert("An error occurred when searching: " + error.message);
-                                    } else {
-                                        // Raise exception when not in debug mode
-                                        throw error;
+                    const searchTerm = searchInputElem.value;
+                    const searchSubTerms = getSubTerms(searchTerm);
+                    function getHighlightTerms(msubterms) {
+                        var ret = []
+                        for (var it of msubterms) {
+                            if (it.length > 0) {
+                                for (var mut of mutateText(it)) {
+                                    if (ret.indexOf(mut) == -1) {
+                                        ret.push(mut);
                                     }
                                 }
-                                isSearchRunning = false;
                             }
                         }
+                        return ret;
                     }
-                }, 100)
 
-                searchInputElem.addEventListener('input', () => {
-                    hasInputEvent = true;
-                    lastInputEventTime = new Date().getTime();
-                })
+                    // Display the search results
+                    const searchResults = document.getElementById('searchResults');
+                    searchResults.innerHTML = '';
+                    if (searchTerm.length == 0) { return }
+                    var isFileSearch = false;
+
+                    if (searchTerm.startsWith("/")) {
+                        if (sourceCodePaths.indexOf(searchTerm) != -1) { isFileSearch = true; }
+                    }
+                    var searchHighlightTerms;
+                    var results;
+
+                    if (isFileSearch) {
+                        searchHighlightTerms = [];
+                        const queryFileRange = sourceCodeIndexRanges[searchTerm];
+                        var results_v = [];
+                        var ids = []
+                        for (var i = queryFileRange.left; i < queryFileRange.right; i++) {
+                            ids.push(i);
+                        }
+                        var it = { field: 'content', result: ids }
+                        results_v.push(it)
+                        results = results_v;
+                    } else {
+                        searchHighlightTerms = getHighlightTerms(searchSubTerms);
+                        results = doc.search(searchTerm, RESULT_LIMIT); // Limiting to 5 results for demonstration
+                    }
+                    // console.log(isFileSearch,results);
+
+                    const detail_types = ["code", "comment"];
+
+                    var searchResultItems = {};
+                    var searchResultItemIds = [];
+                    var leftElements = [];
+                    var rightElements = [];
+
+                    results.forEach(result => {
+                        const field = result.field; // "content"
+                        const ids = result.result;
+                        ids.forEach(id => {
+                            id = id - 0 // to integer.
+                            const data_type = data[id].type;
+                            const file_id = data[id].file_id;
+                            if (searchResultItems[file_id] === undefined) {
+                                searchResultItemIds.push(file_id);
+                                const file_metadata = file_mapping[file_id];
+                                const entry_id = file_metadata.entry_id;
+                                const summary = data[entry_id + 1].content;
+                                const filepath = file_metadata.filepath;
+                                const language_id = file_metadata.language_id;
+                                searchResultItems[file_id] = { "header": { "summary": summary, "filepath": filepath }, "pairs": {}, "language_id": language_id };
+                            }
+                            if (detail_types.indexOf(data_type) != -1) {
+                                const pair_id = ((data_type === "code") ? id : (id - 1));
+                                if (searchResultItems[file_id].pairs[pair_id] === undefined) {
+                                    // console.log(pair_id, pair_id+1, data_type, data[pair_id].location)
+                                    let mit = { "left": data[pair_id].content, "right": data[pair_id + 1].content, "location": data[pair_id].location, "hit": [data_type] }
+                                    // let mit = { "left": data[pair_id].content, "right": data[pair_id - 1].content, "location": data[pair_id].location }
+                                    // console.log(mit)
+                                    searchResultItems[file_id].pairs[pair_id] = mit;
+                                }
+                                else {
+                                    searchResultItems[file_id].pairs[pair_id].hit.push(data_type)
+                                }
+                            }
+                            // listItem.textContent = `[${field}][${data_type}] ${data[id][field]}`;
+                            // searchResults.appendChild(listItem);
+                        });
+                    });
+                    for (var file_id of searchResultItemIds) {
+                        const it = searchResultItems[file_id];
+                        const item = document.createElement('li');
+                        //const item = document.createElement('div');
+                        item.className = "searchItem";
+                        const search_header = document.createElement('div');
+                        search_header.className = "searchItemInfo";
+                        const location_p = document.createElement('p');
+                        location_p.className = "monospace-text codelink";
+                        location_p.innerHTML = (it.header.filepath.slice(1));
+
+                        location_p.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)}, ${JSON.stringify(project_id)})`)
+                        search_header.appendChild(location_p);
+
+                        var skip_summary = false;
+
+                        if (Object.keys(it.pairs).length == 1) {
+                            if (it.pairs[Object.keys(it.pairs)[0]].right == it.header.summary) {
+                                skip_summary = true;
+                            }
+                        }
+                        if (!skip_summary) {
+                            const summary_p = document.createElement('p');
+                            summary_p.innerHTML = (it.header.summary);
+                            search_header.appendChild(summary_p);
+                        }
+                        //search_header.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)})`)
 
 
-                function setTextAndTriggerInputEvent(queryString) {
-                    searchInputElem.value = queryString; // Set text into the input box
-                    // searchInputElem.dispatchEvent(new Event('keypress')); // Fire an input event
-                    // var enterKeyEvent = new KeyboardEvent('keypress', {
-                    //     key: 'Enter'
-                    // });
-                    // searchInputElem.dispatchEvent(enterKeyEvent);
-                    hasInputEvent = true;
+                        item.appendChild(search_header);
+
+                        for (var pair_id in it.pairs) {
+                            const pair_container = document.createElement('div');
+                            pair_container.className = "search-container";
+                            const pair = it.pairs[pair_id];
+                            const pair_item = document.createElement('div');
+                            const pair_left = document.createElement('div');
+                            pair_left.className = "left-half";
+                            const code_location_p = document.createElement('p');
+                            code_location_p.className = "monospace-text codelink";
+                            code_location_p.innerHTML = (pair.location.slice(1));
+                            code_location_p.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)},  ${JSON.stringify(project_id)}, ${JSON.stringify(pair.location)})`)
+
+                            pair_left.appendChild(code_location_p);
+                            // const comment_p = document.createElement('pre');
+                            const comment_p = document.createElement('p');
+                            comment_p.setAttribute('style', 'white-space: pre-line;');
+                            comment_p.innerHTML = (pair.right);
+                            pair_left.appendChild(comment_p);
+
+                            const pair_right = document.createElement('div');
+                            pair_right.className = "right-half";
+                            const code_pre = document.createElement('pre');
+                            const code_code = document.createElement('code');
+                            code_code.className = `language-${it.language_id}`
+                            // Set the "data-dependencies" attribute
+                            // code_code.setAttribute('data-dependencies', it.language_id+"!");
+                            code_code.textContent = pair.left;
+                            code_pre.appendChild(code_code);
+                            //code_pre.className = "monospace-text";
+                            //code_pre.innerHTML = highlightTerm(pair.left);
+                            pair_right.appendChild(code_pre);
+
+                            leftElements.push(pair_left);
+                            rightElements.push(pair_right);
+                            pair_container.appendChild(pair_left); // comment
+                            pair_container.appendChild(pair_right);
+                            // if (pair.hit.indexOf("code") != -1) {
+                            // }// code
+                            //pair_container.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)}, ${JSON.stringify(pair.location)})`)
+                            item.appendChild(pair_container);
+                        }
+                        //li_elem = document.createElement('li');
+                        //li_elem.appendChild(item);
+                        //searchResults.appendChild(li_elem);
+
+                        searchResults.appendChild(item);
+                    }
+
+                    Prism.highlightAllUnder(searchResults);
+                    // let's try understand that.
+                    const markInstance = new Mark(document.getElementById('searchResults'));
+                    markInstance.unmark(); // Clear previous marks
+                    markInstance.mark(searchHighlightTerms);
+                    for (let i in leftElements) {
+                        let leftHeight = leftElements[i].clientHeight;
+                        let rightHeight = rightElements[i].clientHeight;
+                        if (leftHeight < rightHeight){
+                            rightElements[i].style.height = leftHeight+"px";
+                        }
+                    }
                 }
-                function displayFile(file_path) {
-                    // TODO: handle file query string
+
+
+                function getQueryParams() {
+                    var search = window.location.search.substring(1); // Remove leading '?'
+                    var queryParams = {};
+                    search.split('&').forEach(function (pair) {
+                        var parts = pair.split('=');
+                        var key = decodeURIComponent(parts[0]);
+                        var value = decodeURIComponent(parts[1]);
+                        queryParams[key] = value;
+                    });
+                    return queryParams;
+                }
+                // Event listener for the search input
+                function registerSearchEventListener() {
+                    // this is never called
+                    document.getElementById("partial-repository-url").innerText = github_partial_url;
+                    document.getElementById("github-link").setAttribute("href", github_url);
+                    // get query parameters.
+                    // function keyPressListener(event) {
+                    //     if (event.key === 'Enter') {
+                    //         searchInputEventListener();
+                    //     }
+                    // }
+                    // searchInputElem.addEventListener('keypress',
+                    //     // searchInputElem.addEventListener('input',
+                    //     // searchInputEventListener
+                    //     keyPressListener
+                    // );
+                    setInterval(() => {
+                        if (hasInputEvent) {
+                            let currentTime = new Date().getTime();
+                            if ((currentTime - lastInputEventTime) > 500) // .5 sec
+                            {
+                                hasInputEvent = false;
+                                if (!isSearchRunning) {
+                                    isSearchRunning = true;
+                                    try {
+                                        searchInputEventListener();
+                                    } catch (error) {
+                                        // Print exception info
+                                        console.error(error);
+                                        if (isDebugMode) {
+                                            // Show alert window in debug mode
+                                            console.log(error.message);
+                                            alert("An error occurred when searching: " + error.message);
+                                        } else {
+                                            // Raise exception when not in debug mode
+                                            throw error;
+                                        }
+                                    }
+                                    isSearchRunning = false;
+                                }
+                            }
+                        }
+                    }, 100)
+
+                    searchInputElem.addEventListener('input', () => {
+                        hasInputEvent = true;
+                        lastInputEventTime = new Date().getTime();
+                    })
+
+
+                    function setTextAndTriggerInputEvent(queryString) {
+                        searchInputElem.value = queryString; // Set text into the input box
+                        // searchInputElem.dispatchEvent(new Event('keypress')); // Fire an input event
+                        // var enterKeyEvent = new KeyboardEvent('keypress', {
+                        //     key: 'Enter'
+                        // });
+                        // searchInputElem.dispatchEvent(enterKeyEvent);
+                        hasInputEvent = true;
+                    }
+                    function displayFile(file_path) {
+                        // TODO: handle file query string
+                    }
+
+                    //const queryParams = new URLSearchParams(window.location.search);
+                    const queryParams = getQueryParams(window.location.search);
+                    const query_from_url = queryParams.q;
+                    const file_path_from_url = queryParams.file;
+                    isDebugMode = queryParams.debug == 'true';
+                    if (isDebugMode) { console.log("You are in debug mode.") }
+                    if (query_from_url != null || query_from_url != undefined) {
+                        setTextAndTriggerInputEvent(query_from_url)
+                    } else if (file_path_from_url != null || file_path_from_url != undefined) {
+                        displayFile(file_path_from_url)
+                    }
                 }
 
-                //const queryParams = new URLSearchParams(window.location.search);
-                const queryParams = getQueryParams(window.location.search);
-                const query_from_url = queryParams.q;
-                const file_path_from_url = queryParams.file;
-                isDebugMode = queryParams.debug == 'true';
-                if (isDebugMode) { console.log("You are in debug mode.") }
-                if (query_from_url != null || query_from_url != undefined) {
-                    setTextAndTriggerInputEvent(query_from_url)
-                } else if (file_path_from_url != null || file_path_from_url != undefined) {
-                    displayFile(file_path_from_url)
-                }
+                //document.addEventListener('DOMContentLoaded', registerSearchEventListener);
+                // waitForDOMContentLoaded();
+                registerSearchEventListener()
+                // console.log("event listener registered")
             }
-
-            //document.addEventListener('DOMContentLoaded', registerSearchEventListener);
-            // waitForDOMContentLoaded();
-            registerSearchEventListener()
-            // console.log("event listener registered")
-        }
-        async_main()
-    </script>
+            async_main()
+        </script>
     </div>
 </body>
 
