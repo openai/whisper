@@ -430,6 +430,8 @@
                 const code_elem = document.createElement('code');
                 code_elem.className = `language-${language}`
                 var xhr = new XMLHttpRequest();
+                console.log("trying: " + code_path)
+
                 xhr.open('GET', code_path, false); // The third parameter is set to false for synchronous request
                 xhr.send(null);
                 if (xhr.status == 200) {
@@ -438,7 +440,10 @@
 
                     var xhr = new XMLHttpRequest();
                     // TODO: mitigate this evil hack by passing more info of the original project.
+                    // the reason is that github does not allow accessing file with '_' as prefix.
+                    // is that disabled for security reasons?
                     var newLink = `https://raw.githubusercontent.com/James4Ever0/${project_name}/main/docs/` + code_path
+                    console.log("trying: " + newLink)
                     xhr.open('GET', newLink, false); // The third parameter is set to false for synchronous request
                     xhr.send(null);
 
@@ -454,7 +459,34 @@
 
                         if (xhr.status == 200) {
                             code_elem.textContent = xhr.responseText;
-                        } else { code_elem.textContent = "Failed to load code." }
+                        } else {
+                            var xhr = new XMLHttpRequest();
+                            // TODO: mitigate this evil hack by passing more info of the original project.
+                            var newLink = `https://raw.githubusercontent.com/James4Ever0/${project_name}_doc/master/` + code_path
+                            console.log("trying: " + newLink)
+
+                            xhr.open('GET', newLink, false); // The third parameter is set to false for synchronous request
+                            xhr.send(null);
+
+                            if (xhr.status == 200) {
+                                code_elem.textContent = xhr.responseText;
+                            } else {
+                                var xhr = new XMLHttpRequest();
+                                // TODO: mitigate this evil hack by passing more info of the original project.
+                                var newLink = `https://raw.githubusercontent.com/James4Ever0/${project_name}_doc/main/` + code_path
+                                console.log("trying: " + newLink)
+
+                                xhr.open('GET', newLink, false); // The third parameter is set to false for synchronous request
+                                xhr.send(null);
+
+                                if (xhr.status == 200) {
+                                    code_elem.textContent = xhr.responseText;
+                                } else {
+
+                                    code_elem.textContent = "Failed to load code."
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -532,10 +564,9 @@
             /* Enable vertical scrolling if content exceeds viewport height */
         }
 
-        .line-highlight {
+        /* .line-highlight {
             background-color: rgba(228, 239, 12, 0.07) !important;
-            /* z-index:-10; */
-        }
+        } */
 
         /* do this after jump */
         /* .line-highlight {
