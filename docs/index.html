@@ -536,7 +536,7 @@
             <div style="float: right;">
                 <a title="Github repository" id="github-link" class="github-icon"><i class="fab fa-github"></i></a>
                 <a title="Project structure" id="brief-link" href="tree.html"><i class="bi bi-text-right"></i></a>
-                <a title="Result overview" id="sidebar-open" style="position:relative; z-index:8888;"><i
+                <a title="Result overview" href="#" id="sidebar-open" style="position:relative; z-index:8888;"><i
                         class="bi bi-caret-left-square"></i></a>
             </div>
         </h2>
@@ -619,7 +619,8 @@
 
             // Position the target element at the same top and left coordinates as the reference element
             drawer_title.style.position = "absolute";
-            drawer_title.style.top = topPosition + "px";
+            drawer_title.style.top = topPosition * 1 + "px";
+            // drawer_title.style.top = topPosition*1.5 + "px";
             if (pageWidth > 768) {
                 drawer_title.style.left = pageWidth * 0.02 + "px";
                 // drawer_title.style.left = pageWidth * 0.03 + "px";
@@ -673,13 +674,14 @@
         const progressOverlay = document.getElementById('progress-overlay');
         const progressBar = document.querySelector('.progress');
         var isDebugMode = false;
-        function navigateToPage(base_filepath, language_id, project_id, detail_filepath = "") {
+        function navigateToPage(base_filepath, language_id, project_id, keywords, detail_filepath = "") {
             // Use a relative path to navigate to a specific page
             let page_param = "codeview.html";
             let file_param = 'src' + base_filepath;
             file_param = encodeURIComponent(file_param);
             let language_param = language_id
-            let jump_link = `${page_param}?file=${file_param}&language=${language_id}&project=${project_id}`;
+            let keywords_encoded = encodeURIComponent(JSON.stringify(keywords));
+            let jump_link = `${page_param}?file=${file_param}&language=${language_id}&project=${project_id}&keywords=${keywords_encoded}`;
             if (detail_filepath !== "") {
                 let location_range = detail_filepath.slice(base_filepath.length + 1);
                 let location_param = `mycode.${location_range}`;
@@ -715,6 +717,8 @@
 
             const github_url = metadata.url.full;
             const project_id = metadata.project_name;
+            const myDefaultTitle = `Document index of: ${project_id}`
+            document.title = myDefaultTitle;
             const github_partial_url = metadata.url.partial;
             const file_mapping = metadata.file_mapping
             const split_count = metadata.split_count
@@ -815,11 +819,16 @@
                 return inputString.split(searchValue).join(replaceValue);
             }
             function getSubTerms(it) {
-                var m_str = it
+                it = it.trim();
+                var ret = [it]
                 for (const sym of englishSymbols) {
+                    var m_str = it
                     m_str = replaceAll(m_str, sym, " ");
+                    ret.concat(m_str.split(" "))
                 }
-                return m_str.split(" ");
+                ret = ret.concat(it.split(" "))
+                ret = ret.concat(m_str.split(" "));
+                return ret
             }
 
             const searchInputElem = document.getElementById('searchInput');
@@ -876,6 +885,7 @@
                     // console.log('search term file index:', searchTermFileIndex)
                     if (searchTermFileIndex != -1) {
                         isFileSearch = true;
+                        document.title = `File: ${searchTerm} - ${myDefaultTitle}`
                         // do something with the buttons
                         // file_previous file_next
                         if (searchTermFileIndex != 0) {
@@ -954,6 +964,7 @@
                     });
                 });
                 var isDesktopScreen = window.innerWidth > 768;
+                var title_topics = []
                 for (var file_id of searchResultItemIds) {
                     const it = searchResultItems[file_id];
                     const item = document.createElement('li');
@@ -966,6 +977,7 @@
                     const file_title_elem_id = generateUUID()
                     file_title_elem.setAttribute('id', file_title_elem_id)
                     const mylocation = it.header.filepath.slice(1)
+                    title_topics.push(title_data["/" + mylocation])
 
                     overview_file_title_elem.innerHTML = `<span>${title_data["/" + mylocation]}</span>`;
                     overview_file_title_elem.onclick = () => {
@@ -982,7 +994,8 @@
                     file_title_elem.appendChild(file_title_span);
                     // location_p.innerHTML = (mylocation);
 
-                    file_title_span.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)}, ${JSON.stringify(project_id)})`)
+                    file_title_span.onclick = () => { navigateToPage(it.header.filepath, it.language_id, project_id, searchHighlightTerms) }
+                    // file_title_span.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)},${JSON.stringify(project_id)})`)
                     // location_p.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)}, ${JSON.stringify(project_id)})`)
                     // search_header.appendChild(location_p);
                     search_header.appendChild(file_title_elem);
@@ -1038,7 +1051,8 @@
                         // code_location_p.className = "monospace-text codelink";
                         // code_location_p.innerHTML = (pair_location_text);
                         code_title_span.setAttribute("title", pair_location_text)
-                        code_title_span.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)},  ${JSON.stringify(project_id)}, ${JSON.stringify(pair.location)})`)
+                        code_title_span.onclick = () => { navigateToPage(it.header.filepath, it.language_id, project_id, searchHighlightTerms, pair.location) }
+                        // code_title_span.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)},  ${JSON.stringify(project_id)}, ${JSON.stringify(pair.location)})`)
                         // code_location_p.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)},  ${JSON.stringify(project_id)}, ${JSON.stringify(pair.location)})`)
                         // pair_left.appendChild(code_location_p);
                         if (pair_title_text != undefined) {
@@ -1081,6 +1095,8 @@
                 }
 
                 Prism.highlightAllUnder(searchResults);
+                const title_topics_joined = title_topics.join(" | ")
+                document.title = `${document.title} - Topics: ${title_topics_joined}`
                 // let's try understand that.
                 const markInstance = new Mark(document.getElementById('searchResults'));
                 markInstance.unmark(); // Clear previous marks
@@ -1133,9 +1149,11 @@
                             if (inputBoxText.trim() !== "") {
                                 // Construct the new URL with the updated query string
                                 newURL = `${window.location.protocol}//${window.location.host}${window.location.pathname}?q=${inputBoxText}`;
+                                document.title = `Query: ${inputBoxText.trim()} - ${myDefaultTitle}`;
                             }
                             else {
                                 newURL = `${window.location.protocol}//${window.location.host}${window.location.pathname}`;
+                                document.title = myDefaultTitle;
 
                             }
 
