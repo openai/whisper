@@ -567,9 +567,11 @@
                 drawer.style.display = "none";
                 drawer_mask.style.display = "none";
                 mybutton.innerHTML = `<i class="bi bi-caret-left-square"></i>`;
+                mybutton.setAttribute("title","Result overview")
                 return;
             } else {
                 mybutton.innerHTML = `<i class="bi bi-caret-right-square"></i>`;
+                mybutton.setAttribute("title","Hide overview")
 
             }
 
