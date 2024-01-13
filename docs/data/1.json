@@ -1,57 +1,55 @@
 {
     "100": {
-        "file_id": 8,
-        "content": "        special = subword_tokens[0] >= tokenizer.eot\n        with_space = subword.startswith(\" \")\n        punctuation = subword.strip() in string.punctuation\n        if special or with_space or punctuation:\n            words.append(subword)\n            word_tokens.append(subword_tokens)\n        else:\n            words[-1] = words[-1] + subword\n            word_tokens[-1].extend(subword_tokens)\n    return words, word_tokens\n# In[17]:\nif languages[lang] in {\"Chinese\", \"Japanese\", \"Thai\", \"Lao\", \"Myanmar\"}:\n    # These languages don't typically use spaces, so it is difficult to split words\n    # without morpheme analysis. Here, we instead split words at any\n    # position where the tokens are decoded as valid unicode points\n    split_tokens = split_tokens_on_unicode\nelse:\n    split_tokens = split_tokens_on_spaces\n# In[18]:\n# install hooks on the cross attention layers to retrieve the attention weights\nQKs = [None] * model.dims.n_text_layer\nfor i, block in enumerate(model.decoder.blocks):\n    block.cross_attn.register_forward_hook(",
-        "type": "code",
-        "location": "/notebooks/Multilingual_ASR.py:262-294"
+        "file_id": 7,
+        "content": "/requirements.txt",
+        "type": "filepath"
     },
     "101": {
-        "file_id": 8,
-        "content": "Code is splitting words in different languages and setting up hooks on cross-attention layers for later use.",
-        "type": "comment"
+        "file_id": 7,
+        "content": "This code specifies the required Python packages for the project. These include Numba, NumPy, PyTorch, Tqdm, More-Itertools, and Tiktoken. Additionally, it requires Triton version greater than or equal to 2.0.0 but less than 3, only on Linux platforms (x86_64 or linux2).",
+        "type": "summary"
     },
     "102": {
-        "file_id": 8,
-        "content": "        lambda _, ins, outs, index=i: QKs.__setitem__(index, outs[-1])\n    )\n# In[19]:\n# for the first 10 examples in the dataset\nfor (audio, label), transcription in zip(dataset, transcriptions[:10]):\n    print(transcription)\n    duration = len(audio)\n    mel = whisper.log_mel_spectrogram(whisper.pad_or_trim(audio)).cuda()\n    tokens = torch.tensor(\n        [\n            *tokenizer.sot_sequence,\n            tokenizer.timestamp_begin,\n        ] + tokenizer.encode(transcription) + [\n            tokenizer.timestamp_begin + duration // AUDIO_SAMPLES_PER_TOKEN,\n            tokenizer.eot,\n        ]\n    ).cuda()\n    with torch.no_grad():\n        logits = model(mel.unsqueeze(0), tokens.unsqueeze(0))\n    weights = torch.cat(QKs)  # layers * heads * tokens * frames    \n    weights = weights[:, :, :, : duration // AUDIO_SAMPLES_PER_TOKEN].cpu()\n    weights = median_filter(weights, (1, 1, 1, medfilt_width))\n    weights = torch.tensor(weights * qk_scale).softmax(dim=-1)\n    w = weights / weights.norm(dim=-2, keepdim=True)",
+        "file_id": 7,
+        "content": "numba\nnumpy\ntorch\ntqdm\nmore-itertools\ntiktoken\ntriton>=2.0.0,<3;platform_machine==\"x86_64\" and sys_platform==\"linux\" or sys_platform==\"linux2\"",
         "type": "code",
-        "location": "/notebooks/Multilingual_ASR.py:295-325"
+        "location": "/requirements.txt:1-7"
     },
     "103": {
-        "file_id": 8,
-        "content": "Iterates through the first 10 examples in the dataset, calculating and printing transcriptions.\n- Audio and label pair for each example\n- Calculates duration of audio\n- Creates mel spectrogram from audio using Whisper's methods\n- Encodes transcription into tokens using tokenizer\n- Applies model to generate logits\n- Extracts weights from QKs matrix, applies median filtering and normalization",
+        "file_id": 7,
+        "content": "This code specifies the required Python packages for the project. These include Numba, NumPy, PyTorch, Tqdm, More-Itertools, and Tiktoken. Additionally, it requires Triton version greater than or equal to 2.0.0 but less than 3, only on Linux platforms (x86_64 or linux2).",
         "type": "comment"
     },
     "104": {
         "file_id": 8,
-        "content": "    matrix = w[-6:].mean(axis=(0, 1))\n    alignment = dtw(-matrix.double().numpy())\n    jumps = np.pad(np.diff(alignment.index1s), (1, 0), constant_values=1).astype(bool)\n    jump_times = alignment.index2s[jumps] * AUDIO_TIME_PER_TOKEN\n    words, word_tokens = split_tokens(tokens)\n    # display the normalized attention weights and the alignment\n    plt.figure(figsize=(8, 8))\n    plt.imshow(matrix, aspect=\"auto\")\n    plt.plot(alignment.index2s, alignment.index1s, color=\"red\")\n    xticks = np.arange(0, matrix.shape[1], 1 / AUDIO_TIME_PER_TOKEN)\n    xticklabels = (xticks * AUDIO_TIME_PER_TOKEN).round().astype(np.int32) \n    plt.xticks(xticks, xticklabels)\n    plt.xlabel(\"Time (s)\")\n    # display tokens and words as tick labels\n    ylims = plt.gca().get_ylim()\n    ax = plt.gca()\n    ax.tick_params('both', length=0, width=0, which='minor', pad=6)\n    ax.yaxis.set_ticks_position(\"left\")\n    ax.yaxis.set_label_position(\"left\")\n    ax.invert_yaxis()\n    ax.set_ylim(ylims)\n    major_ticks = [-0.5]\n    minor_ticks = []",
-        "type": "code",
-        "location": "/notebooks/Multilingual_ASR.py:326-356"
+        "content": "/setup.py",
+        "type": "filepath"
     },
     "105": {
         "file_id": 8,
-        "content": "This code is used to display the attention weights and alignment between audio signals and tokens. It calculates the mean of the last 6 rows from 'w', then uses dynamic time warping (DTW) for alignment, finds jumps in the alignment, computes jump times, splits tokens into words and word tokens, and finally plots the matrix with attention weights and alignment using matplotlib.",
-        "type": "comment"
+        "content": "The process involves importing modules, checking system platform and architecture, defining setup parameters for a Python package with its name, version, description, requirements, and including package installation requirements from \"requirements.txt\" to set up the package for command-line execution and additional development dependencies.",
+        "type": "summary"
     },
     "106": {
         "file_id": 8,
-        "content": "    current_y = 0\n    for word, word_token in zip(words, word_tokens):\n        minor_ticks.append(current_y + len(word_token) / 2 - 0.5)\n        current_y += len(word_token)\n        major_ticks.append(current_y - 0.5)\n    ax.yaxis.set_minor_locator(ticker.FixedLocator(minor_ticks))\n    ax.yaxis.set_minor_formatter(ticker.FixedFormatter(words))\n    ax.set_yticks(major_ticks)\n    ax.yaxis.set_major_formatter(ticker.NullFormatter())\n    for label in ax.get_yminorticklabels():\n        label.set_fontproperties(prop)\n    plt.ylabel(\"Words\")\n    plt.show()\n    # display the word-level timestamps in a table\n    word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens[:-1]]), (1, 0))\n    begin_times = jump_times[word_boundaries[:-1]]\n    end_times = jump_times[word_boundaries[1:]]\n    data = [\n        dict(word=word, begin=begin, end=end)\n        for word, begin, end in zip(words[:-1], begin_times, end_times)\n        if not word.startswith(\"<|\") and word.strip() not in \".,!?、。\"\n    ]\n    display(pd.DataFrame(data))",
+        "content": "import platform\nimport sys\nfrom pathlib import Path\nimport pkg_resources\nfrom setuptools import find_packages, setup\ndef read_version(fname=\"whisper/version.py\"):\n    exec(compile(open(fname, encoding=\"utf-8\").read(), fname, \"exec\"))\n    return locals()[\"__version__\"]\nrequirements = []\nif sys.platform.startswith(\"linux\") and platform.machine() == \"x86_64\":\n    requirements.append(\"triton>=2.0.0,<3\")\nsetup(\n    name=\"openai-whisper\",\n    py_modules=[\"whisper\"],\n    version=read_version(),\n    description=\"Robust Speech Recognition via Large-Scale Weak Supervision\",\n    long_description=open(\"README.md\", encoding=\"utf-8\").read(),\n    long_description_content_type=\"text/markdown\",\n    readme=\"README.md\",\n    python_requires=\">=3.8\",\n    author=\"OpenAI\",\n    url=\"https://github.com/openai/whisper\",\n    license=\"MIT\",\n    packages=find_packages(exclude=[\"tests*\"]),\n    install_requires=[\n        str(r)\n        for r in pkg_resources.parse_requirements(\n            Path(__file__).with_name(\"requirements.txt\").open()\n        )",
         "type": "code",
-        "location": "/notebooks/Multilingual_ASR.py:357-386"
+        "location": "/setup.py:1-35"
     },
     "107": {
         "file_id": 8,
-        "content": "This code generates a plot of word-level timestamps and displays the word-level timestamps in a table. It iterates over words and their corresponding token values, appends minor and major tick locations to the axes, sets the minor and major locators and formatters, sets y-ticks, removes the formatter from major ticks, adjusts the font properties of the tick labels, displays the y-axis label, shows the plot, and finally creates a table with word, begin time, and end time values for each segmented word.",
+        "content": "Code imports necessary modules, checks the system platform and processor architecture to append specific requirement, defines setup parameters for a Python package (including its name, version, description, requirements, etc.), and includes package installation requirements from \"requirements.txt\".",
         "type": "comment"
     },
     "108": {
         "file_id": 8,
-        "content": "    display(HTML(\"<hr>\"))",
+        "content": "    ],\n    entry_points={\n        \"console_scripts\": [\"whisper=whisper.transcribe:cli\"],\n    },\n    include_package_data=True,\n    extras_require={\"dev\": [\"pytest\", \"scipy\", \"black\", \"flake8\", \"isort\"]},\n)",
         "type": "code",
-        "location": "/notebooks/Multilingual_ASR.py:387-387"
+        "location": "/setup.py:36-42"
     },
     "109": {
         "file_id": 8,
-        "content": "Creates a horizontal line for separation in the notebook",
+        "content": "Setting up a Python package for command-line execution, including extra dependencies for development.",
         "type": "comment"
     },
     "110": {

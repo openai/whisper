@@ -1,372 +1,373 @@
 {
     "400": {
-        "file_id": 24,
-        "content": "                        if (\n                            line_len > 0\n                            and has_room\n                            and not long_pause\n                            and not seg_break\n                        ):\n                            # line continuation\n                            line_len += len(timing[\"word\"])\n                        else:\n                            # new line\n                            timing[\"word\"] = timing[\"word\"].strip()\n                            if (\n                                len(subtitle) > 0\n                                and max_line_count is not None\n                                and (long_pause or line_count >= max_line_count)\n                                or seg_break\n                            ):\n                                # subtitle break\n                                yield subtitle\n                                subtitle = []\n                                line_count = 1\n                            elif line_len > 0:\n                                # line break",
+        "file_id": 25,
+        "content": "                            end=time_offset + end_timestamp_pos * time_precision,\n                            tokens=sliced_tokens,\n                            result=result,\n                        )\n                    )\n                    last_slice = current_slice\n                if single_timestamp_ending:\n                    # single timestamp at the end means no speech after the last timestamp.\n                    seek += segment_size\n                else:\n                    # otherwise, ignore the unfinished segment and seek to the last timestamp\n                    last_timestamp_pos = (\n                        tokens[last_slice - 1].item() - tokenizer.timestamp_begin\n                    )\n                    seek += last_timestamp_pos * input_stride\n            else:\n                duration = segment_duration\n                timestamps = tokens[timestamp_tokens.nonzero().flatten()]\n                if (\n                    len(timestamps) > 0\n                    and timestamps[-1].item() != tokenizer.timestamp_begin",
         "type": "code",
-        "location": "/whisper/utils.py:164-186"
+        "location": "/whisper/transcribe.py:346-367"
     },
     "401": {
-        "file_id": 24,
-        "content": "If line length > 0, has room, not a long pause, and not a segment break, increment line_len with word length. Otherwise, strip timing[\"word\"], check if subtitle is not empty, max line count not None, long pause or at max lines count, or segment break. If true, yield the subtitle and reset subtitle, line count to 1. Else, break the line",
+        "file_id": 25,
+        "content": "Code is parsing audio segments and extracting relevant data for further processing. It seeks to the next timestamp or ignores unfinished segments if necessary.",
         "type": "comment"
     },
     "402": {
-        "file_id": 24,
-        "content": "                                line_count += 1\n                                timing[\"word\"] = \"\\n\" + timing[\"word\"]\n                            line_len = len(timing[\"word\"].strip())\n                        subtitle.append(timing)\n                        last = timing[\"start\"]\n                    chunk_index += max_words_per_line\n            if len(subtitle) > 0:\n                yield subtitle\n        if len(result[\"segments\"]) > 0 and \"words\" in result[\"segments\"][0]:\n            for subtitle in iterate_subtitles():\n                subtitle_start = self.format_timestamp(subtitle[0][\"start\"])\n                subtitle_end = self.format_timestamp(subtitle[-1][\"end\"])\n                subtitle_text = \"\".join([word[\"word\"] for word in subtitle])\n                if highlight_words:\n                    last = subtitle_start\n                    all_words = [timing[\"word\"] for timing in subtitle]\n                    for i, this_word in enumerate(subtitle):\n                        start = self.format_timestamp(this_word[\"start\"])",
+        "file_id": 25,
+        "content": "                ):\n                    # no consecutive timestamps but it has a timestamp; use the last one.\n                    last_timestamp_pos = (\n                        timestamps[-1].item() - tokenizer.timestamp_begin\n                    )\n                    duration = last_timestamp_pos * time_precision\n                current_segments.append(\n                    new_segment(\n                        start=time_offset,\n                        end=time_offset + duration,\n                        tokens=tokens,\n                        result=result,\n                    )\n                )\n                seek += segment_size\n            if word_timestamps:\n                add_word_timestamps(\n                    segments=current_segments,\n                    model=model,\n                    tokenizer=tokenizer,\n                    mel=mel_segment,\n                    num_frames=segment_size,\n                    prepend_punctuations=prepend_punctuations,\n                    append_punctuations=append_punctuations,",
         "type": "code",
-        "location": "/whisper/utils.py:187-205"
+        "location": "/whisper/transcribe.py:368-393"
     },
     "403": {
-        "file_id": 24,
-        "content": "Iterating through subtitles and yielding each one, formatting start and end timestamps.",
+        "file_id": 25,
+        "content": "This code segment is responsible for creating speech segments based on the given timestamps and tokens, and then adding word timestamps if necessary. If consecutive timestamps are not found but a timestamp exists, it uses the last one to determine the duration of the current segment. It appends the created segment to the current_segments list, and increments the seek value for the next iteration.",
         "type": "comment"
     },
     "404": {
-        "file_id": 24,
-        "content": "                        end = self.format_timestamp(this_word[\"end\"])\n                        if last != start:\n                            yield last, start, subtitle_text\n                        yield start, end, \"\".join(\n                            [\n                                re.sub(r\"^(\\s*)(.*)$\", r\"\\1<u>\\2</u>\", word)\n                                if j == i\n                                else word\n                                for j, word in enumerate(all_words)\n                            ]\n                        )\n                        last = end\n                else:\n                    yield subtitle_start, subtitle_end, subtitle_text\n        else:\n            for segment in result[\"segments\"]:\n                segment_start = self.format_timestamp(segment[\"start\"])\n                segment_end = self.format_timestamp(segment[\"end\"])\n                segment_text = segment[\"text\"].strip().replace(\"-->\", \"->\")\n                yield segment_start, segment_end, segment_text\n    def format_timestamp(self, seconds: float):",
+        "file_id": 25,
+        "content": "                    last_speech_timestamp=last_speech_timestamp,\n                )\n                if not single_timestamp_ending:\n                    last_word_end = get_end(current_segments)\n                    if last_word_end is not None and last_word_end > time_offset:\n                        seek = round(last_word_end * FRAMES_PER_SECOND)\n                # skip silence before possible hallucinations\n                if hallucination_silence_threshold is not None:\n                    threshold = hallucination_silence_threshold\n                    if not single_timestamp_ending:\n                        last_word_end = get_end(current_segments)\n                        if last_word_end is not None and last_word_end > time_offset:\n                            remaining_duration = window_end_time - last_word_end\n                            if remaining_duration > threshold:\n                                seek = round(last_word_end * FRAMES_PER_SECOND)\n                            else:\n                                seek = previous_seek + segment_size",
         "type": "code",
-        "location": "/whisper/utils.py:206-228"
+        "location": "/whisper/transcribe.py:394-412"
     },
     "405": {
-        "file_id": 24,
-        "content": "Iterates through subtitle data and formats start/end times for display. Applies underline formatting to specified words within the text. Yields segment start/end times with corresponding texts for display.",
+        "file_id": 25,
+        "content": "This code skips silence before possible hallucinations and sets seek position accordingly.",
         "type": "comment"
     },
     "406": {
-        "file_id": 24,
-        "content": "        return format_timestamp(\n            seconds=seconds,\n            always_include_hours=self.always_include_hours,\n            decimal_marker=self.decimal_marker,\n        )\nclass WriteVTT(SubtitlesWriter):\n    extension: str = \"vtt\"\n    always_include_hours: bool = False\n    decimal_marker: str = \".\"\n    def write_result(\n        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n    ):\n        print(\"WEBVTT\\n\", file=file)\n        for start, end, text in self.iterate_result(result, options, **kwargs):\n            print(f\"{start} --> {end}\\n{text}\\n\", file=file, flush=True)\nclass WriteSRT(SubtitlesWriter):\n    extension: str = \"srt\"\n    always_include_hours: bool = True\n    decimal_marker: str = \",\"\n    def write_result(\n        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n    ):\n        for i, (start, end, text) in enumerate(\n            self.iterate_result(result, options, **kwargs), start=1\n        ):\n            print(f\"{i}\\n{start} --> {end}\\n{text}\\n\", file=file, flush=True)",
+        "file_id": 25,
+        "content": "                    # if first segment might be a hallucination, skip leading silence\n                    first_segment = next_words_segment(current_segments)\n                    if first_segment is not None and is_segment_anomaly(first_segment):\n                        gap = first_segment[\"start\"] - time_offset\n                        if gap > threshold:\n                            seek = previous_seek + round(gap * FRAMES_PER_SECOND)\n                            continue\n                    # skip silence before any possible hallucination that is surrounded\n                    # by silence or more hallucinations\n                    hal_last_end = last_speech_timestamp\n                    for si in range(len(current_segments)):\n                        segment = current_segments[si]\n                        if not segment[\"words\"]:\n                            continue\n                        if is_segment_anomaly(segment):\n                            next_segment = next_words_segment(\n                                current_segments[si + 1 :]",
         "type": "code",
-        "location": "/whisper/utils.py:229-260"
+        "location": "/whisper/transcribe.py:414-431"
     },
     "407": {
-        "file_id": 24,
-        "content": "utils.py:228-259 defines two classes WriteVTT and WriteSRT, which inherit from the SubtitlesWriter class. Both classes have a write_result method that writes subtitle information in either VTT or SRT format to the specified file. The write_result method iterates over the result dictionary using the iterate_result method and prints formatted start, end, and text lines for each subtitle. WriteVTT has always_include_hours=False and decimal_marker=\".\" while WriteSRT has always_include_hours=True and decimal_marker=\",\"",
+        "file_id": 25,
+        "content": "This code skips silence before possible hallucinations that are surrounded by silence or more hallucinations.",
         "type": "comment"
     },
     "408": {
-        "file_id": 24,
-        "content": "class WriteTSV(ResultWriter):\n    \"\"\"\n    Write a transcript to a file in TSV (tab-separated values) format containing lines like:\n    <start time in integer milliseconds>\\t<end time in integer milliseconds>\\t<transcript text>\n    Using integer milliseconds as start and end times means there's no chance of interference from\n    an environment setting a language encoding that causes the decimal in a floating point number\n    to appear as a comma; also is faster and more efficient to parse & store, e.g., in C++.\n    \"\"\"\n    extension: str = \"tsv\"\n    def write_result(\n        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n    ):\n        print(\"start\", \"end\", \"text\", sep=\"\\t\", file=file)\n        for segment in result[\"segments\"]:\n            print(round(1000 * segment[\"start\"]), file=file, end=\"\\t\")\n            print(round(1000 * segment[\"end\"]), file=file, end=\"\\t\")\n            print(segment[\"text\"].strip().replace(\"\\t\", \" \"), file=file, flush=True)\nclass WriteJSON(ResultWriter):",
+        "file_id": 25,
+        "content": "                            )\n                            if next_segment is not None:\n                                hal_next_start = next_segment[\"words\"][0][\"start\"]\n                            else:\n                                hal_next_start = time_offset + segment_duration\n                            silence_before = (\n                                segment[\"start\"] - hal_last_end > threshold\n                                or segment[\"start\"] < threshold\n                                or segment[\"start\"] - time_offset < 2.0\n                            )\n                            silence_after = (\n                                hal_next_start - segment[\"end\"] > threshold\n                                or is_segment_anomaly(next_segment)\n                                or window_end_time - segment[\"end\"] < 2.0\n                            )\n                            if silence_before and silence_after:\n                                seek = round(\n                                    max(time_offset + 1, segment[\"start\"])",
         "type": "code",
-        "location": "/whisper/utils.py:263-285"
+        "location": "/whisper/transcribe.py:432-449"
     },
     "409": {
-        "file_id": 24,
-        "content": "This code defines two classes, `WriteTSV` and `WriteJSON`, both of which inherit from the `ResultWriter` class. The `WriteTSV` class is responsible for writing transcripts to a file in TSV format. It takes a dictionary `result` as input along with an optional `options` dictionary. It prints each segment's start time, end time, and text to the file separated by tabs.\n\nThe `WriteJSON` class, on the other hand, writes the result as JSON format. Both classes implement the `write_result()` method which takes in a `result` dictionary, a `file` object to write to, an optional `options` dictionary, and any additional keyword arguments.\n\nIn summary: Code defines two ResultWriter subclasses (WriteTSV, WriteJSON) for writing transcripts to files in TSV and JSON format respectively.",
+        "file_id": 25,
+        "content": "If the next segment exists, set hal_next_start to the start time of the first word in that segment. Otherwise, set it to time_offset plus segment_duration. Determine if there is silence before and after this segment based on certain conditions, such as segment start times or anomalies. If both silences are present, round the seek value to be the maximum between time_offset + 1 and the segment's start time.",
         "type": "comment"
     },
     "410": {
-        "file_id": 24,
-        "content": "    extension: str = \"json\"\n    def write_result(\n        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n    ):\n        json.dump(result, file)\ndef get_writer(\n    output_format: str, output_dir: str\n) -> Callable[[dict, TextIO, dict], None]:\n    writers = {\n        \"txt\": WriteTXT,\n        \"vtt\": WriteVTT,\n        \"srt\": WriteSRT,\n        \"tsv\": WriteTSV,\n        \"json\": WriteJSON,\n    }\n    if output_format == \"all\":\n        all_writers = [writer(output_dir) for writer in writers.values()]\n        def write_all(\n            result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n        ):\n            for writer in all_writers:\n                writer(result, file, options, **kwargs)\n        return write_all\n    return writers[output_format](output_dir)",
+        "file_id": 25,
+        "content": "                                    * FRAMES_PER_SECOND\n                                )\n                                if content_duration - segment[\"end\"] < threshold:\n                                    seek = content_frames\n                                current_segments[si:] = []\n                                break\n                        hal_last_end = segment[\"end\"]\n                last_word_end = get_end(current_segments)\n                if last_word_end is not None:\n                    last_speech_timestamp = last_word_end\n            if verbose:\n                for segment in current_segments:\n                    start, end, text = segment[\"start\"], segment[\"end\"], segment[\"text\"]\n                    line = f\"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}\"\n                    print(make_safe(line))\n            # if a segment is instantaneous or does not contain text, clear it\n            for i, segment in enumerate(current_segments):\n                if segment[\"start\"] == segment[\"end\"] or segment[\"text\"].strip() == \"\":",
         "type": "code",
-        "location": "/whisper/utils.py:286-316"
+        "location": "/whisper/transcribe.py:450-470"
     },
     "411": {
-        "file_id": 24,
-        "content": "The code defines a function `write_result` that writes a dictionary to a file in JSON format. It also provides a `get_writer` function that returns a writer function based on the output format specified (either a specific format or \"all\" for all available formats). If \"all\" is specified, it creates a writer function that can write files in all supported formats.",
+        "file_id": 25,
+        "content": "Removes small segments and instantaneous segments without text from the current_segments list.",
         "type": "comment"
     },
     "412": {
         "file_id": 25,
-        "content": "/whisper/version.py",
-        "type": "filepath"
+        "content": "                    segment[\"text\"] = \"\"\n                    segment[\"tokens\"] = []\n                    segment[\"words\"] = []\n            all_segments.extend(\n                [\n                    {\"id\": i, **segment}\n                    for i, segment in enumerate(\n                        current_segments, start=len(all_segments)\n                    )\n                ]\n            )\n            all_tokens.extend(\n                [token for segment in current_segments for token in segment[\"tokens\"]]\n            )\n            if not condition_on_previous_text or result.temperature > 0.5:\n                # do not feed the prompt tokens if a high temperature was used\n                prompt_reset_since = len(all_tokens)\n            # update progress bar\n            pbar.update(min(content_frames, seek) - previous_seek)\n    return dict(\n        text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),\n        segments=all_segments,\n        language=language,\n    )\ndef cli():\n    from . import available_models",
+        "type": "code",
+        "location": "/whisper/transcribe.py:471-502"
     },
     "413": {
         "file_id": 25,
-        "content": "This code sets the version number for the \"whisper\" library to \"20231117\".",
-        "type": "summary"
+        "content": "1. Initializes empty text, tokens, and words for segments.\n2. Appends segments to all_segments list with unique IDs.\n3. Extends all_tokens list by combining segment's tokens.\n4. Checks if condition on previous text or temperature is high; resets prompt_reset_since if true.",
+        "type": "comment"
     },
     "414": {
         "file_id": 25,
-        "content": "__version__ = \"20231117\"",
+        "content": "    def valid_model_name(name):\n        if name in available_models() or os.path.exists(name):\n            return name\n        raise ValueError(\n            f\"model should be one of {available_models()} or path to a model checkpoint\"\n        )\n    # fmt: off\n    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)\n    parser.add_argument(\"audio\", nargs=\"+\", type=str, help=\"audio file(s) to transcribe\")\n    parser.add_argument(\"--model\", default=\"small\", type=valid_model_name, help=\"name of the Whisper model to use\")\n    parser.add_argument(\"--model_dir\", type=str, default=None, help=\"the path to save model files; uses ~/.cache/whisper by default\")\n    parser.add_argument(\"--device\", default=\"cuda\" if torch.cuda.is_available() else \"cpu\", help=\"device to use for PyTorch inference\")\n    parser.add_argument(\"--output_dir\", \"-o\", type=str, default=\".\", help=\"directory to save the outputs\")\n    parser.add_argument(\"--output_format\", \"-f\", type=str, default=\"all\", choi",
         "type": "code",
-        "location": "/whisper/version.py:1-1"
+        "location": "/whisper/transcribe.py:504-518"
     },
     "415": {
         "file_id": 25,
-        "content": "This code sets the version number for the \"whisper\" library to \"20231117\".",
+        "content": "The function 'valid_model_name' checks if the input name exists in available models or is a valid path to a model checkpoint. If so, it returns the name. Else, it raises a ValueError with an error message.\n\nThe parser object is initialized for parsing command line arguments. It accepts audio file(s) to transcribe as input and allows specifying various options like model name, model directory, device for PyTorch inference, and output directory for saving the outputs. The default options are set based on system availability.",
         "type": "comment"
     },
     "416": {
-        "file_id": 26,
-        "content": "/whisper/normalizers/__init__.py",
-        "type": "filepath"
+        "file_id": 25,
+        "content": "ces=[\"txt\", \"vtt\", \"srt\", \"tsv\", \"json\", \"all\"], help=\"format of the output file; if not specified, all available formats will be produced\")\n    parser.add_argument(\"--verbose\", type=str2bool, default=True, help=\"whether to print out the progress and debug messages\")\n    parser.add_argument(\"--task\", type=str, default=\"transcribe\", choices=[\"transcribe\", \"translate\"], help=\"whether to perform X->X speech recognition ('transcribe') or X->English translation ('translate')\")\n    parser.add_argument(\"--language\", type=str, default=None, choices=sorted(LANGUAGES.keys()) + sorted([k.title() for k in TO_LANGUAGE_CODE.keys()]), help=\"language spoken in the audio, specify None to perform language detection\")\n    parser.add_argument(\"--temperature\", type=float, default=0, help=\"temperature to use for sampling\")\n    parser.add_argument(\"--best_of\", type=optional_int, default=5, help=\"number of candidates when sampling with non-zero temperature\")\n    parser.add_argument(\"--beam_size\", type=optional_int, default=5, help=\"number of beams in beam search, only applicable when temperature is zero\")",
+        "type": "code",
+        "location": "/whisper/transcribe.py:518-526"
     },
     "417": {
-        "file_id": 26,
-        "content": "Importing BasicTextNormalizer and EnglishTextNormalizer from respective modules.",
-        "type": "summary"
+        "file_id": 25,
+        "content": "This code is parsing command line arguments for a transcribe and translation task. It sets default values and provides options to choose the output file format, enable verbose output, perform speech recognition or translation, specify input language, set temperature for sampling, and set beam size for beam search.",
+        "type": "comment"
     },
     "418": {
-        "file_id": 26,
-        "content": "from .basic import BasicTextNormalizer as BasicTextNormalizer\nfrom .english import EnglishTextNormalizer as EnglishTextNormalizer",
+        "file_id": 25,
+        "content": "    parser.add_argument(\"--patience\", type=float, default=None, help=\"optional patience value to use in beam decoding, as in https://arxiv.org/abs/2204.05424, the default (1.0) is equivalent to conventional beam search\")\n    parser.add_argument(\"--length_penalty\", type=float, default=None, help=\"optional token length penalty coefficient (alpha) as in https://arxiv.org/abs/1609.08144, uses simple length normalization by default\")\n    parser.add_argument(\"--suppress_tokens\", type=str, default=\"-1\", help=\"comma-separated list of token ids to suppress during sampling; '-1' will suppress most special characters except common punctuations\")\n    parser.add_argument(\"--initial_prompt\", type=str, default=None, help=\"optional text to provide as a prompt for the first window.\")\n    parser.add_argument(\"--condition_on_previous_text\", type=str2bool, default=True, help=\"if True, provide the previous output of the model as a prompt for the next window; disabling may make the text inconsistent across windows, but the model becomes less prone to getting stuck in a failure loop\")",
         "type": "code",
-        "location": "/whisper/normalizers/__init__.py:1-2"
+        "location": "/whisper/transcribe.py:527-532"
     },
     "419": {
-        "file_id": 26,
-        "content": "Importing BasicTextNormalizer and EnglishTextNormalizer from respective modules.",
+        "file_id": 25,
+        "content": "This code adds command line arguments to a parser, allowing the user to set optional values for patience, length penalty, tokens to suppress during sampling, initial prompt, and conditioning on previous text.",
         "type": "comment"
     },
     "420": {
-        "file_id": 27,
-        "content": "/whisper/normalizers/basic.py",
-        "type": "filepath"
+        "file_id": 25,
+        "content": "    parser.add_argument(\"--fp16\", type=str2bool, default=True, help=\"whether to perform inference in fp16; True by default\")\n    parser.add_argument(\"--temperature_increment_on_fallback\", type=optional_float, default=0.2, help=\"temperature to increase when falling back when the decoding fails to meet either of the thresholds below\")\n    parser.add_argument(\"--compression_ratio_threshold\", type=optional_float, default=2.4, help=\"if the gzip compression ratio is higher than this value, treat the decoding as failed\")\n    parser.add_argument(\"--logprob_threshold\", type=optional_float, default=-1.0, help=\"if the average log probability is lower than this value, treat the decoding as failed\")\n    parser.add_argument(\"--no_speech_threshold\", type=optional_float, default=0.6, help=\"if the probability of the <|nospeech|> token is higher than this value AND the decoding has failed due to `logprob_threshold`, consider the segment as silence\")\n    parser.add_argument(\"--word_timestamps\", type=str2bool,",
+        "type": "code",
+        "location": "/whisper/transcribe.py:533-539"
     },
     "421": {
-        "file_id": 27,
-        "content": "The code normalizes text by removing symbols, punctuation, and diacritics using NFKD normalization. It keeps specified characters and splits letters if instructed while also dropping words within brackets or parentheses.",
-        "type": "summary"
+        "file_id": 25,
+        "content": "This code snippet is adding command-line arguments for various parameters used in a speech transcription process. The parameters include whether to perform inference in half precision (fp16), temperature increment when falling back, compression ratio threshold, log probability threshold, no speech probability threshold, and whether to use word timestamps. These options allow the user to customize how the transcribe function operates.",
+        "type": "comment"
     },
     "422": {
-        "file_id": 27,
-        "content": "import re\nimport unicodedata\nimport regex\n# non-ASCII letters that are not separated by \"NFKD\" normalization\nADDITIONAL_DIACRITICS = {\n    \"œ\": \"oe\",\n    \"Œ\": \"OE\",\n    \"ø\": \"o\",\n    \"Ø\": \"O\",\n    \"æ\": \"ae\",\n    \"Æ\": \"AE\",\n    \"ß\": \"ss\",\n    \"ẞ\": \"SS\",\n    \"đ\": \"d\",\n    \"Đ\": \"D\",\n    \"ð\": \"d\",\n    \"Ð\": \"D\",\n    \"þ\": \"th\",\n    \"Þ\": \"th\",\n    \"ł\": \"l\",\n    \"Ł\": \"L\",\n}\ndef remove_symbols_and_diacritics(s: str, keep=\"\"):\n    \"\"\"\n    Replace any other markers, symbols, and punctuations with a space,\n    and drop any diacritics (category 'Mn' and some manual mappings)\n    \"\"\"\n    return \"\".join(\n        c\n        if c in keep\n        else ADDITIONAL_DIACRITICS[c]\n        if c in ADDITIONAL_DIACRITICS\n        else \"\"\n        if unicodedata.category(c) == \"Mn\"\n        else \" \"\n        if unicodedata.category(c)[0] in \"MSP\"\n        else c\n        for c in unicodedata.normalize(\"NFKD\", s)\n    )\ndef remove_symbols(s: str):\n    \"\"\"\n    Replace any other markers, symbols, punctuations with a space, keeping diacritics\n    \"\"\"\n    return \"\".join(",
+        "file_id": 25,
+        "content": " default=False, help=\"(experimental) extract word-level timestamps and refine the results based on them\")\n    parser.add_argument(\"--prepend_punctuations\", type=str, default=\"\\\"\\'“¿([{-\", help=\"if word_timestamps is True, merge these punctuation symbols with the next word\")\n    parser.add_argument(\"--append_punctuations\", type=str, default=\"\\\"\\'.。,，!！?？:：”)]}、\", help=\"if word_timestamps is True, merge these punctuation symbols with the previous word\")\n    parser.add_argument(\"--highlight_words\", type=str2bool, default=False, help=\"(requires --word_timestamps True) underline each word as it is spoken in srt and vtt\")\n    parser.add_argument(\"--max_line_width\", type=optional_int, default=None, help=\"(requires --word_timestamps True) the maximum number of characters in a line before breaking the line\")\n    parser.add_argument(\"--max_line_count\", type=optional_int, default=None, help=\"(requires --word_timestamps True) the maximum number of lines in a segment\")\n    parser.add_argument(\"--max_word",
         "type": "code",
-        "location": "/whisper/normalizers/basic.py:1-50"
+        "location": "/whisper/transcribe.py:539-545"
     },
     "423": {
-        "file_id": 27,
-        "content": "This code defines functions to remove symbols, punctuations, and diacritics from a string. It first normalizes the input string using \"NFKD\" normalization, then replaces non-ASCII letters with their ASCII equivalents, keeps specified characters, and removes other markers, symbols, and punctuations by replacing them with spaces. The \"remove_symbols_and_diacritics\" function also drops diacritics in addition to the symbol processing.",
+        "file_id": 25,
+        "content": "This code is adding optional arguments to a parser for various features related to word-level timestamps and punctuation handling. It includes options for enabling word timestamps, specifying punctuations to merge with next/previous words, highlighting spoken words in output files, and setting maximum line width and count in segments (requires --word_timestamps True).",
         "type": "comment"
     },
     "424": {
-        "file_id": 27,
-        "content": "        \" \" if unicodedata.category(c)[0] in \"MSP\" else c\n        for c in unicodedata.normalize(\"NFKC\", s)\n    )\nclass BasicTextNormalizer:\n    def __init__(self, remove_diacritics: bool = False, split_letters: bool = False):\n        self.clean = (\n            remove_symbols_and_diacritics if remove_diacritics else remove_symbols\n        )\n        self.split_letters = split_letters\n    def __call__(self, s: str):\n        s = s.lower()\n        s = re.sub(r\"[<\\[][^>\\]]*[>\\]]\", \"\", s)  # remove words between brackets\n        s = re.sub(r\"\\(([^)]+?)\\)\", \"\", s)  # remove words between parenthesis\n        s = self.clean(s).lower()\n        if self.split_letters:\n            s = \" \".join(regex.findall(r\"\\X\", s, regex.U))\n        s = re.sub(\n            r\"\\s+\", \" \", s\n        )  # replace any successive whitespace characters with a space\n        return s",
+        "file_id": 25,
+        "content": "s_per_line\", type=optional_int, default=None, help=\"(requires --word_timestamps True, no effect with --max_line_width) the maximum number of words in a segment\")\n    parser.add_argument(\"--threads\", type=optional_int, default=0, help=\"number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS\")\n    parser.add_argument(\"--clip_timestamps\", type=str, default=\"0\", help=\"comma-separated list start,end,start,end,... timestamps (in seconds) of clips to process, where the last end timestamp defaults to the end of the file\")\n    parser.add_argument(\"--hallucination_silence_threshold\", type=optional_float, help=\"(requires --word_timestamps True) skip silent periods longer than this threshold (in seconds) when a possible hallucination is detected\")\n    # fmt: on\n    args = parser.parse_args().__dict__\n    model_name: str = args.pop(\"model\")\n    model_dir: str = args.pop(\"model_dir\")\n    output_dir: str = args.pop(\"output_dir\")\n    output_format: str = args.pop(\"output_format\")",
         "type": "code",
-        "location": "/whisper/normalizers/basic.py:51-76"
+        "location": "/whisper/transcribe.py:545-555"
     },
     "425": {
-        "file_id": 27,
-        "content": "This code is a text normalizer that removes symbols, diacritics, and splits letters if specified. It also removes words between brackets and parentheses, and replaces successive whitespace characters with a single space.",
+        "file_id": 25,
+        "content": "The code defines command-line arguments for a transcribe function. It allows setting the maximum number of words in a segment, specifying the number of threads to use for CPU inference, defining clips to process with timestamps, and setting a silence threshold for hallucination detection. The code then parses these arguments into a dictionary.",
         "type": "comment"
     },
     "426": {
-        "file_id": 28,
-        "content": "/whisper/normalizers/english.py",
-        "type": "filepath"
+        "file_id": 25,
+        "content": "    device: str = args.pop(\"device\")\n    os.makedirs(output_dir, exist_ok=True)\n    if model_name.endswith(\".en\") and args[\"language\"] not in {\"en\", \"English\"}:\n        if args[\"language\"] is not None:\n            warnings.warn(\n                f\"{model_name} is an English-only model but receipted '{args['language']}'; using English instead.\"\n            )\n        args[\"language\"] = \"en\"\n    temperature = args.pop(\"temperature\")\n    if (increment := args.pop(\"temperature_increment_on_fallback\")) is not None:\n        temperature = tuple(np.arange(temperature, 1.0 + 1e-6, increment))\n    else:\n        temperature = [temperature]\n    if (threads := args.pop(\"threads\")) > 0:\n        torch.set_num_threads(threads)\n    from . import load_model\n    model = load_model(model_name, device=device, download_root=model_dir)\n    writer = get_writer(output_format, output_dir)\n    word_options = [\n        \"highlight_words\",\n        \"max_line_count\",\n        \"max_line_width\",\n        \"max_words_per_line\",\n    ]\n    if not args[\"word_timestamps\"]:",
+        "type": "code",
+        "location": "/whisper/transcribe.py:556-586"
     },
     "427": {
-        "file_id": 28,
-        "content": "The EnglishNumberNormalizer class handles spelled-out numbers and applies normalization functions for conversions, while the code contains two classes: \"EnglishSpellingNormalizer\" and \"EnglishTextNormalizer,\" which apply regular expressions to standardize spellings and adjust whitespace in text.",
-        "type": "summary"
+        "file_id": 25,
+        "content": "The code is setting up the model and its configuration for transcribing audio files. It checks if the received language matches the model's language, warns and defaults to English if not. It also sets the temperature and number of threads for model inference, loads the model, and gets a writer object for output. Additionally, it handles word options such as highlight words, maximum line count, maximum line width, and maximum words per line.",
+        "type": "comment"
     },
     "428": {
-        "file_id": 28,
-        "content": "import json\nimport os\nimport re\nfrom fractions import Fraction\nfrom typing import Iterator, List, Match, Optional, Union\nfrom more_itertools import windowed\nfrom .basic import remove_symbols_and_diacritics\nclass EnglishNumberNormalizer:\n    \"\"\"\n    Convert any spelled-out numbers into arabic numbers, while handling:\n    - remove any commas\n    - keep the suffixes such as: `1960s`, `274th`, `32nd`, etc.\n    - spell out currency symbols after the number. e.g. `$20 million` -> `20000000 dollars`\n    - spell out `one` and `ones`\n    - interpret successive single-digit numbers as nominal: `one oh one` -> `101`\n    \"\"\"\n    def __init__(self):\n        super().__init__()\n        self.zeros = {\"o\", \"oh\", \"zero\"}\n        self.ones = {\n            name: i\n            for i, name in enumerate(\n                [\n                    \"one\",\n                    \"two\",\n                    \"three\",\n                    \"four\",\n                    \"five\",\n                    \"six\",\n                    \"seven\",\n                    \"eight\",",
+        "file_id": 25,
+        "content": "        for option in word_options:\n            if args[option]:\n                parser.error(f\"--{option} requires --word_timestamps True\")\n    if args[\"max_line_count\"] and not args[\"max_line_width\"]:\n        warnings.warn(\"--max_line_count has no effect without --max_line_width\")\n    if args[\"max_words_per_line\"] and args[\"max_line_width\"]:\n        warnings.warn(\"--max_words_per_line has no effect with --max_line_width\")\n    writer_args = {arg: args.pop(arg) for arg in word_options}\n    for audio_path in args.pop(\"audio\"):\n        try:\n            result = transcribe(model, audio_path, temperature=temperature, **args)\n            writer(result, audio_path, **writer_args)\n        except Exception as e:\n            traceback.print_exc()\n            print(f\"Skipping {audio_path} due to {type(e).__name__}: {str(e)}\")\nif __name__ == \"__main__\":\n    cli()",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:1-38"
+        "location": "/whisper/transcribe.py:587-605"
     },
     "429": {
-        "file_id": 28,
-        "content": "EnglishNumberNormalizer class definition with properties for handling various spelled-out numbers and currency symbols.",
+        "file_id": 25,
+        "content": "This code block checks if certain command line arguments are used correctly and handles any cases where they're not. It then passes the required arguments to the transcribe function and writes the results using a specified writer function.",
         "type": "comment"
     },
     "430": {
-        "file_id": 28,
-        "content": "                    \"nine\",\n                    \"ten\",\n                    \"eleven\",\n                    \"twelve\",\n                    \"thirteen\",\n                    \"fourteen\",\n                    \"fifteen\",\n                    \"sixteen\",\n                    \"seventeen\",\n                    \"eighteen\",\n                    \"nineteen\",\n                ],\n                start=1,\n            )\n        }\n        self.ones_plural = {\n            \"sixes\" if name == \"six\" else name + \"s\": (value, \"s\")\n            for name, value in self.ones.items()\n        }\n        self.ones_ordinal = {\n            \"zeroth\": (0, \"th\"),\n            \"first\": (1, \"st\"),\n            \"second\": (2, \"nd\"),\n            \"third\": (3, \"rd\"),\n            \"fifth\": (5, \"th\"),\n            \"twelfth\": (12, \"th\"),\n            **{\n                name + (\"h\" if name.endswith(\"t\") else \"th\"): (value, \"th\")\n                for name, value in self.ones.items()\n                if value > 3 and value != 5 and value != 12\n            },\n        }\n        self.ones_suffixed = {**self.ones_plural, **self.ones_ordinal}",
-        "type": "code",
-        "location": "/whisper/normalizers/english.py:39-71"
+        "file_id": 26,
+        "content": "/whisper/triton_ops.py",
+        "type": "filepath"
     },
     "431": {
-        "file_id": 28,
-        "content": "This code is defining various mappings for numbers 1-20, including plural form, ordinal form, and suffixed forms. It handles exceptions for specific numbers like \"twelfth\" with a suffix \"th\". The final result is a dictionary of these different number variations called \"ones_suffixed\".",
-        "type": "comment"
+        "file_id": 26,
+        "content": "The code includes two functions: a dynamic time warping algorithm using Triton's parallel computing and a median filter implemented with CUDA, performing convolution operations on input tensors.",
+        "type": "summary"
     },
     "432": {
-        "file_id": 28,
-        "content": "        self.tens = {\n            \"twenty\": 20,\n            \"thirty\": 30,\n            \"forty\": 40,\n            \"fifty\": 50,\n            \"sixty\": 60,\n            \"seventy\": 70,\n            \"eighty\": 80,\n            \"ninety\": 90,\n        }\n        self.tens_plural = {\n            name.replace(\"y\", \"ies\"): (value, \"s\") for name, value in self.tens.items()\n        }\n        self.tens_ordinal = {\n            name.replace(\"y\", \"ieth\"): (value, \"th\")\n            for name, value in self.tens.items()\n        }\n        self.tens_suffixed = {**self.tens_plural, **self.tens_ordinal}\n        self.multipliers = {\n            \"hundred\": 100,\n            \"thousand\": 1_000,\n            \"million\": 1_000_000,\n            \"billion\": 1_000_000_000,\n            \"trillion\": 1_000_000_000_000,\n            \"quadrillion\": 1_000_000_000_000_000,\n            \"quintillion\": 1_000_000_000_000_000_000,\n            \"sextillion\": 1_000_000_000_000_000_000_000,\n            \"septillion\": 1_000_000_000_000_000_000_000_000,\n            \"octillion\": 1_000_000_000_000_000_000_000_000_000,",
+        "file_id": 26,
+        "content": "from functools import lru_cache\nimport numpy as np\nimport torch\ntry:\n    import triton\n    import triton.language as tl\nexcept ImportError:\n    raise RuntimeError(\"triton import failed; try `pip install --pre triton`\")\n@triton.jit\ndef dtw_kernel(\n    cost, trace, x, x_stride, cost_stride, trace_stride, N, M, BLOCK_SIZE: tl.constexpr\n):\n    offsets = tl.arange(0, BLOCK_SIZE)\n    mask = offsets < M\n    for k in range(1, N + M + 1):  # k = i + j\n        tl.debug_barrier()\n        p0 = cost + (k - 1) * cost_stride\n        p1 = cost + k * cost_stride\n        p2 = cost + k * cost_stride + 1\n        c0 = tl.load(p0 + offsets, mask=mask)\n        c1 = tl.load(p1 + offsets, mask=mask)\n        c2 = tl.load(p2 + offsets, mask=mask)\n        x_row = tl.load(x + (k - 1) * x_stride + offsets, mask=mask, other=0)\n        cost_row = x_row + tl.minimum(tl.minimum(c0, c1), c2)\n        cost_ptr = cost + (k + 1) * cost_stride + 1\n        tl.store(cost_ptr + offsets, cost_row, mask=mask)\n        trace_ptr = trace + (k + 1) * trace_stride + 1",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:73-102"
+        "location": "/whisper/triton_ops.py:1-37"
     },
     "433": {
-        "file_id": 28,
-        "content": "The code defines various number normalizations for English language. It includes tens, tens plural, tens ordinal and multipliers as dictionaries to handle different number representations in text.",
+        "file_id": 26,
+        "content": "This code defines a function `dtw_kernel` that uses the Triton programming language to implement dynamic time warping (DTW) algorithm. It takes cost, trace, x arrays as input and calculates the DTW distance between two sequences. The function uses triton's parallel computing capabilities to optimize performance.",
         "type": "comment"
     },
     "434": {
-        "file_id": 28,
-        "content": "            \"nonillion\": 1_000_000_000_000_000_000_000_000_000_000,\n            \"decillion\": 1_000_000_000_000_000_000_000_000_000_000_000,\n        }\n        self.multipliers_plural = {\n            name + \"s\": (value, \"s\") for name, value in self.multipliers.items()\n        }\n        self.multipliers_ordinal = {\n            name + \"th\": (value, \"th\") for name, value in self.multipliers.items()\n        }\n        self.multipliers_suffixed = {\n            **self.multipliers_plural,\n            **self.multipliers_ordinal,\n        }\n        self.decimals = {*self.ones, *self.tens, *self.zeros}\n        self.preceding_prefixers = {\n            \"minus\": \"-\",\n            \"negative\": \"-\",\n            \"plus\": \"+\",\n            \"positive\": \"+\",\n        }\n        self.following_prefixers = {\n            \"pound\": \"£\",\n            \"pounds\": \"£\",\n            \"euro\": \"€\",\n            \"euros\": \"€\",\n            \"dollar\": \"$\",\n            \"dollars\": \"$\",\n            \"cent\": \"¢\",\n            \"cents\": \"¢\",\n        }\n        self.prefixes = set(",
+        "file_id": 26,
+        "content": "        tl.store(trace_ptr + offsets, 2, mask=mask & (c2 <= c0) & (c2 <= c1))\n        tl.store(trace_ptr + offsets, 1, mask=mask & (c1 <= c0) & (c1 <= c2))\n        tl.store(trace_ptr + offsets, 0, mask=mask & (c0 <= c1) & (c0 <= c2))\n@lru_cache(maxsize=None)\ndef median_kernel(filter_width: int):\n    @triton.jit\n    def kernel(\n        y, x, x_stride, y_stride, BLOCK_SIZE: tl.constexpr\n    ):  # x.shape[-1] == filter_width\n        row_idx = tl.program_id(0)\n        offsets = tl.arange(0, BLOCK_SIZE)\n        mask = offsets < y_stride\n        x_ptr = x + row_idx * x_stride  # noqa: F841\n        y_ptr = y + row_idx * y_stride\n        LOAD_ALL_ROWS_HERE  # noqa: F821\n        BUBBLESORT_HERE  # noqa: F821\n        tl.store(y_ptr + offsets, MIDDLE_ROW_HERE, mask=mask)  # noqa: F821\n    kernel = triton.JITFunction(kernel.fn)\n    kernel.src = kernel.src.replace(\n        \"    LOAD_ALL_ROWS_HERE\",\n        \"\\n\".join(\n            [\n                f\"    row{i} = tl.load(x_ptr + offsets + {i}, mask=mask)\"\n                for i in range(filter_width)",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:103-134"
+        "location": "/whisper/triton_ops.py:38-68"
     },
     "435": {
-        "file_id": 28,
-        "content": "This code defines various prefixes and multipliers for English numbers. It creates dictionaries for plural, ordinal, and suffixed forms of the numbers. The code also includes a dictionary for decimal values and separate dictionaries for preceding and following prefixes like currency symbols. Finally, it defines a set of prefixes used in the code.",
+        "file_id": 26,
+        "content": "This code is implementing a median filter using Triton library. It loads pixel values from an input image, sorts them, and stores the middle value back into the image. The function is JIT compiled for performance.",
         "type": "comment"
     },
     "436": {
-        "file_id": 28,
-        "content": "            list(self.preceding_prefixers.values())\n            + list(self.following_prefixers.values())\n        )\n        self.suffixers = {\n            \"per\": {\"cent\": \"%\"},\n            \"percent\": \"%\",\n        }\n        self.specials = {\"and\", \"double\", \"triple\", \"point\"}\n        self.words = set(\n            [\n                key\n                for mapping in [\n                    self.zeros,\n                    self.ones,\n                    self.ones_suffixed,\n                    self.tens,\n                    self.tens_suffixed,\n                    self.multipliers,\n                    self.multipliers_suffixed,\n                    self.preceding_prefixers,\n                    self.following_prefixers,\n                    self.suffixers,\n                    self.specials,\n                ]\n                for key in mapping\n            ]\n        )\n        self.literal_words = {\"one\", \"ones\"}\n    def process_words(self, words: List[str]) -> Iterator[str]:\n        prefix: Optional[str] = None\n        value: Optional[Union[str, int]] = None",
+        "file_id": 26,
+        "content": "            ]\n        ),\n    )\n    kernel.src = kernel.src.replace(\n        \"    BUBBLESORT_HERE\",\n        \"\\n\\n\".join(\n            [\n                \"\\n\\n\".join(\n                    [\n                        \"\\n\".join(\n                            [\n                                f\"    smaller = tl.where(row{j} < row{j + 1}, row{j}, row{j + 1})\",\n                                f\"    larger = tl.where(row{j} > row{j + 1}, row{j}, row{j + 1})\",\n                                f\"    row{j} = smaller\",\n                                f\"    row{j + 1} = larger\",\n                            ]\n                        )\n                        for j in range(filter_width - i - 1)\n                    ]\n                )\n                for i in range(filter_width // 2 + 1)\n            ]\n        ),\n    )\n    kernel.src = kernel.src.replace(\"MIDDLE_ROW_HERE\", f\"row{filter_width // 2}\")\n    return kernel\ndef median_filter_cuda(x: torch.Tensor, filter_width: int):\n    \"\"\"Apply a median filter of given width along the last dimension of x\"\"\"",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:135-167"
+        "location": "/whisper/triton_ops.py:69-99"
     },
     "437": {
-        "file_id": 28,
-        "content": "The code defines a class with various mappings and sets of words. It initializes instance variables for preceding and following prefixers, suffixes, special words, and literal words. The process_words method takes a list of words as input and returns an iterator of processed strings.",
+        "file_id": 26,
+        "content": "This code is implementing a median filter with CUDA for a given tensor. It replaces the specified sections of the kernel source code to perform a bubblesort on rows of the tensor, then updates each row with its corresponding median value. The filter_width determines the size of the median filter applied along the last dimension of the input tensor.",
         "type": "comment"
     },
     "438": {
-        "file_id": 28,
-        "content": "        skip = False\n        def to_fraction(s: str):\n            try:\n                return Fraction(s)\n            except ValueError:\n                return None\n        def output(result: Union[str, int]):\n            nonlocal prefix, value\n            result = str(result)\n            if prefix is not None:\n                result = prefix + result\n            value = None\n            prefix = None\n            return result\n        if len(words) == 0:\n            return\n        for prev, current, next in windowed([None] + words + [None], 3):\n            if skip:\n                skip = False\n                continue\n            next_is_numeric = next is not None and re.match(r\"^\\d+(\\.\\d+)?$\", next)\n            has_prefix = current[0] in self.prefixes\n            current_without_prefix = current[1:] if has_prefix else current\n            if re.match(r\"^\\d+(\\.\\d+)?$\", current_without_prefix):\n                # arabic numbers (potentially with signs and fractions)\n                f = to_fraction(current_without_prefix)",
+        "file_id": 26,
+        "content": "    slices = x.contiguous().unfold(-1, filter_width, 1)\n    grid = np.prod(slices.shape[:-2])\n    kernel = median_kernel(filter_width)\n    y = torch.empty_like(slices[..., 0])\n    BLOCK_SIZE = 1 << (y.stride(-2) - 1).bit_length()\n    kernel[(grid,)](y, x, x.stride(-2), y.stride(-2), BLOCK_SIZE=BLOCK_SIZE)\n    return y",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:168-198"
+        "location": "/whisper/triton_ops.py:100-109"
     },
     "439": {
-        "file_id": 28,
-        "content": "This code defines functions for normalizing English text. It checks if the current word is a number and handles fractions, skips over words marked as \"skip\", and processes words with or without prefixes.",
+        "file_id": 26,
+        "content": "This code is performing a convolution operation on an input tensor 'x' using a kernel of size 'filter_width'. The result is stored in tensor 'y', and the BLOCK_SIZE is determined based on the stride of 'x'.",
         "type": "comment"
     },
     "440": {
-        "file_id": 28,
-        "content": "                assert f is not None\n                if value is not None:\n                    if isinstance(value, str) and value.endswith(\".\"):\n                        # concatenate decimals / ip address components\n                        value = str(value) + str(current)\n                        continue\n                    else:\n                        yield output(value)\n                prefix = current[0] if has_prefix else prefix\n                if f.denominator == 1:\n                    value = f.numerator  # store integers as int\n                else:\n                    value = current_without_prefix\n            elif current not in self.words:\n                # non-numeric words\n                if value is not None:\n                    yield output(value)\n                yield output(current)\n            elif current in self.zeros:\n                value = str(value or \"\") + \"0\"\n            elif current in self.ones:\n                ones = self.ones[current]\n                if value is None:\n                    value = ones",
-        "type": "code",
-        "location": "/whisper/normalizers/english.py:199-224"
+        "file_id": 27,
+        "content": "/whisper/utils.py",
+        "type": "filepath"
     },
     "441": {
-        "file_id": 28,
-        "content": "This code is handling various cases of number normalization. It checks if the value is a string ending with \".\", concatenates decimals/IP address components, handles numeric and non-numeric words, zeros, and ones.",
-        "type": "comment"
+        "file_id": 27,
+        "content": "The code has utility modules, compression ratio calculations, and timestamp formatting for ResultWriter class. It introduces WriteTSV and WriteJSON subclasses for TSV and JSON file formats, along with write_result and get_writer functions.",
+        "type": "summary"
     },
     "442": {
-        "file_id": 28,
-        "content": "                elif isinstance(value, str) or prev in self.ones:\n                    if (\n                        prev in self.tens and ones < 10\n                    ):  # replace the last zero with the digit\n                        assert value[-1] == \"0\"\n                        value = value[:-1] + str(ones)\n                    else:\n                        value = str(value) + str(ones)\n                elif ones < 10:\n                    if value % 10 == 0:\n                        value += ones\n                    else:\n                        value = str(value) + str(ones)\n                else:  # eleven to nineteen\n                    if value % 100 == 0:\n                        value += ones\n                    else:\n                        value = str(value) + str(ones)\n            elif current in self.ones_suffixed:\n                # ordinal or cardinal; yield the number right away\n                ones, suffix = self.ones_suffixed[current]\n                if value is None:\n                    yield output(str(ones) + suffix)",
+        "file_id": 27,
+        "content": "import json\nimport os\nimport re\nimport sys\nimport zlib\nfrom typing import Callable, List, Optional, TextIO\nsystem_encoding = sys.getdefaultencoding()\nif system_encoding != \"utf-8\":\n    def make_safe(string):\n        # replaces any character not representable using the system default encoding with an '?',\n        # avoiding UnicodeEncodeError (https://github.com/openai/whisper/discussions/729).\n        return string.encode(system_encoding, errors=\"replace\").decode(system_encoding)\nelse:\n    def make_safe(string):\n        # utf-8 can encode any Unicode code point, so no need to do the round-trip encoding\n        return string\ndef exact_div(x, y):\n    assert x % y == 0\n    return x // y\ndef str2bool(string):\n    str2val = {\"True\": True, \"False\": False}\n    if string in str2val:\n        return str2val[string]\n    else:\n        raise ValueError(f\"Expected one of {set(str2val.keys())}, got {string}\")\ndef optional_int(string):\n    return None if string == \"None\" else int(string)\ndef optional_float(string):\n    return None if string == \"None\" else float(string)",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:225-247"
+        "location": "/whisper/utils.py:1-42"
     },
     "443": {
-        "file_id": 28,
-        "content": "This code snippet is part of a normalizer function for the English language. It handles different cases to convert numbers into spoken words, including handling tens and ones place values, as well as cardinal or ordinal numbers. If the previous number had a \"0\" at the end and the one's digit is less than 10, it replaces the last zero with the digit. If the one's digit is less than 10 but the current value is not ending in a zero, it concatenates the string representation of the current value and the ones. If the one's digit is 11 to 19, it appends the ones digit if the current value is divisible by 100 or simply concatenates the string representation of the current value and the ones. If the current number is in the 'ones_suffixed' list, it yields the number with the appropriate suffix.",
+        "file_id": 27,
+        "content": "The code imports necessary modules, checks the system encoding, and provides several utility functions. It defines make_safe for converting strings to safe format, exact_div for integer division with assertion, str2bool for converting strings to boolean values, optional_int and optional_float for converting strings to respective numeric types if not \"None\".",
         "type": "comment"
     },
     "444": {
-        "file_id": 28,
-        "content": "                elif isinstance(value, str) or prev in self.ones:\n                    if prev in self.tens and ones < 10:\n                        assert value[-1] == \"0\"\n                        yield output(value[:-1] + str(ones) + suffix)\n                    else:\n                        yield output(str(value) + str(ones) + suffix)\n                elif ones < 10:\n                    if value % 10 == 0:\n                        yield output(str(value + ones) + suffix)\n                    else:\n                        yield output(str(value) + str(ones) + suffix)\n                else:  # eleven to nineteen\n                    if value % 100 == 0:\n                        yield output(str(value + ones) + suffix)\n                    else:\n                        yield output(str(value) + str(ones) + suffix)\n                value = None\n            elif current in self.tens:\n                tens = self.tens[current]\n                if value is None:\n                    value = tens\n                elif isinstance(value, str):",
+        "file_id": 27,
+        "content": "def compression_ratio(text) -> float:\n    text_bytes = text.encode(\"utf-8\")\n    return len(text_bytes) / len(zlib.compress(text_bytes))\ndef format_timestamp(\n    seconds: float, always_include_hours: bool = False, decimal_marker: str = \".\"\n):\n    assert seconds >= 0, \"non-negative timestamp expected\"\n    milliseconds = round(seconds * 1000.0)\n    hours = milliseconds // 3_600_000\n    milliseconds -= hours * 3_600_000\n    minutes = milliseconds // 60_000\n    milliseconds -= minutes * 60_000\n    seconds = milliseconds // 1_000\n    milliseconds -= seconds * 1_000\n    hours_marker = f\"{hours:02d}:\" if always_include_hours or hours > 0 else \"\"\n    return (\n        f\"{hours_marker}{minutes:02d}:{seconds:02d}{decimal_marker}{milliseconds:03d}\"\n    )\ndef get_start(segments: List[dict]) -> Optional[float]:\n    return next(\n        (w[\"start\"] for s in segments for w in s[\"words\"]),\n        segments[0][\"start\"] if segments else None,\n    )\ndef get_end(segments: List[dict]) -> Optional[float]:\n    return next(\n        (w[\"end\"] for s in reversed(segments) for w in reversed(s[\"words\"])),",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:248-269"
+        "location": "/whisper/utils.py:45-80"
     },
     "445": {
-        "file_id": 28,
-        "content": "This code snippet is handling the conversion of numbers to words in English. It checks if the number is a multiple of 10, and handles values from 11 to 19, 20 to 29, etc., separately. It also deals with cases where the value is a string or a single digit number (ones place).",
+        "file_id": 27,
+        "content": "1. `compression_ratio` calculates the ratio of the size of compressed text to the original size in bytes.\n2. `format_timestamp` converts a non-negative timestamp into a formatted string, including hours if requested or if they are present.\n3. `get_start` retrieves the start time from the list of segment dictionaries, falling back to the first segment if necessary.\n4. `get_end` retrieves the end time from the last segment in reverse order of segments, or returns None if no segments are present.",
         "type": "comment"
     },
     "446": {
-        "file_id": 28,
-        "content": "                    value = str(value) + str(tens)\n                else:\n                    if value % 100 == 0:\n                        value += tens\n                    else:\n                        value = str(value) + str(tens)\n            elif current in self.tens_suffixed:\n                # ordinal or cardinal; yield the number right away\n                tens, suffix = self.tens_suffixed[current]\n                if value is None:\n                    yield output(str(tens) + suffix)\n                elif isinstance(value, str):\n                    yield output(str(value) + str(tens) + suffix)\n                else:\n                    if value % 100 == 0:\n                        yield output(str(value + tens) + suffix)\n                    else:\n                        yield output(str(value) + str(tens) + suffix)\n            elif current in self.multipliers:\n                multiplier = self.multipliers[current]\n                if value is None:\n                    value = multiplier\n                elif isinstance(value, str) or value == 0:",
+        "file_id": 27,
+        "content": "        segments[-1][\"end\"] if segments else None,\n    )\nclass ResultWriter:\n    extension: str\n    def __init__(self, output_dir: str):\n        self.output_dir = output_dir\n    def __call__(\n        self, result: dict, audio_path: str, options: Optional[dict] = None, **kwargs\n    ):\n        audio_basename = os.path.basename(audio_path)\n        audio_basename = os.path.splitext(audio_basename)[0]\n        output_path = os.path.join(\n            self.output_dir, audio_basename + \".\" + self.extension\n        )\n        with open(output_path, \"w\", encoding=\"utf-8\") as f:\n            self.write_result(result, file=f, options=options, **kwargs)\n    def write_result(\n        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n    ):\n        raise NotImplementedError\nclass WriteTXT(ResultWriter):\n    extension: str = \"txt\"\n    def write_result(\n        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n    ):\n        for segment in result[\"segments\"]:\n            print(segment[\"text\"].strip(), file=file, flush=True)",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:270-292"
+        "location": "/whisper/utils.py:81-116"
     },
     "447": {
-        "file_id": 28,
-        "content": "This code is part of a normalizer for the English language. It handles converting numbers into words based on their position and value. The code checks if the number has a specific digit and adds the corresponding suffix or multiplies by a specific factor depending on the context.",
+        "file_id": 27,
+        "content": "Class \"ResultWriter\" initializes with an output directory and takes a result dictionary, audio path, optional options dictionary, and additional keyword arguments. It writes the result to a file in the specified output directory with the file name based on the audio basename and the class's extension.\n\nThe \"WriteTXT\" class is a subclass of \"ResultWriter\" that writes the result as plain text to a file. For each segment in the result dictionary, it prints the text without leading or trailing whitespace.",
         "type": "comment"
     },
     "448": {
-        "file_id": 28,
-        "content": "                    f = to_fraction(value)\n                    p = f * multiplier if f is not None else None\n                    if f is not None and p.denominator == 1:\n                        value = p.numerator\n                    else:\n                        yield output(value)\n                        value = multiplier\n                else:\n                    before = value // 1000 * 1000\n                    residual = value % 1000\n                    value = before + residual * multiplier\n            elif current in self.multipliers_suffixed:\n                multiplier, suffix = self.multipliers_suffixed[current]\n                if value is None:\n                    yield output(str(multiplier) + suffix)\n                elif isinstance(value, str):\n                    f = to_fraction(value)\n                    p = f * multiplier if f is not None else None\n                    if f is not None and p.denominator == 1:\n                        yield output(str(p.numerator) + suffix)\n                    else:",
+        "file_id": 27,
+        "content": "class SubtitlesWriter(ResultWriter):\n    always_include_hours: bool\n    decimal_marker: str\n    def iterate_result(\n        self,\n        result: dict,\n        options: Optional[dict] = None,\n        *,\n        max_line_width: Optional[int] = None,\n        max_line_count: Optional[int] = None,\n        highlight_words: bool = False,\n        max_words_per_line: Optional[int] = None,\n    ):\n        options = options or {}\n        max_line_width = max_line_width or options.get(\"max_line_width\")\n        max_line_count = max_line_count or options.get(\"max_line_count\")\n        highlight_words = highlight_words or options.get(\"highlight_words\", False)\n        max_words_per_line = max_words_per_line or options.get(\"max_words_per_line\")\n        preserve_segments = max_line_count is None or max_line_width is None\n        max_line_width = max_line_width or 1000\n        max_words_per_line = max_words_per_line or 1000\n        def iterate_subtitles():\n            line_len = 0\n            line_count = 1\n            # the next subtitle to yield (a list of word timings with whitespace)",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:293-313"
+        "location": "/whisper/utils.py:119-145"
     },
     "449": {
-        "file_id": 28,
-        "content": "This code is used for normalizing English text by converting numbers and their corresponding units to a specific format. It checks the current unit, applies multipliers if necessary, and handles fractions and suffixes appropriately. The output is yielded as a formatted string.",
+        "file_id": 27,
+        "content": "This function is setting default values for options and defining an inner function to iterate through subtitles, keeping track of line length and count.",
         "type": "comment"
     },
     "450": {
-        "file_id": 28,
-        "content": "                        yield output(value)\n                        yield output(str(multiplier) + suffix)\n                else:  # int\n                    before = value // 1000 * 1000\n                    residual = value % 1000\n                    value = before + residual * multiplier\n                    yield output(str(value) + suffix)\n                value = None\n            elif current in self.preceding_prefixers:\n                # apply prefix (positive, minus, etc.) if it precedes a number\n                if value is not None:\n                    yield output(value)\n                if next in self.words or next_is_numeric:\n                    prefix = self.preceding_prefixers[current]\n                else:\n                    yield output(current)\n            elif current in self.following_prefixers:\n                # apply prefix (dollars, cents, etc.) only after a number\n                if value is not None:\n                    prefix = self.following_prefixers[current]\n                    yield output(value)",
+        "file_id": 27,
+        "content": "            subtitle: List[dict] = []\n            last: float = get_start(result[\"segments\"]) or 0.0\n            for segment in result[\"segments\"]:\n                chunk_index = 0\n                words_count = max_words_per_line\n                while chunk_index < len(segment[\"words\"]):\n                    remaining_words = len(segment[\"words\"]) - chunk_index\n                    if max_words_per_line > len(segment[\"words\"]) - chunk_index:\n                        words_count = remaining_words\n                    for i, original_timing in enumerate(\n                        segment[\"words\"][chunk_index : chunk_index + words_count]\n                    ):\n                        timing = original_timing.copy()\n                        long_pause = (\n                            not preserve_segments and timing[\"start\"] - last > 3.0\n                        )\n                        has_room = line_len + len(timing[\"word\"]) <= max_line_width\n                        seg_break = i == 0 and len(subtitle) > 0 and preserve_segments",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:314-335"
+        "location": "/whisper/utils.py:146-163"
     },
     "451": {
-        "file_id": 28,
-        "content": "This code is responsible for handling the formatting of numbers and appending appropriate suffixes, prefixes or postfixes based on the English language normalization rules. It also takes care of multiplication, preceding and following prefixes application to ensure proper number formatting as per the rules defined in the self.preceding_prefixers and self.following_prefixers dictionaries.",
+        "file_id": 27,
+        "content": "This code is iterating through each segment of text, splitting it into smaller chunks based on maximum words per line, and handling breaks or pauses between segments if necessary.",
         "type": "comment"
     },
     "452": {
-        "file_id": 28,
-        "content": "                else:\n                    yield output(current)\n            elif current in self.suffixers:\n                # apply suffix symbols (percent -> '%')\n                if value is not None:\n                    suffix = self.suffixers[current]\n                    if isinstance(suffix, dict):\n                        if next in suffix:\n                            yield output(str(value) + suffix[next])\n                            skip = True\n                        else:\n                            yield output(value)\n                            yield output(current)\n                    else:\n                        yield output(str(value) + suffix)\n                else:\n                    yield output(current)\n            elif current in self.specials:\n                if next not in self.words and not next_is_numeric:\n                    # apply special handling only if the next word can be numeric\n                    if value is not None:\n                        yield output(value)\n                    yield output(current)",
+        "file_id": 27,
+        "content": "                        if (\n                            line_len > 0\n                            and has_room\n                            and not long_pause\n                            and not seg_break\n                        ):\n                            # line continuation\n                            line_len += len(timing[\"word\"])\n                        else:\n                            # new line\n                            timing[\"word\"] = timing[\"word\"].strip()\n                            if (\n                                len(subtitle) > 0\n                                and max_line_count is not None\n                                and (long_pause or line_count >= max_line_count)\n                                or seg_break\n                            ):\n                                # subtitle break\n                                yield subtitle\n                                subtitle = []\n                                line_count = 1\n                            elif line_len > 0:\n                                # line break",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:336-358"
+        "location": "/whisper/utils.py:164-186"
     },
     "453": {
-        "file_id": 28,
-        "content": "Applies suffix symbols (e.g., percent -> '%'), special handling to words, and yields output based on conditions.",
+        "file_id": 27,
+        "content": "If line length > 0, has room, not a long pause, and not a segment break, increment line_len with word length. Otherwise, strip timing[\"word\"], check if subtitle is not empty, max line count not None, long pause or at max lines count, or segment break. If true, yield the subtitle and reset subtitle, line count to 1. Else, break the line",
         "type": "comment"
     },
     "454": {
-        "file_id": 28,
-        "content": "                elif current == \"and\":\n                    # ignore \"and\" after hundreds, thousands, etc.\n                    if prev not in self.multipliers:\n                        if value is not None:\n                            yield output(value)\n                        yield output(current)\n                elif current == \"double\" or current == \"triple\":\n                    if next in self.ones or next in self.zeros:\n                        repeats = 2 if current == \"double\" else 3\n                        ones = self.ones.get(next, 0)\n                        value = str(value or \"\") + str(ones) * repeats\n                        skip = True\n                    else:\n                        if value is not None:\n                            yield output(value)\n                        yield output(current)\n                elif current == \"point\":\n                    if next in self.decimals or next_is_numeric:\n                        value = str(value or \"\") + \".\"\n                else:\n                    # should all have been covered at this point",
+        "file_id": 27,
+        "content": "                                line_count += 1\n                                timing[\"word\"] = \"\\n\" + timing[\"word\"]\n                            line_len = len(timing[\"word\"].strip())\n                        subtitle.append(timing)\n                        last = timing[\"start\"]\n                    chunk_index += max_words_per_line\n            if len(subtitle) > 0:\n                yield subtitle\n        if len(result[\"segments\"]) > 0 and \"words\" in result[\"segments\"][0]:\n            for subtitle in iterate_subtitles():\n                subtitle_start = self.format_timestamp(subtitle[0][\"start\"])\n                subtitle_end = self.format_timestamp(subtitle[-1][\"end\"])\n                subtitle_text = \"\".join([word[\"word\"] for word in subtitle])\n                if highlight_words:\n                    last = subtitle_start\n                    all_words = [timing[\"word\"] for timing in subtitle]\n                    for i, this_word in enumerate(subtitle):\n                        start = self.format_timestamp(this_word[\"start\"])",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:359-379"
+        "location": "/whisper/utils.py:187-205"
     },
     "455": {
-        "file_id": 28,
-        "content": "This code is responsible for normalizing English text and handles specific conditions such as \"and\", \"double\", \"triple\", and \"point\". It processes the text based on the context of previous and next characters, handles numbers with multipliers, repeats values based on the keyword provided, adds a decimal point when appropriate, and ignores certain keywords if they are not in the correct context.",
+        "file_id": 27,
+        "content": "Iterating through subtitles and yielding each one, formatting start and end timestamps.",
         "type": "comment"
     },
     "456": {
-        "file_id": 28,
-        "content": "                    raise ValueError(f\"Unexpected token: {current}\")\n            else:\n                # all should have been covered at this point\n                raise ValueError(f\"Unexpected token: {current}\")\n        if value is not None:\n            yield output(value)\n    def preprocess(self, s: str):\n        # replace \"<number> and a half\" with \"<number> point five\"\n        results = []\n        segments = re.split(r\"\\band\\s+a\\s+half\\b\", s)\n        for i, segment in enumerate(segments):\n            if len(segment.strip()) == 0:\n                continue\n            if i == len(segments) - 1:\n                results.append(segment)\n            else:\n                results.append(segment)\n                last_word = segment.rsplit(maxsplit=2)[-1]\n                if last_word in self.decimals or last_word in self.multipliers:\n                    results.append(\"point five\")\n                else:\n                    results.append(\"and a half\")\n        s = \" \".join(results)\n        # put a space at number/letter boundary",
+        "file_id": 27,
+        "content": "                        end = self.format_timestamp(this_word[\"end\"])\n                        if last != start:\n                            yield last, start, subtitle_text\n                        yield start, end, \"\".join(\n                            [\n                                re.sub(r\"^(\\s*)(.*)$\", r\"\\1<u>\\2</u>\", word)\n                                if j == i\n                                else word\n                                for j, word in enumerate(all_words)\n                            ]\n                        )\n                        last = end\n                else:\n                    yield subtitle_start, subtitle_end, subtitle_text\n        else:\n            for segment in result[\"segments\"]:\n                segment_start = self.format_timestamp(segment[\"start\"])\n                segment_end = self.format_timestamp(segment[\"end\"])\n                segment_text = segment[\"text\"].strip().replace(\"-->\", \"->\")\n                yield segment_start, segment_end, segment_text\n    def format_timestamp(self, seconds: float):",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:380-408"
+        "location": "/whisper/utils.py:206-228"
     },
     "457": {
-        "file_id": 28,
-        "content": "This code replaces the phrase \"<number> and a half\" with \"<number> point five\" in the given string. It does this by splitting the input string using regular expressions, then rejoining the modified segments with spaces.",
+        "file_id": 27,
+        "content": "Iterates through subtitle data and formats start/end times for display. Applies underline formatting to specified words within the text. Yields segment start/end times with corresponding texts for display.",
         "type": "comment"
     },
     "458": {
-        "file_id": 28,
-        "content": "        s = re.sub(r\"([a-z])([0-9])\", r\"\\1 \\2\", s)\n        s = re.sub(r\"([0-9])([a-z])\", r\"\\1 \\2\", s)\n        # but remove spaces which could be a suffix\n        s = re.sub(r\"([0-9])\\s+(st|nd|rd|th|s)\\b\", r\"\\1\\2\", s)\n        return s\n    def postprocess(self, s: str):\n        def combine_cents(m: Match):\n            try:\n                currency = m.group(1)\n                integer = m.group(2)\n                cents = int(m.group(3))\n                return f\"{currency}{integer}.{cents:02d}\"\n            except ValueError:\n                return m.string\n        def extract_cents(m: Match):\n            try:\n                return f\"¢{int(m.group(1))}\"\n            except ValueError:\n                return m.string\n        # apply currency postprocessing; \"$2 and ¢7\" -> \"$2.07\"\n        s = re.sub(r\"([€£$])([0-9]+) (?:and )?¢([0-9]{1,2})\\b\", combine_cents, s)\n        s = re.sub(r\"[€£$]0.([0-9]{1,2})\\b\", extract_cents, s)\n        # write \"one(s)\" instead of \"1(s)\", just for the readability\n        s = re.sub(r\"\\b1(s?)\\b\", r\"one\\1\", s)",
+        "file_id": 27,
+        "content": "        return format_timestamp(\n            seconds=seconds,\n            always_include_hours=self.always_include_hours,\n            decimal_marker=self.decimal_marker,\n        )\nclass WriteVTT(SubtitlesWriter):\n    extension: str = \"vtt\"\n    always_include_hours: bool = False\n    decimal_marker: str = \".\"\n    def write_result(\n        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n    ):\n        print(\"WEBVTT\\n\", file=file)\n        for start, end, text in self.iterate_result(result, options, **kwargs):\n            print(f\"{start} --> {end}\\n{text}\\n\", file=file, flush=True)\nclass WriteSRT(SubtitlesWriter):\n    extension: str = \"srt\"\n    always_include_hours: bool = True\n    decimal_marker: str = \",\"\n    def write_result(\n        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n    ):\n        for i, (start, end, text) in enumerate(\n            self.iterate_result(result, options, **kwargs), start=1\n        ):\n            print(f\"{i}\\n{start} --> {end}\\n{text}\\n\", file=file, flush=True)",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:409-438"
+        "location": "/whisper/utils.py:229-260"
     },
     "459": {
-        "file_id": 28,
-        "content": "This code is using regular expressions to normalize and process text. It separates numbers and currency, handles ordinal numbers, and replaces single digits with their English word representation for readability.",
+        "file_id": 27,
+        "content": "utils.py:228-259 defines two classes WriteVTT and WriteSRT, which inherit from the SubtitlesWriter class. Both classes have a write_result method that writes subtitle information in either VTT or SRT format to the specified file. The write_result method iterates over the result dictionary using the iterate_result method and prints formatted start, end, and text lines for each subtitle. WriteVTT has always_include_hours=False and decimal_marker=\".\" while WriteSRT has always_include_hours=True and decimal_marker=\",\"",
         "type": "comment"
     },
     "460": {
-        "file_id": 28,
-        "content": "        return s\n    def __call__(self, s: str):\n        s = self.preprocess(s)\n        s = \" \".join(word for word in self.process_words(s.split()) if word is not None)\n        s = self.postprocess(s)\n        return s\nclass EnglishSpellingNormalizer:\n    \"\"\"\n    Applies British-American spelling mappings as listed in [1].\n    [1] https://www.tysto.com/uk-us-spelling-list.html\n    \"\"\"\n    def __init__(self):\n        mapping_path = os.path.join(os.path.dirname(__file__), \"english.json\")\n        self.mapping = json.load(open(mapping_path))\n    def __call__(self, s: str):\n        return \" \".join(self.mapping.get(word, word) for word in s.split())\nclass EnglishTextNormalizer:\n    def __init__(self):\n        self.ignore_patterns = r\"\\b(hmm|mm|mhm|mmm|uh|um)\\b\"\n        self.replacers = {\n            # common contractions\n            r\"\\bwon't\\b\": \"will not\",\n            r\"\\bcan't\\b\": \"can not\",\n            r\"\\blet's\\b\": \"let us\",\n            r\"\\bain't\\b\": \"aint\",\n            r\"\\by'all\\b\": \"you all\",\n            r\"\\bwanna\\b\": \"want to\",",
+        "file_id": 27,
+        "content": "class WriteTSV(ResultWriter):\n    \"\"\"\n    Write a transcript to a file in TSV (tab-separated values) format containing lines like:\n    <start time in integer milliseconds>\\t<end time in integer milliseconds>\\t<transcript text>\n    Using integer milliseconds as start and end times means there's no chance of interference from\n    an environment setting a language encoding that causes the decimal in a floating point number\n    to appear as a comma; also is faster and more efficient to parse & store, e.g., in C++.\n    \"\"\"\n    extension: str = \"tsv\"\n    def write_result(\n        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n    ):\n        print(\"start\", \"end\", \"text\", sep=\"\\t\", file=file)\n        for segment in result[\"segments\"]:\n            print(round(1000 * segment[\"start\"]), file=file, end=\"\\t\")\n            print(round(1000 * segment[\"end\"]), file=file, end=\"\\t\")\n            print(segment[\"text\"].strip().replace(\"\\t\", \" \"), file=file, flush=True)\nclass WriteJSON(ResultWriter):",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:440-475"
+        "location": "/whisper/utils.py:263-285"
     },
     "461": {
-        "file_id": 28,
-        "content": "Class \"EnglishSpellingNormalizer\" applies British-American spelling mappings from a JSON file.\nClass \"EnglishTextNormalizer\" normalizes English text by ignoring certain patterns and replacing common contractions.",
+        "file_id": 27,
+        "content": "This code defines two classes, `WriteTSV` and `WriteJSON`, both of which inherit from the `ResultWriter` class. The `WriteTSV` class is responsible for writing transcripts to a file in TSV format. It takes a dictionary `result` as input along with an optional `options` dictionary. It prints each segment's start time, end time, and text to the file separated by tabs.\n\nThe `WriteJSON` class, on the other hand, writes the result as JSON format. Both classes implement the `write_result()` method which takes in a `result` dictionary, a `file` object to write to, an optional `options` dictionary, and any additional keyword arguments.\n\nIn summary: Code defines two ResultWriter subclasses (WriteTSV, WriteJSON) for writing transcripts to files in TSV and JSON format respectively.",
         "type": "comment"
     },
     "462": {
-        "file_id": 28,
-        "content": "            r\"\\bgotta\\b\": \"got to\",\n            r\"\\bgonna\\b\": \"going to\",\n            r\"\\bi'ma\\b\": \"i am going to\",\n            r\"\\bimma\\b\": \"i am going to\",\n            r\"\\bwoulda\\b\": \"would have\",\n            r\"\\bcoulda\\b\": \"could have\",\n            r\"\\bshoulda\\b\": \"should have\",\n            r\"\\bma'am\\b\": \"madam\",\n            # contractions in titles/prefixes\n            r\"\\bmr\\b\": \"mister \",\n            r\"\\bmrs\\b\": \"missus \",\n            r\"\\bst\\b\": \"saint \",\n            r\"\\bdr\\b\": \"doctor \",\n            r\"\\bprof\\b\": \"professor \",\n            r\"\\bcapt\\b\": \"captain \",\n            r\"\\bgov\\b\": \"governor \",\n            r\"\\bald\\b\": \"alderman \",\n            r\"\\bgen\\b\": \"general \",\n            r\"\\bsen\\b\": \"senator \",\n            r\"\\brep\\b\": \"representative \",\n            r\"\\bpres\\b\": \"president \",\n            r\"\\brev\\b\": \"reverend \",\n            r\"\\bhon\\b\": \"honorable \",\n            r\"\\basst\\b\": \"assistant \",\n            r\"\\bassoc\\b\": \"associate \",\n            r\"\\blt\\b\": \"lieutenant \",\n            r\"\\bcol\\b\": \"colonel \",",
+        "file_id": 27,
+        "content": "    extension: str = \"json\"\n    def write_result(\n        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n    ):\n        json.dump(result, file)\ndef get_writer(\n    output_format: str, output_dir: str\n) -> Callable[[dict, TextIO, dict], None]:\n    writers = {\n        \"txt\": WriteTXT,\n        \"vtt\": WriteVTT,\n        \"srt\": WriteSRT,\n        \"tsv\": WriteTSV,\n        \"json\": WriteJSON,\n    }\n    if output_format == \"all\":\n        all_writers = [writer(output_dir) for writer in writers.values()]\n        def write_all(\n            result: dict, file: TextIO, options: Optional[dict] = None, **kwargs\n        ):\n            for writer in all_writers:\n                writer(result, file, options, **kwargs)\n        return write_all\n    return writers[output_format](output_dir)",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:476-502"
+        "location": "/whisper/utils.py:286-316"
     },
     "463": {
-        "file_id": 28,
-        "content": "This code is defining a list of regular expressions that represent common English contractions and abbreviations. These include phrases like \"gotta\", \"going to\", \"would have\", \"could have\", etc., as well as titles and prefixes such as \"mister\", \"missus\", \"doctor\", etc. The code appears to be part of a natural language processing or text normalization system, where these contractions and abbreviations will likely be expanded or normalized for some purpose.",
+        "file_id": 27,
+        "content": "The code defines a function `write_result` that writes a dictionary to a file in JSON format. It also provides a `get_writer` function that returns a writer function based on the output format specified (either a specific format or \"all\" for all available formats). If \"all\" is specified, it creates a writer function that can write files in all supported formats.",
         "type": "comment"
     },
     "464": {
         "file_id": 28,
-        "content": "            r\"\\bjr\\b\": \"junior \",\n            r\"\\bsr\\b\": \"senior \",\n            r\"\\besq\\b\": \"esquire \",\n            # prefect tenses, ideally it should be any past participles, but it's harder..\n            r\"'d been\\b\": \" had been\",\n            r\"'s been\\b\": \" has been\",\n            r\"'d gone\\b\": \" had gone\",\n            r\"'s gone\\b\": \" has gone\",\n            r\"'d done\\b\": \" had done\",  # \"'s done\" is ambiguous\n            r\"'s got\\b\": \" has got\",\n            # general contractions\n            r\"n't\\b\": \" not\",\n            r\"'re\\b\": \" are\",\n            r\"'s\\b\": \" is\",\n            r\"'d\\b\": \" would\",\n            r\"'ll\\b\": \" will\",\n            r\"'t\\b\": \" not\",\n            r\"'ve\\b\": \" have\",\n            r\"'m\\b\": \" am\",\n        }\n        self.standardize_numbers = EnglishNumberNormalizer()\n        self.standardize_spellings = EnglishSpellingNormalizer()\n    def __call__(self, s: str):\n        s = s.lower()\n        s = re.sub(r\"[<\\[][^>\\]]*[>\\]]\", \"\", s)  # remove words between brackets\n        s = re.sub(r\"\\(([^)]+?)\\)\", \"\", s)  # remove words between parenthesis",
-        "type": "code",
-        "location": "/whisper/normalizers/english.py:503-530"
+        "content": "/whisper/version.py",
+        "type": "filepath"
     },
     "465": {
         "file_id": 28,
-        "content": "This code defines a normalizer for English language text. It uses regular expressions to replace specific patterns, such as contractions and past participles, with their full forms. It also removes words within brackets and parentheses before returning the processed string.",
-        "type": "comment"
+        "content": "This code sets the version number for the \"whisper\" library to \"20231117\".",
+        "type": "summary"
     },
     "466": {
         "file_id": 28,
-        "content": "        s = re.sub(self.ignore_patterns, \"\", s)\n        s = re.sub(r\"\\s+'\", \"'\", s)  # when there's a space before an apostrophe\n        for pattern, replacement in self.replacers.items():\n            s = re.sub(pattern, replacement, s)\n        s = re.sub(r\"(\\d),(\\d)\", r\"\\1\\2\", s)  # remove commas between digits\n        s = re.sub(r\"\\.([^0-9]|$)\", r\" \\1\", s)  # remove periods not followed by numbers\n        s = remove_symbols_and_diacritics(s, keep=\".%$¢€£\")  # keep numeric symbols\n        s = self.standardize_numbers(s)\n        s = self.standardize_spellings(s)\n        # now remove prefix/suffix symbols that are not preceded/followed by numbers\n        s = re.sub(r\"[.$¢€£]([^0-9])\", r\" \\1\", s)\n        s = re.sub(r\"([^0-9])%\", r\"\\1 \", s)\n        s = re.sub(r\"\\s+\", \" \", s)  # replace any successive whitespaces with a space\n        return s",
+        "content": "__version__ = \"20231117\"",
         "type": "code",
-        "location": "/whisper/normalizers/english.py:531-550"
+        "location": "/whisper/version.py:1-1"
     },
     "467": {
         "file_id": 28,
-        "content": "Code normalizes English text by removing special characters, standardizing numbers and spellings, and adjusting whitespace.",
+        "content": "This code sets the version number for the \"whisper\" library to \"20231117\".",
         "type": "comment"
     }
 }

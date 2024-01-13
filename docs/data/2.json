@@ -374,176 +374,175 @@
     },
     "268": {
         "file_id": 20,
-        "content": "/whisper/timing.py",
+        "content": "/whisper/normalizers/__init__.py",
         "type": "filepath"
     },
     "269": {
         "file_id": 20,
-        "content": "The code applies median filtering and dynamic time warping for comparing sequences, calculates text-to-speech alignment using probabilities, removes hooks, normalizes weights, and merges words with punctuation in an alignment. It also adjusts word timings, considers sentence end marks, and stores probabilities.",
+        "content": "Importing BasicTextNormalizer and EnglishTextNormalizer from respective modules.",
         "type": "summary"
     },
     "270": {
         "file_id": 20,
-        "content": "import itertools\nimport subprocess\nimport warnings\nfrom dataclasses import dataclass\nfrom typing import TYPE_CHECKING, List\nimport numba\nimport numpy as np\nimport torch\nimport torch.nn.functional as F\nfrom .audio import HOP_LENGTH, SAMPLE_RATE, TOKENS_PER_SECOND\nfrom .tokenizer import Tokenizer\nif TYPE_CHECKING:\n    from .model import Whisper\ndef median_filter(x: torch.Tensor, filter_width: int):\n    \"\"\"Apply a median filter of width `filter_width` along the last dimension of `x`\"\"\"\n    pad_width = filter_width // 2\n    if x.shape[-1] <= pad_width:\n        # F.pad requires the padding width to be smaller than the input dimension\n        return x\n    if (ndim := x.ndim) <= 2:\n        # `F.pad` does not support 1D or 2D inputs for reflect padding but supports 3D and 4D\n        x = x[None, None, :]\n    assert (\n        filter_width > 0 and filter_width % 2 == 1\n    ), \"`filter_width` should be an odd number\"\n    result = None\n    x = F.pad(x, (filter_width // 2, filter_width // 2, 0, 0), mode=\"reflect\")\n    if x.is_cuda:",
+        "content": "from .basic import BasicTextNormalizer as BasicTextNormalizer\nfrom .english import EnglishTextNormalizer as EnglishTextNormalizer",
         "type": "code",
-        "location": "/whisper/timing.py:1-36"
+        "location": "/whisper/normalizers/__init__.py:1-2"
     },
     "271": {
         "file_id": 20,
-        "content": "This function applies a median filter to the input tensor `x` along the last dimension, specified by `filter_width`. It also handles padding and supports 3D or 4D inputs.",
+        "content": "Importing BasicTextNormalizer and EnglishTextNormalizer from respective modules.",
         "type": "comment"
     },
     "272": {
-        "file_id": 20,
-        "content": "        try:\n            from .triton_ops import median_filter_cuda\n            result = median_filter_cuda(x, filter_width)\n        except (RuntimeError, subprocess.CalledProcessError):\n            warnings.warn(\n                \"Failed to launch Triton kernels, likely due to missing CUDA toolkit; \"\n                \"falling back to a slower median kernel implementation...\"\n            )\n    if result is None:\n        # sort() is faster than torch.median (https://github.com/pytorch/pytorch/issues/51450)\n        result = x.unfold(-1, filter_width, 1).sort()[0][..., filter_width // 2]\n    if ndim <= 2:\n        result = result[0, 0]\n    return result\n@numba.jit(nopython=True)\ndef backtrace(trace: np.ndarray):\n    i = trace.shape[0] - 1\n    j = trace.shape[1] - 1\n    trace[0, :] = 2\n    trace[:, 0] = 1\n    result = []\n    while i > 0 or j > 0:\n        result.append((i - 1, j - 1))\n        if trace[i, j] == 0:\n            i -= 1\n            j -= 1\n        elif trace[i, j] == 1:\n            i -= 1\n        elif trace[i, j] == 2:",
-        "type": "code",
-        "location": "/whisper/timing.py:37-73"
+        "file_id": 21,
+        "content": "/whisper/normalizers/basic.py",
+        "type": "filepath"
     },
     "273": {
-        "file_id": 20,
-        "content": "The code attempts to apply a median filter with CUDA if available, and falls back to a slower implementation otherwise. It also includes a function for backtracking through the filtered data.",
-        "type": "comment"
+        "file_id": 21,
+        "content": "The code normalizes text by removing symbols, punctuation, and diacritics using NFKD normalization. It keeps specified characters and splits letters if instructed while also dropping words within brackets or parentheses.",
+        "type": "summary"
     },
     "274": {
-        "file_id": 20,
-        "content": "            j -= 1\n        else:\n            raise ValueError(\"Unexpected trace[i, j]\")\n    result = np.array(result)\n    return result[::-1, :].T\n@numba.jit(nopython=True, parallel=True)\ndef dtw_cpu(x: np.ndarray):\n    N, M = x.shape\n    cost = np.ones((N + 1, M + 1), dtype=np.float32) * np.inf\n    trace = -np.ones((N + 1, M + 1), dtype=np.float32)\n    cost[0, 0] = 0\n    for j in range(1, M + 1):\n        for i in range(1, N + 1):\n            c0 = cost[i - 1, j - 1]\n            c1 = cost[i - 1, j]\n            c2 = cost[i, j - 1]\n            if c0 < c1 and c0 < c2:\n                c, t = c0, 0\n            elif c1 < c0 and c1 < c2:\n                c, t = c1, 1\n            else:\n                c, t = c2, 2\n            cost[i, j] = x[i - 1, j - 1] + c\n            trace[i, j] = t\n    return backtrace(trace)\ndef dtw_cuda(x, BLOCK_SIZE=1024):\n    from .triton_ops import dtw_kernel\n    M, N = x.shape\n    assert M < BLOCK_SIZE, f\"M should be smaller than {BLOCK_SIZE=}\"\n    x_skew = (\n        F.pad(x, (0, M + 1), value=np.inf).flatten()[: M * (N + M)].reshape(M, N + M)",
+        "file_id": 21,
+        "content": "import re\nimport unicodedata\nimport regex\n# non-ASCII letters that are not separated by \"NFKD\" normalization\nADDITIONAL_DIACRITICS = {\n    \"œ\": \"oe\",\n    \"Œ\": \"OE\",\n    \"ø\": \"o\",\n    \"Ø\": \"O\",\n    \"æ\": \"ae\",\n    \"Æ\": \"AE\",\n    \"ß\": \"ss\",\n    \"ẞ\": \"SS\",\n    \"đ\": \"d\",\n    \"Đ\": \"D\",\n    \"ð\": \"d\",\n    \"Ð\": \"D\",\n    \"þ\": \"th\",\n    \"Þ\": \"th\",\n    \"ł\": \"l\",\n    \"Ł\": \"L\",\n}\ndef remove_symbols_and_diacritics(s: str, keep=\"\"):\n    \"\"\"\n    Replace any other markers, symbols, and punctuations with a space,\n    and drop any diacritics (category 'Mn' and some manual mappings)\n    \"\"\"\n    return \"\".join(\n        c\n        if c in keep\n        else ADDITIONAL_DIACRITICS[c]\n        if c in ADDITIONAL_DIACRITICS\n        else \"\"\n        if unicodedata.category(c) == \"Mn\"\n        else \" \"\n        if unicodedata.category(c)[0] in \"MSP\"\n        else c\n        for c in unicodedata.normalize(\"NFKD\", s)\n    )\ndef remove_symbols(s: str):\n    \"\"\"\n    Replace any other markers, symbols, punctuations with a space, keeping diacritics\n    \"\"\"\n    return \"\".join(",
         "type": "code",
-        "location": "/whisper/timing.py:74-115"
+        "location": "/whisper/normalizers/basic.py:1-50"
     },
     "275": {
-        "file_id": 20,
-        "content": "This code contains two functions, `dtw_cpu` and `dtw_cuda`, which implement dynamic time warping (DTW) algorithms using different backends. The `dtw_cpu` function implements the DTW algorithm on the CPU using numpy, while the `dtw_cuda` function uses CUDA for GPU acceleration. The code defines variables, initializes arrays, and performs calculations based on the chosen backend.",
+        "file_id": 21,
+        "content": "This code defines functions to remove symbols, punctuations, and diacritics from a string. It first normalizes the input string using \"NFKD\" normalization, then replaces non-ASCII letters with their ASCII equivalents, keeps specified characters, and removes other markers, symbols, and punctuations by replacing them with spaces. The \"remove_symbols_and_diacritics\" function also drops diacritics in addition to the symbol processing.",
         "type": "comment"
     },
     "276": {
-        "file_id": 20,
-        "content": "    )\n    x_skew = x_skew.T.contiguous()\n    cost = torch.ones(N + M + 2, M + 2) * np.inf\n    cost[0, 0] = 0\n    cost = cost.cuda()\n    trace = torch.zeros_like(cost, dtype=torch.int32)\n    dtw_kernel[(1,)](\n        cost,\n        trace,\n        x_skew,\n        x_skew.stride(0),\n        cost.stride(0),\n        trace.stride(0),\n        N,\n        M,\n        BLOCK_SIZE=BLOCK_SIZE,\n    )\n    trace = trace.T.flatten()[: (M + 1) * (M + N + 3)].reshape(M + 1, M + N + 3)[\n        :, : N + 1\n    ]\n    return backtrace(trace.cpu().numpy())\ndef dtw(x: torch.Tensor) -> np.ndarray:\n    if x.is_cuda:\n        try:\n            return dtw_cuda(x)\n        except (RuntimeError, subprocess.CalledProcessError):\n            warnings.warn(\n                \"Failed to launch Triton kernels, likely due to missing CUDA toolkit; \"\n                \"falling back to a slower DTW implementation...\"\n            )\n    return dtw_cpu(x.double().cpu().numpy())\n@dataclass\nclass WordTiming:\n    word: str\n    tokens: List[int]\n    start: float\n    end: float\n    probability: float",
+        "file_id": 21,
+        "content": "        \" \" if unicodedata.category(c)[0] in \"MSP\" else c\n        for c in unicodedata.normalize(\"NFKC\", s)\n    )\nclass BasicTextNormalizer:\n    def __init__(self, remove_diacritics: bool = False, split_letters: bool = False):\n        self.clean = (\n            remove_symbols_and_diacritics if remove_diacritics else remove_symbols\n        )\n        self.split_letters = split_letters\n    def __call__(self, s: str):\n        s = s.lower()\n        s = re.sub(r\"[<\\[][^>\\]]*[>\\]]\", \"\", s)  # remove words between brackets\n        s = re.sub(r\"\\(([^)]+?)\\)\", \"\", s)  # remove words between parenthesis\n        s = self.clean(s).lower()\n        if self.split_letters:\n            s = \" \".join(regex.findall(r\"\\X\", s, regex.U))\n        s = re.sub(\n            r\"\\s+\", \" \", s\n        )  # replace any successive whitespace characters with a space\n        return s",
         "type": "code",
-        "location": "/whisper/timing.py:116-160"
+        "location": "/whisper/normalizers/basic.py:51-76"
     },
     "277": {
-        "file_id": 20,
-        "content": "This code implements the dynamic time warping (DTW) algorithm for comparing sequences of data points. The code includes CUDA-accelerated and CPU versions of DTW functions, as well as a class for storing word timing information.",
+        "file_id": 21,
+        "content": "This code is a text normalizer that removes symbols, diacritics, and splits letters if specified. It also removes words between brackets and parentheses, and replaces successive whitespace characters with a single space.",
         "type": "comment"
     },
     "278": {
-        "file_id": 20,
-        "content": "def find_alignment(\n    model: \"Whisper\",\n    tokenizer: Tokenizer,\n    text_tokens: List[int],\n    mel: torch.Tensor,\n    num_frames: int,\n    *,\n    medfilt_width: int = 7,\n    qk_scale: float = 1.0,\n) -> List[WordTiming]:\n    if len(text_tokens) == 0:\n        return []\n    tokens = torch.tensor(\n        [\n            *tokenizer.sot_sequence,\n            tokenizer.no_timestamps,\n            *text_tokens,\n            tokenizer.eot,\n        ]\n    ).to(model.device)\n    # install hooks on the cross attention layers to retrieve the attention weights\n    QKs = [None] * model.dims.n_text_layer\n    hooks = [\n        block.cross_attn.register_forward_hook(\n            lambda _, ins, outs, index=i: QKs.__setitem__(index, outs[-1][0])\n        )\n        for i, block in enumerate(model.decoder.blocks)\n    ]\n    with torch.no_grad():\n        logits = model(mel.unsqueeze(0), tokens.unsqueeze(0))[0]\n        sampled_logits = logits[len(tokenizer.sot_sequence) :, : tokenizer.eot]\n        token_probs = sampled_logits.softmax(dim=-1)",
-        "type": "code",
-        "location": "/whisper/timing.py:163-197"
+        "file_id": 22,
+        "content": "/whisper/normalizers/english.py",
+        "type": "filepath"
     },
     "279": {
-        "file_id": 20,
-        "content": "This function finds the alignment between model output and input text tokens. It first creates a tensor of tokens including start-of-text (SOT), no timestamp, text tokens, and end-of-text (EOT). Then, it installs hooks on cross attention layers to retrieve attention weights. Finally, it computes logits and token probabilities using the model and tokenizer.",
-        "type": "comment"
+        "file_id": 22,
+        "content": "The EnglishNumberNormalizer class handles spelled-out numbers and applies normalization functions for conversions, while the code contains two classes: \"EnglishSpellingNormalizer\" and \"EnglishTextNormalizer,\" which apply regular expressions to standardize spellings and adjust whitespace in text.",
+        "type": "summary"
     },
     "280": {
-        "file_id": 20,
-        "content": "        text_token_probs = token_probs[np.arange(len(text_tokens)), text_tokens]\n        text_token_probs = text_token_probs.tolist()\n    for hook in hooks:\n        hook.remove()\n    # heads * tokens * frames\n    weights = torch.stack([QKs[_l][_h] for _l, _h in model.alignment_heads.indices().T])\n    weights = weights[:, :, : num_frames // 2]\n    weights = (weights * qk_scale).softmax(dim=-1)\n    std, mean = torch.std_mean(weights, dim=-2, keepdim=True, unbiased=False)\n    weights = (weights - mean) / std\n    weights = median_filter(weights, medfilt_width)\n    matrix = weights.mean(axis=0)\n    matrix = matrix[len(tokenizer.sot_sequence) : -1]\n    text_indices, time_indices = dtw(-matrix)\n    words, word_tokens = tokenizer.split_to_word_tokens(text_tokens + [tokenizer.eot])\n    if len(word_tokens) <= 1:\n        # return on eot only\n        # >>> np.pad([], (1, 0))\n        # array([0.])\n        # This results in crashes when we lookup jump_times with float, like\n        # IndexError: arrays used as indices must be of integer (or boolean) type",
+        "file_id": 22,
+        "content": "import json\nimport os\nimport re\nfrom fractions import Fraction\nfrom typing import Iterator, List, Match, Optional, Union\nfrom more_itertools import windowed\nfrom .basic import remove_symbols_and_diacritics\nclass EnglishNumberNormalizer:\n    \"\"\"\n    Convert any spelled-out numbers into arabic numbers, while handling:\n    - remove any commas\n    - keep the suffixes such as: `1960s`, `274th`, `32nd`, etc.\n    - spell out currency symbols after the number. e.g. `$20 million` -> `20000000 dollars`\n    - spell out `one` and `ones`\n    - interpret successive single-digit numbers as nominal: `one oh one` -> `101`\n    \"\"\"\n    def __init__(self):\n        super().__init__()\n        self.zeros = {\"o\", \"oh\", \"zero\"}\n        self.ones = {\n            name: i\n            for i, name in enumerate(\n                [\n                    \"one\",\n                    \"two\",\n                    \"three\",\n                    \"four\",\n                    \"five\",\n                    \"six\",\n                    \"seven\",\n                    \"eight\",",
         "type": "code",
-        "location": "/whisper/timing.py:198-222"
+        "location": "/whisper/normalizers/english.py:1-38"
     },
     "281": {
-        "file_id": 20,
-        "content": "This code calculates text-to-speech alignment using Dynamic Time Warping (DTW) algorithm. It first computes text and time token probabilities, removes hooks if any, stacks the query and key matrices from the model's alignment heads, selects relevant frames, normalizes the weights, applies median filtering, calculates mean matrix, excludes start-of-text (SOT) and end-of-text (EOT) tokens, computes DTW using text and time indices, splits text into word tokens, and finally returns if there is only one word token.",
+        "file_id": 22,
+        "content": "EnglishNumberNormalizer class definition with properties for handling various spelled-out numbers and currency symbols.",
         "type": "comment"
     },
     "282": {
-        "file_id": 20,
-        "content": "        return []\n    word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens[:-1]]), (1, 0))\n    jumps = np.pad(np.diff(text_indices), (1, 0), constant_values=1).astype(bool)\n    jump_times = time_indices[jumps] / TOKENS_PER_SECOND\n    start_times = jump_times[word_boundaries[:-1]]\n    end_times = jump_times[word_boundaries[1:]]\n    word_probabilities = [\n        np.mean(text_token_probs[i:j])\n        for i, j in zip(word_boundaries[:-1], word_boundaries[1:])\n    ]\n    return [\n        WordTiming(word, tokens, start, end, probability)\n        for word, tokens, start, end, probability in zip(\n            words, word_tokens, start_times, end_times, word_probabilities\n        )\n    ]\ndef merge_punctuations(alignment: List[WordTiming], prepended: str, appended: str):\n    # merge prepended punctuations\n    i = len(alignment) - 2\n    j = len(alignment) - 1\n    while i >= 0:\n        previous = alignment[i]\n        following = alignment[j]\n        if previous.word.startswith(\" \") and previous.word.strip() in prepended:",
+        "file_id": 22,
+        "content": "                    \"nine\",\n                    \"ten\",\n                    \"eleven\",\n                    \"twelve\",\n                    \"thirteen\",\n                    \"fourteen\",\n                    \"fifteen\",\n                    \"sixteen\",\n                    \"seventeen\",\n                    \"eighteen\",\n                    \"nineteen\",\n                ],\n                start=1,\n            )\n        }\n        self.ones_plural = {\n            \"sixes\" if name == \"six\" else name + \"s\": (value, \"s\")\n            for name, value in self.ones.items()\n        }\n        self.ones_ordinal = {\n            \"zeroth\": (0, \"th\"),\n            \"first\": (1, \"st\"),\n            \"second\": (2, \"nd\"),\n            \"third\": (3, \"rd\"),\n            \"fifth\": (5, \"th\"),\n            \"twelfth\": (12, \"th\"),\n            **{\n                name + (\"h\" if name.endswith(\"t\") else \"th\"): (value, \"th\")\n                for name, value in self.ones.items()\n                if value > 3 and value != 5 and value != 12\n            },\n        }\n        self.ones_suffixed = {**self.ones_plural, **self.ones_ordinal}",
         "type": "code",
-        "location": "/whisper/timing.py:223-250"
+        "location": "/whisper/normalizers/english.py:39-71"
     },
     "283": {
-        "file_id": 20,
-        "content": "Function to calculate timing and probabilities for each word in the text\n\nThis function calculates start and end times for each word, as well as their probability. It returns a list of WordTiming objects containing word information with their respective timings and probabilities.",
+        "file_id": 22,
+        "content": "This code is defining various mappings for numbers 1-20, including plural form, ordinal form, and suffixed forms. It handles exceptions for specific numbers like \"twelfth\" with a suffix \"th\". The final result is a dictionary of these different number variations called \"ones_suffixed\".",
         "type": "comment"
     },
     "284": {
-        "file_id": 20,
-        "content": "            # prepend it to the following word\n            following.word = previous.word + following.word\n            following.tokens = previous.tokens + following.tokens\n            previous.word = \"\"\n            previous.tokens = []\n        else:\n            j = i\n        i -= 1\n    # merge appended punctuations\n    i = 0\n    j = 1\n    while j < len(alignment):\n        previous = alignment[i]\n        following = alignment[j]\n        if not previous.word.endswith(\" \") and following.word in appended:\n            # append it to the previous word\n            previous.word = previous.word + following.word\n            previous.tokens = previous.tokens + following.tokens\n            following.word = \"\"\n            following.tokens = []\n        else:\n            i = j\n        j += 1\ndef add_word_timestamps(\n    *,\n    segments: List[dict],\n    model: \"Whisper\",\n    tokenizer: Tokenizer,\n    mel: torch.Tensor,\n    num_frames: int,\n    prepend_punctuations: str = \"\\\"'“¿([{-\",\n    append_punctuations: str = \"\\\"'.。,，!！?？:：”)]}、\",",
+        "file_id": 22,
+        "content": "        self.tens = {\n            \"twenty\": 20,\n            \"thirty\": 30,\n            \"forty\": 40,\n            \"fifty\": 50,\n            \"sixty\": 60,\n            \"seventy\": 70,\n            \"eighty\": 80,\n            \"ninety\": 90,\n        }\n        self.tens_plural = {\n            name.replace(\"y\", \"ies\"): (value, \"s\") for name, value in self.tens.items()\n        }\n        self.tens_ordinal = {\n            name.replace(\"y\", \"ieth\"): (value, \"th\")\n            for name, value in self.tens.items()\n        }\n        self.tens_suffixed = {**self.tens_plural, **self.tens_ordinal}\n        self.multipliers = {\n            \"hundred\": 100,\n            \"thousand\": 1_000,\n            \"million\": 1_000_000,\n            \"billion\": 1_000_000_000,\n            \"trillion\": 1_000_000_000_000,\n            \"quadrillion\": 1_000_000_000_000_000,\n            \"quintillion\": 1_000_000_000_000_000_000,\n            \"sextillion\": 1_000_000_000_000_000_000_000,\n            \"septillion\": 1_000_000_000_000_000_000_000_000,\n            \"octillion\": 1_000_000_000_000_000_000_000_000_000,",
         "type": "code",
-        "location": "/whisper/timing.py:251-285"
+        "location": "/whisper/normalizers/english.py:73-102"
     },
     "285": {
-        "file_id": 20,
-        "content": "This code is responsible for merging words and timestamps in a given alignment. It first prepends the next word with any previously appended punctuations, then iterates over the alignment to merge words that follow non-space ending words with appended punctuations by concatenating them. This function takes segments, model, tokenizer, mel spectrogram, number of frames, and optional parameters for prepend and append punctuation.",
+        "file_id": 22,
+        "content": "The code defines various number normalizations for English language. It includes tens, tens plural, tens ordinal and multipliers as dictionaries to handle different number representations in text.",
         "type": "comment"
     },
     "286": {
-        "file_id": 20,
-        "content": "    last_speech_timestamp: float,\n    **kwargs,\n):\n    if len(segments) == 0:\n        return\n    text_tokens_per_segment = [\n        [token for token in segment[\"tokens\"] if token < tokenizer.eot]\n        for segment in segments\n    ]\n    text_tokens = list(itertools.chain.from_iterable(text_tokens_per_segment))\n    alignment = find_alignment(model, tokenizer, text_tokens, mel, num_frames, **kwargs)\n    word_durations = np.array([t.end - t.start for t in alignment])\n    word_durations = word_durations[word_durations.nonzero()]\n    median_duration = np.median(word_durations) if len(word_durations) > 0 else 0.0\n    median_duration = min(0.7, float(median_duration))\n    max_duration = median_duration * 2\n    # hack: truncate long words at sentence boundaries.\n    # a better segmentation algorithm based on VAD should be able to replace this.\n    if len(word_durations) > 0:\n        sentence_end_marks = \".。!！?？\"\n        # ensure words at sentence boundaries are not longer than twice the median word duration.\n        for i in range(1, len(alignment)):",
+        "file_id": 22,
+        "content": "            \"nonillion\": 1_000_000_000_000_000_000_000_000_000_000,\n            \"decillion\": 1_000_000_000_000_000_000_000_000_000_000_000,\n        }\n        self.multipliers_plural = {\n            name + \"s\": (value, \"s\") for name, value in self.multipliers.items()\n        }\n        self.multipliers_ordinal = {\n            name + \"th\": (value, \"th\") for name, value in self.multipliers.items()\n        }\n        self.multipliers_suffixed = {\n            **self.multipliers_plural,\n            **self.multipliers_ordinal,\n        }\n        self.decimals = {*self.ones, *self.tens, *self.zeros}\n        self.preceding_prefixers = {\n            \"minus\": \"-\",\n            \"negative\": \"-\",\n            \"plus\": \"+\",\n            \"positive\": \"+\",\n        }\n        self.following_prefixers = {\n            \"pound\": \"£\",\n            \"pounds\": \"£\",\n            \"euro\": \"€\",\n            \"euros\": \"€\",\n            \"dollar\": \"$\",\n            \"dollars\": \"$\",\n            \"cent\": \"¢\",\n            \"cents\": \"¢\",\n        }\n        self.prefixes = set(",
         "type": "code",
-        "location": "/whisper/timing.py:286-310"
+        "location": "/whisper/normalizers/english.py:103-134"
     },
     "287": {
-        "file_id": 20,
-        "content": "Calculates median word duration and truncates long words at sentence boundaries for better speech synthesis.",
+        "file_id": 22,
+        "content": "This code defines various prefixes and multipliers for English numbers. It creates dictionaries for plural, ordinal, and suffixed forms of the numbers. The code also includes a dictionary for decimal values and separate dictionaries for preceding and following prefixes like currency symbols. Finally, it defines a set of prefixes used in the code.",
         "type": "comment"
     },
     "288": {
-        "file_id": 20,
-        "content": "            if alignment[i].end - alignment[i].start > max_duration:\n                if alignment[i].word in sentence_end_marks:\n                    alignment[i].end = alignment[i].start + max_duration\n                elif alignment[i - 1].word in sentence_end_marks:\n                    alignment[i].start = alignment[i].end - max_duration\n    merge_punctuations(alignment, prepend_punctuations, append_punctuations)\n    time_offset = segments[0][\"seek\"] * HOP_LENGTH / SAMPLE_RATE\n    word_index = 0\n    for segment, text_tokens in zip(segments, text_tokens_per_segment):\n        saved_tokens = 0\n        words = []\n        while word_index < len(alignment) and saved_tokens < len(text_tokens):\n            timing = alignment[word_index]\n            if timing.word:\n                words.append(\n                    dict(\n                        word=timing.word,\n                        start=round(time_offset + timing.start, 2),\n                        end=round(time_offset + timing.end, 2),\n                        probability=timing.probability,",
+        "file_id": 22,
+        "content": "            list(self.preceding_prefixers.values())\n            + list(self.following_prefixers.values())\n        )\n        self.suffixers = {\n            \"per\": {\"cent\": \"%\"},\n            \"percent\": \"%\",\n        }\n        self.specials = {\"and\", \"double\", \"triple\", \"point\"}\n        self.words = set(\n            [\n                key\n                for mapping in [\n                    self.zeros,\n                    self.ones,\n                    self.ones_suffixed,\n                    self.tens,\n                    self.tens_suffixed,\n                    self.multipliers,\n                    self.multipliers_suffixed,\n                    self.preceding_prefixers,\n                    self.following_prefixers,\n                    self.suffixers,\n                    self.specials,\n                ]\n                for key in mapping\n            ]\n        )\n        self.literal_words = {\"one\", \"ones\"}\n    def process_words(self, words: List[str]) -> Iterator[str]:\n        prefix: Optional[str] = None\n        value: Optional[Union[str, int]] = None",
         "type": "code",
-        "location": "/whisper/timing.py:311-335"
+        "location": "/whisper/normalizers/english.py:135-167"
     },
     "289": {
-        "file_id": 20,
-        "content": "This code is adjusting the timing of words in an alignment list based on a maximum duration and sentence end marks. It also calculates time offsets for segments and extracts words from the alignment, storing their start and end times along with probabilities.",
+        "file_id": 22,
+        "content": "The code defines a class with various mappings and sets of words. It initializes instance variables for preceding and following prefixers, suffixes, special words, and literal words. The process_words method takes a list of words as input and returns an iterator of processed strings.",
         "type": "comment"
     },
     "290": {
-        "file_id": 20,
-        "content": "                    )\n                )\n            saved_tokens += len(timing.tokens)\n            word_index += 1\n        # hack: truncate long words at segment boundaries.\n        # a better segmentation algorithm based on VAD should be able to replace this.\n        if len(words) > 0:\n            # ensure the first and second word after a pause is not longer than\n            # twice the median word duration.\n            if words[0][\"end\"] - last_speech_timestamp > median_duration * 4 and (\n                words[0][\"end\"] - words[0][\"start\"] > max_duration\n                or (\n                    len(words) > 1\n                    and words[1][\"end\"] - words[0][\"start\"] > max_duration * 2\n                )\n            ):\n                if (\n                    len(words) > 1\n                    and words[1][\"end\"] - words[1][\"start\"] > max_duration\n                ):\n                    boundary = max(words[1][\"end\"] / 2, words[1][\"end\"] - max_duration)\n                    words[0][\"end\"] = words[1][\"start\"] = boundary",
+        "file_id": 22,
+        "content": "        skip = False\n        def to_fraction(s: str):\n            try:\n                return Fraction(s)\n            except ValueError:\n                return None\n        def output(result: Union[str, int]):\n            nonlocal prefix, value\n            result = str(result)\n            if prefix is not None:\n                result = prefix + result\n            value = None\n            prefix = None\n            return result\n        if len(words) == 0:\n            return\n        for prev, current, next in windowed([None] + words + [None], 3):\n            if skip:\n                skip = False\n                continue\n            next_is_numeric = next is not None and re.match(r\"^\\d+(\\.\\d+)?$\", next)\n            has_prefix = current[0] in self.prefixes\n            current_without_prefix = current[1:] if has_prefix else current\n            if re.match(r\"^\\d+(\\.\\d+)?$\", current_without_prefix):\n                # arabic numbers (potentially with signs and fractions)\n                f = to_fraction(current_without_prefix)",
         "type": "code",
-        "location": "/whisper/timing.py:336-359"
+        "location": "/whisper/normalizers/english.py:168-198"
     },
     "291": {
-        "file_id": 20,
-        "content": "This code is performing a segmentation algorithm for speech by truncating long words at segment boundaries. It checks the duration of words and ensures that no word exceeds twice the median word duration or that the second word after a pause does not exceed the maximum duration. If necessary, it adjusts the word endings to fit these criteria.",
+        "file_id": 22,
+        "content": "This code defines functions for normalizing English text. It checks if the current word is a number and handles fractions, skips over words marked as \"skip\", and processes words with or without prefixes.",
         "type": "comment"
     },
     "292": {
-        "file_id": 20,
-        "content": "                words[0][\"start\"] = max(0, words[0][\"end\"] - max_duration)\n            # prefer the segment-level start timestamp if the first word is too long.\n            if (\n                segment[\"start\"] < words[0][\"end\"]\n                and segment[\"start\"] - 0.5 > words[0][\"start\"]\n            ):\n                words[0][\"start\"] = max(\n                    0, min(words[0][\"end\"] - median_duration, segment[\"start\"])\n                )\n            else:\n                segment[\"start\"] = words[0][\"start\"]\n            # prefer the segment-level end timestamp if the last word is too long.\n            if (\n                segment[\"end\"] > words[-1][\"start\"]\n                and segment[\"end\"] + 0.5 < words[-1][\"end\"]\n            ):\n                words[-1][\"end\"] = max(\n                    words[-1][\"start\"] + median_duration, segment[\"end\"]\n                )\n            else:\n                segment[\"end\"] = words[-1][\"end\"]\n            last_speech_timestamp = segment[\"end\"]\n        segment[\"words\"] = words",
+        "file_id": 22,
+        "content": "                assert f is not None\n                if value is not None:\n                    if isinstance(value, str) and value.endswith(\".\"):\n                        # concatenate decimals / ip address components\n                        value = str(value) + str(current)\n                        continue\n                    else:\n                        yield output(value)\n                prefix = current[0] if has_prefix else prefix\n                if f.denominator == 1:\n                    value = f.numerator  # store integers as int\n                else:\n                    value = current_without_prefix\n            elif current not in self.words:\n                # non-numeric words\n                if value is not None:\n                    yield output(value)\n                yield output(current)\n            elif current in self.zeros:\n                value = str(value or \"\") + \"0\"\n            elif current in self.ones:\n                ones = self.ones[current]\n                if value is None:\n                    value = ones",
         "type": "code",
-        "location": "/whisper/timing.py:360-386"
+        "location": "/whisper/normalizers/english.py:199-224"
     },
     "293": {
-        "file_id": 20,
-        "content": "This code adjusts word start and end timestamps to fit within the segment timestamps. It prefers segment-level timestamps if a word extends beyond the segment, ensuring the segment remains complete.",
+        "file_id": 22,
+        "content": "This code is handling various cases of number normalization. It checks if the value is a string ending with \".\", concatenates decimals/IP address components, handles numeric and non-numeric words, zeros, and ones.",
         "type": "comment"
     },
     "294": {
-        "file_id": 21,
-        "content": "/whisper/tokenizer.py",
-        "type": "filepath"
+        "file_id": 22,
+        "content": "                elif isinstance(value, str) or prev in self.ones:\n                    if (\n                        prev in self.tens and ones < 10\n                    ):  # replace the last zero with the digit\n                        assert value[-1] == \"0\"\n                        value = value[:-1] + str(ones)\n                    else:\n                        value = str(value) + str(ones)\n                elif ones < 10:\n                    if value % 10 == 0:\n                        value += ones\n                    else:\n                        value = str(value) + str(ones)\n                else:  # eleven to nineteen\n                    if value % 100 == 0:\n                        value += ones\n                    else:\n                        value = str(value) + str(ones)\n            elif current in self.ones_suffixed:\n                # ordinal or cardinal; yield the number right away\n                ones, suffix = self.ones_suffixed[current]\n                if value is None:\n                    yield output(str(ones) + suffix)",
+        "type": "code",
+        "location": "/whisper/normalizers/english.py:225-247"
     },
     "295": {
-        "file_id": 21,
-        "content": "The Tokenizer class in the code uses tiktoken library for efficient text tokenization, supporting various languages and special tokens for different tasks such as translation and transcribe, while also handling speaker tags, non-speech annotations, EOT, SOT, and noise suppression for improved performance.",
-        "type": "summary"
+        "file_id": 22,
+        "content": "This code snippet is part of a normalizer function for the English language. It handles different cases to convert numbers into spoken words, including handling tens and ones place values, as well as cardinal or ordinal numbers. If the previous number had a \"0\" at the end and the one's digit is less than 10, it replaces the last zero with the digit. If the one's digit is less than 10 but the current value is not ending in a zero, it concatenates the string representation of the current value and the ones. If the one's digit is 11 to 19, it appends the ones digit if the current value is divisible by 100 or simply concatenates the string representation of the current value and the ones. If the current number is in the 'ones_suffixed' list, it yields the number with the appropriate suffix.",
+        "type": "comment"
     },
     "296": {
-        "file_id": 21,
-        "content": "import base64\nimport os\nimport string\nfrom dataclasses import dataclass, field\nfrom functools import cached_property, lru_cache\nfrom typing import Dict, List, Optional, Tuple\nimport tiktoken\nLANGUAGES = {\n    \"en\": \"english\",\n    \"zh\": \"chinese\",\n    \"de\": \"german\",\n    \"es\": \"spanish\",\n    \"ru\": \"russian\",\n    \"ko\": \"korean\",\n    \"fr\": \"french\",\n    \"ja\": \"japanese\",\n    \"pt\": \"portuguese\",\n    \"tr\": \"turkish\",\n    \"pl\": \"polish\",\n    \"ca\": \"catalan\",\n    \"nl\": \"dutch\",\n    \"ar\": \"arabic\",\n    \"sv\": \"swedish\",\n    \"it\": \"italian\",\n    \"id\": \"indonesian\",\n    \"hi\": \"hindi\",\n    \"fi\": \"finnish\",\n    \"vi\": \"vietnamese\",\n    \"he\": \"hebrew\",\n    \"uk\": \"ukrainian\",\n    \"el\": \"greek\",\n    \"ms\": \"malay\",\n    \"cs\": \"czech\",\n    \"ro\": \"romanian\",\n    \"da\": \"danish\",\n    \"hu\": \"hungarian\",\n    \"ta\": \"tamil\",\n    \"no\": \"norwegian\",\n    \"th\": \"thai\",\n    \"ur\": \"urdu\",\n    \"hr\": \"croatian\",\n    \"bg\": \"bulgarian\",\n    \"lt\": \"lithuanian\",\n    \"la\": \"latin\",\n    \"mi\": \"maori\",\n    \"ml\": \"malayalam\",\n    \"cy\": \"welsh\",\n    \"sk\": \"slovak\",\n    \"te\": \"telugu\",",
+        "file_id": 22,
+        "content": "                elif isinstance(value, str) or prev in self.ones:\n                    if prev in self.tens and ones < 10:\n                        assert value[-1] == \"0\"\n                        yield output(value[:-1] + str(ones) + suffix)\n                    else:\n                        yield output(str(value) + str(ones) + suffix)\n                elif ones < 10:\n                    if value % 10 == 0:\n                        yield output(str(value + ones) + suffix)\n                    else:\n                        yield output(str(value) + str(ones) + suffix)\n                else:  # eleven to nineteen\n                    if value % 100 == 0:\n                        yield output(str(value + ones) + suffix)\n                    else:\n                        yield output(str(value) + str(ones) + suffix)\n                value = None\n            elif current in self.tens:\n                tens = self.tens[current]\n                if value is None:\n                    value = tens\n                elif isinstance(value, str):",
         "type": "code",
-        "location": "/whisper/tokenizer.py:1-51"
+        "location": "/whisper/normalizers/english.py:248-269"
     },
     "297": {
-        "file_id": 21,
-        "content": "This code is defining a dictionary of language codes and their corresponding language names.",
+        "file_id": 22,
+        "content": "This code snippet is handling the conversion of numbers to words in English. It checks if the number is a multiple of 10, and handles values from 11 to 19, 20 to 29, etc., separately. It also deals with cases where the value is a string or a single digit number (ones place).",
         "type": "comment"
     },
     "298": {
-        "file_id": 21,
-        "content": "    \"fa\": \"persian\",\n    \"lv\": \"latvian\",\n    \"bn\": \"bengali\",\n    \"sr\": \"serbian\",\n    \"az\": \"azerbaijani\",\n    \"sl\": \"slovenian\",\n    \"kn\": \"kannada\",\n    \"et\": \"estonian\",\n    \"mk\": \"macedonian\",\n    \"br\": \"breton\",\n    \"eu\": \"basque\",\n    \"is\": \"icelandic\",\n    \"hy\": \"armenian\",\n    \"ne\": \"nepali\",\n    \"mn\": \"mongolian\",\n    \"bs\": \"bosnian\",\n    \"kk\": \"kazakh\",\n    \"sq\": \"albanian\",\n    \"sw\": \"swahili\",\n    \"gl\": \"galician\",\n    \"mr\": \"marathi\",\n    \"pa\": \"punjabi\",\n    \"si\": \"sinhala\",\n    \"km\": \"khmer\",\n    \"sn\": \"shona\",\n    \"yo\": \"yoruba\",\n    \"so\": \"somali\",\n    \"af\": \"afrikaans\",\n    \"oc\": \"occitan\",\n    \"ka\": \"georgian\",\n    \"be\": \"belarusian\",\n    \"tg\": \"tajik\",\n    \"sd\": \"sindhi\",\n    \"gu\": \"gujarati\",\n    \"am\": \"amharic\",\n    \"yi\": \"yiddish\",\n    \"lo\": \"lao\",\n    \"uz\": \"uzbek\",\n    \"fo\": \"faroese\",\n    \"ht\": \"haitian creole\",\n    \"ps\": \"pashto\",\n    \"tk\": \"turkmen\",\n    \"nn\": \"nynorsk\",\n    \"mt\": \"maltese\",\n    \"sa\": \"sanskrit\",\n    \"lb\": \"luxembourgish\",\n    \"my\": \"myanmar\",\n    \"bo\": \"tibetan\",\n    \"tl\": \"tagalog\",\n    \"mg\": \"malagasy\",",
+        "file_id": 22,
+        "content": "                    value = str(value) + str(tens)\n                else:\n                    if value % 100 == 0:\n                        value += tens\n                    else:\n                        value = str(value) + str(tens)\n            elif current in self.tens_suffixed:\n                # ordinal or cardinal; yield the number right away\n                tens, suffix = self.tens_suffixed[current]\n                if value is None:\n                    yield output(str(tens) + suffix)\n                elif isinstance(value, str):\n                    yield output(str(value) + str(tens) + suffix)\n                else:\n                    if value % 100 == 0:\n                        yield output(str(value + tens) + suffix)\n                    else:\n                        yield output(str(value) + str(tens) + suffix)\n            elif current in self.multipliers:\n                multiplier = self.multipliers[current]\n                if value is None:\n                    value = multiplier\n                elif isinstance(value, str) or value == 0:",
         "type": "code",
-        "location": "/whisper/tokenizer.py:52-101"
+        "location": "/whisper/normalizers/english.py:270-292"
     },
     "299": {
-        "file_id": 21,
-        "content": "This code contains a dictionary where keys are language codes and values are the corresponding language names. The languages represented here are diverse, covering various regions and scripts.",
+        "file_id": 22,
+        "content": "This code is part of a normalizer for the English language. It handles converting numbers into words based on their position and value. The code checks if the number has a specific digit and adds the corresponding suffix or multiplies by a specific factor depending on the context.",
         "type": "comment"
     }
 }

@@ -66,56 +66,59 @@
         ul {
             list-style: none;
         }
+        #feeling-lucky:hover{
+            cursor: pointer;
+        }
     </style>
 </head>
 
 <body>
     <article class="markdown-body">
-        <h2>Project Structure<span hierarchy="0" class="partial-repository-url"> of: james4ever0/whisper</span><div style="float: right;"><a href="index.html"><i class="bi bi-search"></i></a></div></h2>
+        <h2>Project structure<span hierarchy="0" class="partial-repository-url"> of: james4ever0/whisper</span><div style="float: right;"><a title="Document index" style="margin:3.5px;" href="index.html"><i class="bi bi-search"></i></a><a title="Feeling lucky" style="margin:3.5px;" id="feeling-lucky" href="#"><i class="bi bi-dice-3"></i></a><a title="Expand tree" style="margin:3.5px;" href="tree.html?full=true" id="expand-tree"><i class="bi bi-caret-down-square"></i></a></div></h2>
 <ul>
 <li><span hierarchy="0" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/"><code>whisper</code></strong> <em>Open-source speech recognition library and tools</em></span><ul>
-<li><a href="index.html?q=/CHANGELOG.md" id="/CHANGELOG.md"><code>CHANGELOG&period;md</code></a> <em>Latest openai/whisper project updates, fixes, and features.</em></li>
-<li><a href="index.html?q=/README.md" id="/README.md"><code>README&period;md</code></a> <em>Whisper: Multitask Transformer for diverse language speech recognition.</em></li>
+<li><a class="file_link" href="index.html?q=/CHANGELOG.md" id="/CHANGELOG.md"><code>CHANGELOG&period;md</code></a> <em>Latest openai/whisper project updates, fixes, and features.</em></li>
 <li><span hierarchy="1" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/data/"><code>data</code></strong></span><ul>
-<li><a href="index.html?q=/data/README.md" id="/data/README.md"><code>README&period;md</code></a> <em>Convert, preprocess, timings, labels, multilingual datasets</em></li>
+<li><a class="file_link" href="index.html?q=/data/README.md" id="/data/README.md"><code>README&period;md</code></a> <em>Convert, preprocess, timings, labels, multilingual datasets</em></li>
 </ul>
 </li>
-<li><a href="index.html?q=/model-card.md" id="/model-card.md"><code>model-card&period;md</code></a> <em>Whisper AI: Speech Recognition, Translation, Challenges</em></li>
+<li><a class="file_link" href="index.html?q=/model-card.md" id="/model-card.md"><code>model-card&period;md</code></a> <em>Whisper AI: Speech Recognition, Translation, Challenges</em></li>
 <li><span hierarchy="1" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/notebooks/"><code>notebooks</code></strong> <em>Notebooks: Contains scripts for ASR, WER calculation, and multilingual tasks.</em></span><ul>
-<li><a href="index.html?q=/notebooks/LibriSpeech.py" id="/notebooks/LibriSpeech.py"><code>LibriSpeech&period;py</code></a> <em>Initialize LibriSpeech, load test-clean split, perform inference, calculate WER.</em></li>
-<li><a href="index.html?q=/notebooks/Multilingual_ASR.py" id="/notebooks/Multilingual_ASR.py"><code>Multilingual&UnderBar;ASR&period;py</code></a> <em>Multilingual ASR/MT script, performs package installs and language model training.</em></li>
+<li><a class="file_link" href="index.html?q=/notebooks/LibriSpeech.py" id="/notebooks/LibriSpeech.py"><code>LibriSpeech&period;py</code></a> <em>Initialize LibriSpeech, load test-clean split, perform inference, calculate WER.</em></li>
+<li><a class="file_link" href="index.html?q=/notebooks/Multilingual_ASR.py" id="/notebooks/Multilingual_ASR.py"><code>Multilingual&UnderBar;ASR&period;py</code></a> <em>Multilingual ASR/MT script, performs package installs and language model training.</em></li>
 </ul>
 </li>
-<li><a href="index.html?q=/pyproject.toml" id="/pyproject.toml"><code>pyproject&period;toml</code></a> <em>Python code formatting settings</em></li>
-<li><a href="index.html?q=/requirements.txt" id="/requirements.txt"><code>requirements&period;txt</code></a> <em>Python packages and Triton version requirements.</em></li>
-<li><a href="index.html?q=/setup.py" id="/setup.py"><code>setup&period;py</code></a> <em>Set up Python package with requirements.</em></li>
+<li><a class="file_link" href="index.html?q=/pyproject.toml" id="/pyproject.toml"><code>pyproject&period;toml</code></a> <em>Python code formatting settings</em></li>
+<li><a class="file_link" href="index.html?q=/README.md" id="/README.md"><code>README&period;md</code></a> <em>Whisper: Multitask Transformer for diverse language speech recognition.</em></li>
+<li><a class="file_link" href="index.html?q=/requirements.txt" id="/requirements.txt"><code>requirements&period;txt</code></a> <em>Python packages and Triton version requirements.</em></li>
+<li><a class="file_link" href="index.html?q=/setup.py" id="/setup.py"><code>setup&period;py</code></a> <em>Set up Python package with requirements.</em></li>
 <li><span hierarchy="1" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/tests/"><code>tests</code></strong> <em>Test audio, normalization, timing, and transcription functionality.</em></span><ul>
-<li><a href="index.html?q=/tests/conftest.py" id="/tests/conftest.py"><code>conftest&period;py</code></a> <em>Imports libraries, sets seed.</em></li>
-<li><a href="index.html?q=/tests/test_audio.py" id="/tests/test_audio.py"><code>test&UnderBar;audio&period;py</code></a> <em>Test audio loading, spectrogram calculation, and consistency.</em></li>
-<li><a href="index.html?q=/tests/test_normalizer.py" id="/tests/test_normalizer.py"><code>test&UnderBar;normalizer&period;py</code></a> <em>Tests number, date, and text normalization classes.</em></li>
-<li><a href="index.html?q=/tests/test_timing.py" id="/tests/test_timing.py"><code>test&UnderBar;timing&period;py</code></a> <em>Median filter performance test on CPU and GPU.</em></li>
-<li><a href="index.html?q=/tests/test_tokenizer.py" id="/tests/test_tokenizer.py"><code>test&UnderBar;tokenizer&period;py</code></a> <em>Test tokenizer functionality across languages.</em></li>
-<li><a href="index.html?q=/tests/test_transcribe.py" id="/tests/test_transcribe.py"><code>test&UnderBar;transcribe&period;py</code></a> <em>Test Whisper AI transcription functionality.</em></li>
+<li><a class="file_link" href="index.html?q=/tests/conftest.py" id="/tests/conftest.py"><code>conftest&period;py</code></a> <em>Imports libraries, sets seed.</em></li>
+<li><a class="file_link" href="index.html?q=/tests/test_audio.py" id="/tests/test_audio.py"><code>test&UnderBar;audio&period;py</code></a> <em>Test audio loading, spectrogram calculation, and consistency.</em></li>
+<li><a class="file_link" href="index.html?q=/tests/test_normalizer.py" id="/tests/test_normalizer.py"><code>test&UnderBar;normalizer&period;py</code></a> <em>Tests number, date, and text normalization classes.</em></li>
+<li><a class="file_link" href="index.html?q=/tests/test_timing.py" id="/tests/test_timing.py"><code>test&UnderBar;timing&period;py</code></a> <em>Median filter performance test on CPU and GPU.</em></li>
+<li><a class="file_link" href="index.html?q=/tests/test_tokenizer.py" id="/tests/test_tokenizer.py"><code>test&UnderBar;tokenizer&period;py</code></a> <em>Test tokenizer functionality across languages.</em></li>
+<li><a class="file_link" href="index.html?q=/tests/test_transcribe.py" id="/tests/test_transcribe.py"><code>test&UnderBar;transcribe&period;py</code></a> <em>Test Whisper AI transcription functionality.</em></li>
 </ul>
 </li>
 <li><span hierarchy="1" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/whisper/"><code>whisper</code></strong> <em>Whisper: Library for audio-to-text, efficient language detection and transcription.</em></span><ul>
-<li><a href="index.html?q=/whisper/__init__.py" id="/whisper/__init__.py"><code>&UnderBar;&UnderBar;init&UnderBar;&UnderBar;&period;py</code></a> <em>Whisper: Library for model download, verification, and availability.</em></li>
-<li><a href="index.html?q=/whisper/__main__.py" id="/whisper/__main__.py"><code>&UnderBar;&UnderBar;main&UnderBar;&UnderBar;&period;py</code></a> <em>Transcribes audio using Whisper CLI.</em></li>
-<li><a href="index.html?q=/whisper/audio.py" id="/whisper/audio.py"><code>audio&period;py</code></a> <em>Audio preprocessing for Tensor or Torch tensors.</em></li>
-<li><a href="index.html?q=/whisper/decoding.py" id="/whisper/decoding.py"><code>decoding&period;py</code></a> <em>Whisper model, efficient audio language detection.</em></li>
-<li><a href="index.html?q=/whisper/model.py" id="/whisper/model.py"><code>model&period;py</code></a> <em>Audio-to-text model: encoder-decoder, convolutional layers, attention</em></li>
+<li><a class="file_link" href="index.html?q=/whisper/__init__.py" id="/whisper/__init__.py"><code>&UnderBar;&UnderBar;init&UnderBar;&UnderBar;&period;py</code></a> <em>Whisper: Library for model download, verification, and availability.</em></li>
+<li><a class="file_link" href="index.html?q=/whisper/__main__.py" id="/whisper/__main__.py"><code>&UnderBar;&UnderBar;main&UnderBar;&UnderBar;&period;py</code></a> <em>Transcribes audio using Whisper CLI.</em></li>
+<li><a class="file_link" href="index.html?q=/whisper/audio.py" id="/whisper/audio.py"><code>audio&period;py</code></a> <em>Audio preprocessing for Tensor or Torch tensors.</em></li>
+<li><a class="file_link" href="index.html?q=/whisper/decoding.py" id="/whisper/decoding.py"><code>decoding&period;py</code></a> <em>Whisper model, efficient audio language detection.</em></li>
+<li><a class="file_link" href="index.html?q=/whisper/model.py" id="/whisper/model.py"><code>model&period;py</code></a> <em>Audio-to-text model: encoder-decoder, convolutional layers, attention</em></li>
 <li><span hierarchy="2" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/whisper/normalizers/"><code>normalizers</code></strong> <em>Text normalizers for multiple languages.</em></span><ul>
-<li><a href="index.html?q=/whisper/normalizers/__init__.py" id="/whisper/normalizers/__init__.py"><code>&UnderBar;&UnderBar;init&UnderBar;&UnderBar;&period;py</code></a> <em>Text normalizer initialization.</em></li>
-<li><a href="index.html?q=/whisper/normalizers/basic.py" id="/whisper/normalizers/basic.py"><code>basic&period;py</code></a> <em>Normalizes text, removes symbols and diacritics.</em></li>
-<li><a href="index.html?q=/whisper/normalizers/english.py" id="/whisper/normalizers/english.py"><code>english&period;py</code></a> <em>English language number and text normalizer</em></li>
+<li><a class="file_link" href="index.html?q=/whisper/normalizers/__init__.py" id="/whisper/normalizers/__init__.py"><code>&UnderBar;&UnderBar;init&UnderBar;&UnderBar;&period;py</code></a> <em>Text normalizer initialization.</em></li>
+<li><a class="file_link" href="index.html?q=/whisper/normalizers/basic.py" id="/whisper/normalizers/basic.py"><code>basic&period;py</code></a> <em>Normalizes text, removes symbols and diacritics.</em></li>
+<li><a class="file_link" href="index.html?q=/whisper/normalizers/english.py" id="/whisper/normalizers/english.py"><code>english&period;py</code></a> <em>English language number and text normalizer</em></li>
 </ul>
 </li>
-<li><a href="index.html?q=/whisper/timing.py" id="/whisper/timing.py"><code>timing&period;py</code></a> <em>Median filtering, dynamic time warping, text-to-speech alignment.</em></li>
-<li><a href="index.html?q=/whisper/tokenizer.py" id="/whisper/tokenizer.py"><code>tokenizer&period;py</code></a> <em>Efficient text tokenization with Tiktoken library support.</em></li>
-<li><a href="index.html?q=/whisper/transcribe.py" id="/whisper/transcribe.py"><code>transcribe&period;py</code></a> <em>Speech transcription with Whisper model, customizable.</em></li>
-<li><a href="index.html?q=/whisper/triton_ops.py" id="/whisper/triton_ops.py"><code>triton&UnderBar;ops&period;py</code></a> <em>Triton parallel Dynamic Time Warp, CUDA Median Filter</em></li>
-<li><a href="index.html?q=/whisper/utils.py" id="/whisper/utils.py"><code>utils&period;py</code></a> <em>Utility, compression ratio, timestamp formatting. WriteTSV, JSON.</em></li>
-<li><a href="index.html?q=/whisper/version.py" id="/whisper/version.py"><code>version&period;py</code></a> <em>Sets version of "whisper" to 20231117</em></li>
+<li><a class="file_link" href="index.html?q=/whisper/timing.py" id="/whisper/timing.py"><code>timing&period;py</code></a> <em>Median filtering, dynamic time warping, text-to-speech alignment.</em></li>
+<li><a class="file_link" href="index.html?q=/whisper/tokenizer.py" id="/whisper/tokenizer.py"><code>tokenizer&period;py</code></a> <em>Efficient text tokenization with Tiktoken library support.</em></li>
+<li><a class="file_link" href="index.html?q=/whisper/transcribe.py" id="/whisper/transcribe.py"><code>transcribe&period;py</code></a> <em>Speech transcription with Whisper model, customizable.</em></li>
+<li><a class="file_link" href="index.html?q=/whisper/triton_ops.py" id="/whisper/triton_ops.py"><code>triton&UnderBar;ops&period;py</code></a> <em>Triton parallel Dynamic Time Warp, CUDA Median Filter</em></li>
+<li><a class="file_link" href="index.html?q=/whisper/utils.py" id="/whisper/utils.py"><code>utils&period;py</code></a> <em>Utility, compression ratio, timestamp formatting. WriteTSV, JSON.</em></li>
+<li><a class="file_link" href="index.html?q=/whisper/version.py" id="/whisper/version.py"><code>version&period;py</code></a> <em>Sets version of "whisper" to 20231117</em></li>
 </ul>
 </li>
 </ul>
@@ -137,14 +140,27 @@
 
         const queryParams = getQueryParams(window.location.search);
         const show_full = queryParams.full == "true";
+        //const is_random = queryParams.random == 'true';
+        function feelingLucky() {
+            var elements = document.getElementsByClassName("file_link");
+            var randomIndex = Math.floor(Math.random() * elements.length);
+            window.location = elements[randomIndex].href;
+        }
+        //if (is_random) {feelingLucky();}
+        document.getElementById("feeling-lucky").onclick = feelingLucky;
         if (!show_full) {
             const spans = document.querySelectorAll('span');
             for (let span of spans) {
                 if (span.getAttribute("hierarchy") == '0') { continue }
-
                 toggleVisibility(span);
             }
+        } else {
+            const expand_elem = document.getElementById('expand-tree');
+            expand_elem.setAttribute("href", "tree.html");
+            expand_elem.setAttribute("title", "Undo expand");
+            expand_elem.innerHTML = '<i class="bi bi-caret-up-square"></i>'
         }
+
     </script>
 </body>
 
