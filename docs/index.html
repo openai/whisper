@@ -567,11 +567,11 @@
                 drawer.style.display = "none";
                 drawer_mask.style.display = "none";
                 mybutton.innerHTML = `<i class="bi bi-caret-left-square"></i>`;
-                mybutton.setAttribute("title","Result overview")
+                mybutton.setAttribute("title", "Result overview")
                 return;
             } else {
                 mybutton.innerHTML = `<i class="bi bi-caret-right-square"></i>`;
-                mybutton.setAttribute("title","Hide overview")
+                mybutton.setAttribute("title", "Hide overview")
 
             }
 
@@ -996,7 +996,8 @@
                     file_title_elem.appendChild(file_title_span);
                     // location_p.innerHTML = (mylocation);
 
-                    file_title_span.onclick = () => { navigateToPage(it.header.filepath, it.language_id, project_id, searchHighlightTerms) }
+                    file_title_span.onclick = () => { window.location.href = "?q=/" + encodeURIComponent(mylocation) }
+                    // file_title_span.onclick = () => { navigateToPage(it.header.filepath, it.language_id, project_id, searchHighlightTerms) }
                     // file_title_span.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)},${JSON.stringify(project_id)})`)
                     // location_p.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)}, ${JSON.stringify(project_id)})`)
                     // search_header.appendChild(location_p);
