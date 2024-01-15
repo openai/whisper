@@ -7,17 +7,17 @@
         "0": {
             "filepath": "/CHANGELOG.md",
             "entry_id": 0,
-            "language_id": "plain-text"
+            "language_id": "markdown"
         },
         "1": {
             "filepath": "/README.md",
             "entry_id": 14,
-            "language_id": "markdown"
+            "language_id": "plain-text"
         },
         "2": {
             "filepath": "/data/README.md",
             "entry_id": 30,
-            "language_id": "plain-text"
+            "language_id": "markdown"
         },
         "3": {
             "filepath": "/model-card.md",
