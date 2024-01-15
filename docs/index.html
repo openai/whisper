@@ -996,8 +996,12 @@
                     file_title_elem.appendChild(file_title_span);
                     // location_p.innerHTML = (mylocation);
 
-                    file_title_span.onclick = () => { window.location.href = "?q=/" + encodeURIComponent(mylocation) }
-                    // file_title_span.onclick = () => { navigateToPage(it.header.filepath, it.language_id, project_id, searchHighlightTerms) }
+                    if (isFileSearch) {
+                        file_title_span.onclick = () => { navigateToPage(it.header.filepath, it.language_id, project_id, searchHighlightTerms) }
+                    } else {
+                        file_title_span.onclick = () => { window.location.href = "?q=/" + encodeURIComponent(mylocation) }
+                    }
+
                     // file_title_span.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)},${JSON.stringify(project_id)})`)
                     // location_p.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)}, ${JSON.stringify(project_id)})`)
                     // search_header.appendChild(location_p);
