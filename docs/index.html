@@ -966,6 +966,7 @@
                     });
                 });
                 var isDesktopScreen = window.innerWidth > 768;
+                var isFirstDrawerEntry = true;
                 var title_topics = []
                 for (var file_id of searchResultItemIds) {
                     const it = searchResultItems[file_id];
@@ -981,7 +982,12 @@
                     const mylocation = it.header.filepath.slice(1)
                     title_topics.push(title_data["/" + mylocation])
 
-                    overview_file_title_elem.innerHTML = `<span>${title_data["/" + mylocation]}</span>`;
+                    overview_file_title_elem.innerHTML = `&bull;&nbsp;<span>${title_data["/" + mylocation]}</span>`;
+                    if (isFirstDrawerEntry) {
+                        isFirstDrawerEntry = false;
+                    }else{
+                        overview_file_title_elem.style.marginTop = '7px'
+                    }
                     overview_file_title_elem.onclick = () => {
                         //  jumpToElement(file_title_elem_id); 
                         toggleDrawerAndJumpToElement(file_title_elem_id);
@@ -1049,7 +1055,8 @@
                         }
                         if (pair_title_text != undefined) {
                             code_title_span.textContent = pair_title_text
-                            overview_pair_title.innerHTML = `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span>${pair_title_text}</span>`
+                            overview_pair_title.innerHTML = `&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#9702;&nbsp;<span>${pair_title_text}</span>`
+
                         }
                         pair_title.appendChild(code_title_span);
                         pair_left.className = "left-half";
