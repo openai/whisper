@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
 def transcribe(
     model: "Whisper",
-    audio: Union[str, np.ndarray, torch.Tensor],
+    audio: Union[str, bytes, np.ndarray, torch.Tensor],
     *,
     verbose: Optional[bool] = None,
     temperature: Union[float, Tuple[float, ...]] = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
@@ -62,7 +62,7 @@ def transcribe(
         The Whisper model instance
 
     audio: Union[str, np.ndarray, torch.Tensor]
-        The path to the audio file to open, or the audio waveform
+        The path to the audio file to open, or the audio waveform, or the bytes content of an audio file
 
     verbose: bool
         Whether to display the text being decoded to the console. If True, displays all the details,
