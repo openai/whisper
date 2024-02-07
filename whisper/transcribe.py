@@ -261,6 +261,8 @@ def transcribe(
         #     while seek < seek_clip_end
         while clip_idx < len(seek_clips):
             seek_clip_start, seek_clip_end = seek_clips[clip_idx]
+            if seek_clip_end > content_frames:
+                seek_clip_end = content_frames
             if seek < seek_clip_start:
                 seek = seek_clip_start
             if seek >= seek_clip_end:
