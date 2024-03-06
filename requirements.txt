@@ -1,7 +1,7 @@
-numba
-numpy
-torch
-tqdm
-more-itertools
-tiktoken
-triton>=2.0.0,<3;platform_machine=="x86_64" and sys_platform=="linux" or sys_platform=="linux2"
+numba==0.59.0  #latest version
+numpy==1.26.4  #latest version
+torch==2.2.1  #latest version
+tqdm==4.66.2  #latest version
+more-itertools==10.2.0  #latest version
+tiktoken==0.6.0  #latest version
+triton>=2.0.0,<3; platform_machine == "x86_64" and sys_platform == "linux"
