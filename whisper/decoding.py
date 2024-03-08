@@ -606,13 +606,11 @@ class DecodingTask:
                 else prompt
             )
             if (hotwords := self.options.hotwords) and not self.options.prefix:
-                print(f"hotwords: {hotwords}")
                 hotwords_tokens = self.tokenizer.encode(" " + hotwords.strip())
                 if len(hotwords_tokens) >= self.n_ctx // 2:
                     hotwords_tokens = hotwords_tokens[: self.n_ctx // 2 - 1]
             tokens = (
                 [self.tokenizer.sot_prev]
-                + prompt_tokens[-(self.n_ctx // 2 - 1) :]
                 + (hotwords_tokens if self.options.hotwords is not None else [])
                 + (prompt_tokens[-(self.n_ctx // 2 - 1) :] if self.options.prompt is not None else [])
                 + tokens
