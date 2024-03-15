@@ -7,13 +7,30 @@ from setuptools import find_packages, setup
 
 
 def read_version(fname="whisper/version.py"):
-    exec(compile(open(fname, encoding="utf-8").read(), fname, "exec"))
-    return locals()["__version__"]
+    try:
+        exec(compile(open(fname, encoding="utf-8").read(), fname, "exec"))
+        return locals()["__version__"]
+    except FileNotFoundError:
+        print(f"Error: {fname} not found.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error reading version: {e}")
+        sys.exit(1)
 
 
-requirements = []
-if sys.platform.startswith("linux") and platform.machine() == "x86_64":
-    requirements.append("triton>=2.0.0,<3")
+def parse_requirements(filename):
+    try:
+        with open(filename) as f:
+            return [str(r) for r in pkg_resources.parse_requirements(f)]
+    except FileNotFoundError:
+        print(f"Error: {filename} not found.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error parsing requirements: {e}")
+        sys.exit(1)
+
+
+requirements_file = Path(__file__).with_name("requirements.txt")
 
 setup(
     name="openai-whisper",
@@ -28,12 +45,7 @@ setup(
     url="https://github.com/openai/whisper",
     license="MIT",
     packages=find_packages(exclude=["tests*"]),
-    install_requires=[
-        str(r)
-        for r in pkg_resources.parse_requirements(
-            Path(__file__).with_name("requirements.txt").open()
-        )
-    ],
+    install_requires=parse_requirements(requirements_file),
     entry_points={
         "console_scripts": ["whisper=whisper.transcribe:cli"],
     },
