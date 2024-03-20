@@ -1,6 +1,6 @@
 import os
 from functools import lru_cache
-from subprocess import CalledProcessError, run, CREATE_NO_WINDOW
+from subprocess import CalledProcessError, run
 from typing import Optional, Union
 
 import numpy as np
@@ -57,6 +57,7 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
     try:
         creationflags = None
         if os.name == 'nt':
+            from subprocess import CREATE_NO_WINDOW
             creationflags = CREATE_NO_WINDOW
         out = run(cmd, capture_output=True, check=True, creationflags=creationflags).stdout
     except CalledProcessError as e:
