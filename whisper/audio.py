@@ -1,6 +1,6 @@
 import os
 from functools import lru_cache
-from subprocess import CalledProcessError, run
+from subprocess import CalledProcessError, run, CREATE_NO_WINDOW
 from typing import Optional, Union
 
 import numpy as np
@@ -55,7 +55,7 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
     ]
     # fmt: on
     try:
-        out = run(cmd, capture_output=True, check=True).stdout
+        out = run(cmd, capture_output=True, check=True, creationflags=CREATE_NO_WINDOW).stdout
     except CalledProcessError as e:
         raise RuntimeError(f"Failed to load audio: {e.stderr.decode()}") from e
 
