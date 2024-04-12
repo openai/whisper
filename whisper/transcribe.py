@@ -501,6 +501,7 @@ def transcribe(
                     text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
                     segments=all_segments,
                     language=language,
+                    content_duration=content_duration
                 )
 
     return dict(
