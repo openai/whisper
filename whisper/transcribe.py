@@ -51,6 +51,7 @@ def transcribe(
     append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
     clip_timestamps: Union[str, List[float]] = "0",
     hallucination_silence_threshold: Optional[float] = None,
+    enable_generator: bool = False,
     **decode_options,
 ):
     """
@@ -112,6 +113,10 @@ def transcribe(
     hallucination_silence_threshold: Optional[float]
         When word_timestamps is True, skip silent periods longer than this threshold (in seconds)
         when a possible hallucination is detected
+
+    enable_generator: bool
+        Whether to use a generator for output. If True, yields incremental results as a generator.
+        If False, returns the complete transcription results as a dictionary.
 
     Returns
     -------
@@ -490,6 +495,13 @@ def transcribe(
 
             # update progress bar
             pbar.update(min(content_frames, seek) - previous_seek)
+
+            if enable_generator:
+                yield dict(
+                    text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
+                    segments=all_segments,
+                    language=language,
+                )
 
     return dict(
         text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
