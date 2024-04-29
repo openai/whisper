@@ -17,3 +17,5 @@ def test_audio():
 
     assert np.allclose(mel_from_audio, mel_from_file)
     assert mel_from_audio.max() - mel_from_audio.min() <= 2.0
+
+
