@@ -464,9 +464,10 @@ class EnglishSpellingNormalizer:
 
 class EnglishTextNormalizer:
     def __init__(self):
-        self.ignore_patterns = r"\b(hmm|mm|mhm|mmm|uh|um)\b"
+        self.ignore_patterns = r"\b(hmm|mm|mhm|mmm|uh|um)\b" # NOTE: any more here? 
         self.replacers = {
             # common contractions
+            # NOTE: valid to ignore ALL of these contractions? test different ones here
             r"\bwon't\b": "will not",
             r"\bcan't\b": "can not",
             r"\blet's\b": "let us",
@@ -504,6 +505,7 @@ class EnglishTextNormalizer:
             r"\bsr\b": "senior ",
             r"\besq\b": "esquire ",
             # prefect tenses, ideally it should be any past participles, but it's harder..
+            # NOTE: "It's harder" -> fix it ourselves
             r"'d been\b": " had been",
             r"'s been\b": " has been",
             r"'d gone\b": " had gone",
@@ -520,6 +522,11 @@ class EnglishTextNormalizer:
             r"'ve\b": " have",
             r"'m\b": " am",
         }
+        # NOTE: I think the numbers and spellings won't have much room for change. 
+        # We can definitely do the past participles and remove clearly ambiguous cases
+        # Remove some contractions
+        # Try to think of some more additional rules? Ask GPT for help
+
         self.standardize_numbers = EnglishNumberNormalizer()
         self.standardize_spellings = EnglishSpellingNormalizer()
 
