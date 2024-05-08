@@ -464,7 +464,7 @@ class EnglishSpellingNormalizer:
 
 class EnglishTextNormalizer:
     def __init__(self):
-        self.ignore_patterns = r"\b(hmm|mm|mhm|mmm|uh|um)\b" # NOTE: any more here? 
+        self.ignore_patterns = r"\b(hmm|mm|mhm|mmm|uh|um|ah|oh)\b" 
         self.replacers = {
             # common contractions
             # NOTE: valid to ignore ALL of these contractions? test different ones here
