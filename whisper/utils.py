@@ -1,3 +1,10 @@
+"""
+q: what is the usage of this file? a: this file contains the utility functions
+
+q: what is the usage of meanwhile.json? a: it is used to store the results of the meanwhile tests
+q: what is the meanwhile tests? a: it is a test suite for the whisper project
+"""
+
 import json
 import os
 import re

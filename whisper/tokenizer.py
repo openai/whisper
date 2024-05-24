@@ -1,3 +1,6 @@
+"""
+q: what is the usage of this file? a: this file is used to tokenize the text data
+"""
 import base64
 import os
 import string

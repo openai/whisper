@@ -1,3 +1,11 @@
+"""
+q: what is the usage of this file?
+a: This file contains the implementation of the `find_alignment` function,
+which is used to align the text tokens with the audio frames.
+The `add_word_timestamps` function is used to add timestamps to the words in the segments.
+
+"""
+
 import itertools
 import subprocess
 import warnings

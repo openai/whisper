@@ -14,6 +14,7 @@ from .model import ModelDimensions, Whisper
 from .transcribe import transcribe
 from .version import __version__
 
+# what are these models? a: they are the pre-trained models that are available for use
 _MODELS = {
     "tiny.en": "https://openaipublic.azureedge.net/main/whisper/models/d3dd57d32accea0b295c96e26691aa14d8822fac7d9d27d5dc00b4ca2826dd03/tiny.en.pt",
     "tiny": "https://openaipublic.azureedge.net/main/whisper/models/65147644a518d12f04e32d6f3b26facc3f8dd46e5390956a9424a650c0ce22b9/tiny.pt",
@@ -46,10 +47,12 @@ _ALIGNMENT_HEADS = {
     "large": b"ABzY8gWO1E0{>%R7(9S+Kn!D~%ngiGaR?*L!iJG9p-nab0JQ=-{D1-g00",
 }
 
-
+# q: download the model from the given url and save it to the given root directory
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
     os.makedirs(root, exist_ok=True)
 
+    # what is sha256?
+    # a: it is a cryptographic hash function that produces a fixed-size hash value
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(root, os.path.basename(url))
 
@@ -59,6 +62,7 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
     if os.path.isfile(download_target):
         with open(download_target, "rb") as f:
             model_bytes = f.read()
+        # what is the purpose of this if statement? a: to check if the SHA256 checksum matches
         if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
             return model_bytes if in_memory else download_target
         else:
@@ -66,6 +70,9 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
 
+    # is the following line re-downloading the model? a: yes
+    # so this function checks whether the model is already downloaded and if not, it downloads the model?
+    # a: yes
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
             total=int(source.info().get("Content-Length")),
@@ -88,14 +95,17 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             "Model has been downloaded but the SHA256 checksum does not not match. Please retry loading the model."
         )
 
+    # is this the checkpoint file? a: yes
     return model_bytes if in_memory else download_target
 
-
+# q: what is the purpose of this function? a: to return the names of the available models
 def available_models() -> List[str]:
     """Returns the names of available models"""
     return list(_MODELS.keys())
 
-
+# q: what is the purpose of this function? a: to load the model from the given name
+# what does -> Whisper in Python mean? a: it means that the function returns an object of type Whisper
+# load 一个模型，返回一个Whisper对象
 def load_model(
     name: str,
     device: Optional[Union[str, torch.device]] = None,
@@ -140,14 +150,24 @@ def load_model(
             f"Model {name} not found; available models = {available_models()}"
         )
 
+    # what is "with" in Python?
+    # a: it is used to open a file and automatically close it after the block of code is executed
     with (
+        # what if checkpoint_file is in memory? a: it uses io.BytesIO to read the file
+        # what if checkpoint_file is not in memory? a: it uses open to read the file
         io.BytesIO(checkpoint_file) if in_memory else open(checkpoint_file, "rb")
     ) as fp:
         checkpoint = torch.load(fp, map_location=device)
     del checkpoint_file
 
+    # what is the **checkpoint["dims"]? a: it unpacks the dictionary into keyword arguments
+    # are arguments in ModelDimensions nullable? a: no
+    # so what if the checkpoint["dims"] is missing? a: it will raise an error
+    # how to confirm that checkpoint contains the "dims" key? a: by checking the keys of the dictionary
     dims = ModelDimensions(**checkpoint["dims"])
     model = Whisper(dims)
+
+    # what is load_state_dict? a: it loads the model weights
     model.load_state_dict(checkpoint["model_state_dict"])
 
     if alignment_heads is not None:

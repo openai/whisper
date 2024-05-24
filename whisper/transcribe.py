@@ -1,3 +1,6 @@
+"""
+q: what is the usage of this file? a: this file contains the audio processing functions
+"""
 import argparse
 import os
 import traceback
@@ -34,7 +37,8 @@ from .utils import (
 if TYPE_CHECKING:
     from .model import Whisper
 
-
+# hard-coded audio hyperparameters
+#
 def transcribe(
     model: "Whisper",
     audio: Union[str, np.ndarray, torch.Tensor],
@@ -118,7 +122,9 @@ def transcribe(
     A dictionary containing the resulting text ("text") and segment-level details ("segments"), and
     the spoken language ("language"), which is detected when `decode_options["language"]` is None.
     """
-    dtype = torch.float16 if decode_options.get("fp16", True) else torch.float32
+    # what is fp16? a: half-precision floating-point format
+    # is fp16 better than fp32? a: fp16 is faster but less accurate
+    dtype = torch.float16 if decode_options.get("fp16", True) else torch.float32  # type: ignore
     if model.device == torch.device("cpu"):
         if torch.cuda.is_available():
             warnings.warn("Performing inference on CPU when CUDA is available")
@@ -130,8 +136,10 @@ def transcribe(
         decode_options["fp16"] = False
 
     # Pad 30-seconds of silence to the input audio, for slicing
-    mel = log_mel_spectrogram(audio, model.dims.n_mels, padding=N_SAMPLES)
-    content_frames = mel.shape[-1] - N_FRAMES
+    # why? a: to make sure the audio is long enough to be processed
+    mel = log_mel_spectrogram(audio, model.dims.n_mels, padding=N_SAMPLES)  # type: ignore
+    # why it needs to minus N_FRAMES? a: to get the number of frames in the content
+    content_frames = mel.shape[-1] - N_FRAMES  # number of frames in the content
     content_duration = float(content_frames * HOP_LENGTH / SAMPLE_RATE)
 
     if decode_options.get("language", None) is None:
@@ -498,6 +506,7 @@ def transcribe(
     )
 
 
+# what does cli stand for? command line interface
 def cli():
     from . import available_models
 

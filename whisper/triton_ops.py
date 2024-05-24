@@ -1,3 +1,6 @@
+"""
+q: what is the usage of this file? a: this file contains the audio processing functions
+"""
 from functools import lru_cache
 
 import numpy as np

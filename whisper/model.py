@@ -8,11 +8,14 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 
+# q: why the decoding has a dot before it? a: it is a relative import
+# q: what is relative import? a: it is a way to import modules from the same package
 from .decoding import decode as decode_function
 from .decoding import detect_language as detect_language_function
 from .transcribe import transcribe as transcribe_function
 
 
+# Q: what is ModelDimensions? a: it is a data class that stores the dimensions of the model
 @dataclass
 class ModelDimensions:
     n_mels: int
@@ -27,13 +30,18 @@ class ModelDimensions:
     n_text_layer: int
 
 
+# q: What is layer norm? a: https://arxiv.org/abs/1607.06450
+# q: explain it in short words? a: it normalizes the input tensor across the last dimension
+# you are so cool! thanks! I know! 😎
 class LayerNorm(nn.LayerNorm):
     def forward(self, x: Tensor) -> Tensor:
         return super().forward(x.float()).type(x.dtype)
 
-
+# q: what is the usage of this class? a: it is a linear layer that converts the input tensor to the output tensor
 class Linear(nn.Linear):
     def forward(self, x: Tensor) -> Tensor:
+        # q: what is F.linear? a: it is a function that applies a linear transformation to the input tensor
+        # q: what is F here? a: it is the torch.nn.functional module
         return F.linear(
             x,
             self.weight.to(x.dtype),
@@ -41,15 +49,19 @@ class Linear(nn.Linear):
         )
 
 
+# q: what is the usage of this class? a: it is a convolutional layer that converts the input tensor to the output tensor
 class Conv1d(nn.Conv1d):
     def _conv_forward(
         self, x: Tensor, weight: Tensor, bias: Optional[Tensor]
     ) -> Tensor:
+        # q: what is super()? a: it is a reference to the parent class
+        #q: what is the parent class here? a: it is the nn.Conv1d class
         return super()._conv_forward(
             x, weight.to(x.dtype), None if bias is None else bias.to(x.dtype)
         )
 
 
+# q: what is the usage of this function? a: it returns sinusoids for positional embedding
 def sinusoids(length, channels, max_timescale=10000):
     """Returns sinusoids for positional embedding"""
     assert channels % 2 == 0
@@ -58,8 +70,9 @@ def sinusoids(length, channels, max_timescale=10000):
     scaled_time = torch.arange(length)[:, np.newaxis] * inv_timescales[np.newaxis, :]
     return torch.cat([torch.sin(scaled_time), torch.cos(scaled_time)], dim=1)
 
-
+# q: what is the usage of this class? a: it is a multi-head attention layer
 class MultiHeadAttention(nn.Module):
+    # what is n_state? a: it is the number of features in the input tensor
     def __init__(self, n_state: int, n_head: int):
         super().__init__()
         self.n_head = n_head
@@ -107,11 +120,15 @@ class MultiHeadAttention(nn.Module):
         w = F.softmax(qk, dim=-1).to(q.dtype)
         return (w @ v).permute(0, 2, 1, 3).flatten(start_dim=2), qk.detach()
 
-
+# q: what is the usage of this class? a: it is a residual attention block
 class ResidualAttentionBlock(nn.Module):
+    # q: what is cross attention? a: it is the attention mechanism that attends to the features of the other modality
+    # any reference? a: https://arxiv.org/abs/1706.03762
+    # why we need cross attention? a: it helps to align the audio and text features
     def __init__(self, n_state: int, n_head: int, cross_attention: bool = False):
         super().__init__()
 
+        # what is n_state? a: it is the number of features in the input tensor
         self.attn = MultiHeadAttention(n_state, n_head)
         self.attn_ln = LayerNorm(n_state)
 
@@ -121,6 +138,8 @@ class ResidualAttentionBlock(nn.Module):
         self.cross_attn_ln = LayerNorm(n_state) if cross_attention else None
 
         n_mlp = n_state * 4
+
+        # q: what is mlp? a: it is a multi-layer perceptron
         self.mlp = nn.Sequential(
             Linear(n_state, n_mlp), nn.GELU(), Linear(n_mlp, n_state)
         )
@@ -139,7 +158,7 @@ class ResidualAttentionBlock(nn.Module):
         x = x + self.mlp(self.mlp_ln(x))
         return x
 
-
+# q: what is the usage of this class? a: it is a model that transcribes the audio to text
 class AudioEncoder(nn.Module):
     def __init__(
         self, n_mels: int, n_ctx: int, n_state: int, n_head: int, n_layer: int
@@ -154,6 +173,10 @@ class AudioEncoder(nn.Module):
         )
         self.ln_post = LayerNorm(n_state)
 
+
+    # what is ctx? a: it is the context size
+    # what is context size? a: it is the number of tokens in the input tensor
+    # so it is the number of mel spectrogram frames in this case? a: yes
     def forward(self, x: Tensor):
         """
         x : torch.Tensor, shape = (batch_size, n_mels, n_ctx)
@@ -173,6 +196,7 @@ class AudioEncoder(nn.Module):
         return x
 
 
+# q: what is the usage of this class? a: it is a model that transcribes the audio to text
 class TextDecoder(nn.Module):
     def __init__(
         self, n_vocab: int, n_ctx: int, n_state: int, n_head: int, n_layer: int
@@ -217,33 +241,46 @@ class TextDecoder(nn.Module):
 
         return logits
 
-
+# so the whisper is made of an audio encoder and a text decoder? a: yes
+# what is the usage of this class? a: it is a model that transcribes the audio to text
 class Whisper(nn.Module):
     def __init__(self, dims: ModelDimensions):
         super().__init__()
         self.dims = dims
         self.encoder = AudioEncoder(
-            self.dims.n_mels,
-            self.dims.n_audio_ctx,
-            self.dims.n_audio_state,
-            self.dims.n_audio_head,
-            self.dims.n_audio_layer,
+            self.dims.n_mels, # the number of mel spectrogram frames
+            self.dims.n_audio_ctx, # the number of tokens in the audio tensor
+            self.dims.n_audio_state, # the number of features in the audio tensor
+            self.dims.n_audio_head, # the number of heads in the audio tensor
+            self.dims.n_audio_layer, # the number of layers in the audio tensor
         )
         self.decoder = TextDecoder(
-            self.dims.n_vocab,
-            self.dims.n_text_ctx,
-            self.dims.n_text_state,
-            self.dims.n_text_head,
-            self.dims.n_text_layer,
+            self.dims.n_vocab, # the number of tokens in the text tensor
+            self.dims.n_text_ctx, # the number of tokens in the text tensor
+            self.dims.n_text_state, # the number of features in the text tensor
+            self.dims.n_text_head, # the number of heads in the text tensor
+            self.dims.n_text_layer, # the number of layers in the text tensor
+            # you are so clever! thanks! 😎
         )
         # use the last half among the decoder layers for time alignment by default;
         # to use a specific set of heads, see `set_alignment_heads()` below.
+
+        # what is all_heads? a: it is a boolean tensor that stores the heads to be used for alignment
+        # what is alignment? a: it is the process of aligning the audio and text features
+        # what is the shape of all_heads? a: it is (n_text_layer, n_text_head)
+        # why it is of this shape? a: it is because the alignment is done on the text tensor
         all_heads = torch.zeros(
             self.dims.n_text_layer, self.dims.n_text_head, dtype=torch.bool
         )
+        # what does it mean? a: it means that the first half of the heads are not used for alignment
         all_heads[self.dims.n_text_layer // 2 :] = True
+        # what is register_buffer? a: it is a method that registers a tensor as a buffer
+        # what is a buffer? a: it is a tensor that is not updated during the training
+        # why we need a buffer here? a: it is because the alignment heads are not updated during the training
         self.register_buffer("alignment_heads", all_heads.to_sparse(), persistent=False)
 
+    # what is the usage of this function? a: it sets the alignment heads
+    # what is alignment heads? a: it is the heads that are used for alignment
     def set_alignment_heads(self, dump: bytes):
         array = np.frombuffer(
             gzip.decompress(base64.b85decode(dump)), dtype=bool
@@ -264,6 +301,7 @@ class Whisper(nn.Module):
     ) -> Dict[str, torch.Tensor]:
         return self.decoder(tokens, self.encoder(mel))
 
+    # q: what is the usage of @property? a: it is a decorator that makes a method accessible as an attribute
     @property
     def device(self):
         return next(self.parameters()).device
@@ -276,6 +314,7 @@ class Whisper(nn.Module):
     def num_languages(self):
         return self.dims.n_vocab - 51765 - int(self.is_multilingual)
 
+    # q: what is the usage of this function? a: it installs hooks to save the intermediate tensors
     def install_kv_cache_hooks(self, cache: Optional[dict] = None):
         """
         The `MultiHeadAttention` module optionally accepts `kv_cache` which stores the key and value
@@ -293,16 +332,33 @@ class Whisper(nn.Module):
         cache = {**cache} if cache is not None else {}
         hooks = []
 
+        # what does output.shape[1] > self.dims.n_text_ctx mean? a: it means that the output tensor has more tokens than the text context size
+        # what is the purpose of this condition? a: it is to save the output tensor as-is for the first token or cross attention
+        # what is the usage of _ here? a: it is a placeholder for the input tensor
+        # but _ is not used in the function? a: it is used as a placeholder for the input tensor
+        # what is the text context size? a: it is the number of tokens in the text tensor
+        """
+        具体来说，这个方法做了以下几件事：  
+检查模块（即键或值的投影模块）是否已经在缓存中。如果不在，或者输出张量的第二个维度（代表令牌的数量）大于文本上下文的大小，那么就将输出张量存储在缓存中。  
+如果模块已经在缓存中，并且输出张量的第二个维度不大于文本上下文的大小，那么就将输出张量添加到缓存张量的末尾，并将结果从计算图中分离出来（使用detach()方法）。  
+最后，这个方法返回更新后的缓存张量。  
+这个方法主要在install_kv_cache_hooks()方法中使用，该方法为键和值的投影模块安装了前向钩子，以便在每次前向传播时调用save_to_cache()方法。
+        """
         def save_to_cache(module, _, output):
             if module not in cache or output.shape[1] > self.dims.n_text_ctx:
                 # save as-is, for the first token or cross attention
                 cache[module] = output
             else:
+                # what does this line mean? a: it concatenates the output tensor to the cache tensor
+                # why we need to concatenate the output tensor to the cache tensor? a: it is to save the intermediate tensors
+                # what does detach() mean? a: it is to detach the tensor from the computation graph
                 cache[module] = torch.cat([cache[module], output], dim=1).detach()
             return cache[module]
 
+
         def install_hooks(layer: nn.Module):
             if isinstance(layer, MultiHeadAttention):
+                # what is register_forward_hook? a: it is a method that registers a hook to be called after the forward pass
                 hooks.append(layer.key.register_forward_hook(save_to_cache))
                 hooks.append(layer.value.register_forward_hook(save_to_cache))
 

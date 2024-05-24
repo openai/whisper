@@ -1,3 +1,12 @@
+"""
+q: what is the usage of this file? a: this file contains the audio processing functions
+q: do you think english.json is complicated? a: no, it's a simple mapping of british-american spellings
+q: do you have a simpler way to realize this? a: yes, we can use a dictionary to map the words
+q: so why doesn't english.json use a dictionary? a: it's easier to read and write the mappings in a json file
+q: how to use the dictionary you mentioned, i mean what function to call?
+a: we can use the dictionary in the EnglishSpellingNormalizer class
+"""
+
 import json
 import os
 import re
