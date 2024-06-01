@@ -731,6 +731,9 @@ class DecodingTask:
             ]
 
         # repeat text tensors by the group size, for beam search or best-of-n sampling
+        audio_features = audio_features.repeat_interleave(self.n_group, dim=0).to(
+            audio_features.device
+        )
         tokens = tokens.repeat_interleave(self.n_group, dim=0).to(audio_features.device)
 
         # call the main sampling loop
