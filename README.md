@@ -35,6 +35,9 @@ It also requires the command-line tool [`ffmpeg`](https://ffmpeg.org/) to be ins
 # on Ubuntu or Debian
 sudo apt update && sudo apt install ffmpeg
 
+# on Ubuntu or Debian with cleanup (e.g., for Docker images)
+apt-get update && apt-get install -y ffmpeg && rm -rf /var/lib/apt/lists/*
+
 # on Arch Linux
 sudo pacman -S ffmpeg
 
