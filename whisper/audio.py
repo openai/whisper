@@ -1,7 +1,8 @@
 import os
+import subprocess
 from functools import lru_cache
 from subprocess import CalledProcessError, run
-from typing import Optional, Union
+from typing import Generator, Optional, Union
 
 import numpy as np
 import torch
@@ -21,6 +22,7 @@ N_SAMPLES_PER_TOKEN = HOP_LENGTH * 2  # the initial convolutions has stride 2
 FRAMES_PER_SECOND = exact_div(SAMPLE_RATE, HOP_LENGTH)  # 10ms per audio frame
 TOKENS_PER_SECOND = exact_div(SAMPLE_RATE, N_SAMPLES_PER_TOKEN)  # 20ms per audio token
 
+MAX_CHUNK_DURATION = 2 * 60 * 60 # 2 hour maximum chunk duration
 
 def load_audio(file: str, sr: int = SAMPLE_RATE):
     """
@@ -55,11 +57,15 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
     ]
     # fmt: on
     try:
-        out = run(cmd, capture_output=True, check=True).stdout
-    except CalledProcessError as e:
-        raise RuntimeError(f"Failed to load audio: {e.stderr.decode()}") from e
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-    return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
+        while True:
+            out = process.stdout.read(MAX_CHUNK_DURATION * sr * 2)
+            if not out:
+                break
+            yield np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
+    except Exception as e:
+        raise RuntimeError(f"Failed to load audio: {e.stderr.decode()}") from e
 
 
 def pad_or_trim(array, length: int = N_SAMPLES, *, axis: int = -1):
@@ -108,7 +114,7 @@ def mel_filters(device, n_mels: int) -> torch.Tensor:
 
 
 def log_mel_spectrogram(
-    audio: Union[str, np.ndarray, torch.Tensor],
+    audio: Union[str, np.ndarray, torch.Tensor, Generator[np.ndarray, None, None]],
     n_mels: int = 80,
     padding: int = 0,
     device: Optional[Union[str, torch.device]] = None,
@@ -135,13 +141,26 @@ def log_mel_spectrogram(
     torch.Tensor, shape = (80, n_frames)
         A Tensor that contains the Mel spectrogram
     """
-    if not torch.is_tensor(audio):
-        if isinstance(audio, str):
-            audio = load_audio(audio)
-        audio = torch.from_numpy(audio)
+    if isinstance(audio, str):
+        audio = load_audio(audio)
+    elif isinstance(audio, np.ndarray):
+        audio = [audio]
+    elif isinstance(audio, torch.Tensor):
+        audio = [audio]
 
-    if device is not None:
-        audio = audio.to(device)
+    for chunk in audio:
+        if not isinstance(chunk, torch.Tensor):
+            chunk = torch.from_numpy(chunk)
+        if device is not None:
+            chunk = chunk.to(device)
+        yield _log_mel_spectrogram(chunk, n_mels, padding)
+
+
+def _log_mel_spectrogram(
+    audio: torch.Tensor,
+    n_mels: int = 80,
+    padding: int = 0,
+):
     if padding > 0:
         audio = F.pad(audio, (0, padding))
     window = torch.hann_window(N_FFT).to(audio.device)
