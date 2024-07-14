@@ -1,5 +1,5 @@
 import numpy as np
-import asyncio, pathlib, subprocess, torch
+import asyncio, pathlib, subprocess, torch, json
 
 from .audio import (
     SAMPLE_RATE,
@@ -270,4 +270,20 @@ class AudioFile(RawAudioFile):
         _, stderr = ps.communicate()
         if ps.returncode not in (None, 0):
             raise RuntimeError(f"Failed to load audio: {stderr.decode()}")
+
+    @property
+    def duration(self):
+        cmd = [
+            "ffprobe",
+            "-hide_banner",
+            "-show_format",
+            "-of", "json",
+            "-i", self.fname,
+        ]
+        ps = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = ps.communicate()
+        if ps.returncode not in (None, 0):
+            raise RuntimeError(f"Failed to load audio: {stderr.decode()}")
+        return float(json.loads(stdout)['format']['duration'])
 
