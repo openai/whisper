@@ -1,18 +1,16 @@
+import asyncio
+import json
+import subprocess
+from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Coroutine
+from typing import IO, Optional, Union
+
 import numpy as np
-import asyncio, pathlib, subprocess, torch, json
+import torch
 
-from .audio import (
-    SAMPLE_RATE,
-    N_FFT,
-    HOP_LENGTH,
-    N_FRAMES,
-    mel_filters,
-)
-
-from .utils import PathType, ceildiv
+from .audio import HOP_LENGTH, N_FFT, N_FRAMES, SAMPLE_RATE, mel_filters
 from .batching import Batcher
-from typing import Optional, Union, IO, Tuple, Any, Type
-from collections.abc import Coroutine, AsyncIterable, AsyncIterator, Awaitable
+from .utils import PathType, ceildiv
+
 
 class AudioSink:
     def __init__(self, *, rate: int = SAMPLE_RATE, **kw):
@@ -25,11 +23,19 @@ class AudioSink:
     def write(self, data):
         raise NotImplementedError
 
+
 class ArrayStream(AudioSink):
     q: asyncio.Queue
+
     def __init__(
-            self, *, device: Optional[Union[str, torch.device]] = None,
-            batch: int = 1, n_mels: int = 80, capacity: int = 1_000_000, **kw):
+        self,
+        *,
+        device: Optional[Union[str, torch.device]] = None,
+        batch: int = 1,
+        n_mels: int = 80,
+        capacity: int = 1_000_000,
+        **kw,
+    ):
         super().__init__(**kw)
         self.q = asyncio.Queue(capacity)
         self.finished = asyncio.Event()
@@ -43,6 +49,7 @@ class ArrayStream(AudioSink):
         return torch.zeros(shape, dtype=torch.float32, device=self.device)
 
     write_blockable: bool = True
+
     def write(self, data: bytes) -> Optional[Coroutine]:
         if self.write_blockable:
             return self.q.put(data)
@@ -51,11 +58,9 @@ class ArrayStream(AudioSink):
             return None
 
     def load(self, data: bytes) -> np.ndarray:
-        return np.frombuffer(
-                data, np.int16).flatten().astype(np.float32) / 32768.0
+        return np.frombuffer(data, np.int16).flatten().astype(np.float32) / 32768.0
 
-    async def loader(self, iterator: AsyncIterable[bytes]) -> \
-            AsyncIterator[np.ndarray]:
+    async def loader(self, iterator: AsyncIterable[bytes]) -> AsyncIterator[np.ndarray]:
         async for data in iterator:
             yield self.load(data)
 
@@ -64,7 +69,8 @@ class ArrayStream(AudioSink):
         while not self.finished.is_set():
             getter = asyncio.create_task(self.q.get())
             done, pending = await asyncio.wait(
-                    (waiter, getter), return_when=asyncio.FIRST_COMPLETED)
+                (waiter, getter), return_when=asyncio.FIRST_COMPLETED
+            )
             if getter in done:
                 yield getter.result()
         while not self.q.empty():
@@ -78,8 +84,10 @@ class ArrayStream(AudioSink):
             pass
 
     loading: Optional[Batcher] = None
-    async def fft_offset(self, iterator: AsyncIterable[bytes]) -> \
-            AsyncIterator[np.ndarray]:
+
+    async def fft_offset(
+        self, iterator: AsyncIterable[bytes]
+    ) -> AsyncIterator[np.ndarray]:
         init = self.loader(iterator) if self.loading is None else self.loading
         self.loading = Batcher(init, HOP_LENGTH)
         _iterator = aiter(self.loading)
@@ -89,7 +97,7 @@ class ArrayStream(AudioSink):
                 window = np.concatenate((window, await anext(_iterator)))
             except StopAsyncIteration:
                 return
-        window = np.pad(window, (N_FFT // 2, 0), 'reflect')
+        window = np.pad(window, (N_FFT // 2, 0), "reflect")
         yield window
         async for data in _iterator:
             yield data
@@ -101,8 +109,9 @@ class ArrayStream(AudioSink):
         hopped = ((sees.shape[0] - N_FFT) // HOP_LENGTH + 1) * HOP_LENGTH
         return sees[hopped:]
 
-    async def window(self, iterator: AsyncIterable[bytes]) -> \
-            AsyncIterator[torch.Tensor]:
+    async def window(
+        self, iterator: AsyncIterable[bytes]
+    ) -> AsyncIterator[torch.Tensor]:
         _iterator = self.fft_offset(iterator)
         async for data in _iterator:
             _data = torch.from_numpy(data)
@@ -121,19 +130,23 @@ class ArrayStream(AudioSink):
 
     def dft(self, amp: torch.Tensor) -> torch.Tensor:
         return torch.stft(
-                amp, N_FFT, HOP_LENGTH, window=self.hann, center=False,
-                return_complex=True)
+            amp, N_FFT, HOP_LENGTH, window=self.hann, center=False, return_complex=True
+        )
 
     # https://github.com/openai/whisper/blob/c5d4256/whisper/audio.py#L149
     log_spec_bound: Optional[torch.Tensor] = None
+
     def transform(self, stft: torch.Tensor) -> torch.Tensor:
         magnitudes = stft.abs() ** 2
         mel_spec = self.filters @ magnitudes
 
         log_spec = torch.clamp(mel_spec, min=1e-10).log10()
         # causes values to not precisely match the original
-        self.log_spec_bound = log_spec.max() if self.log_spec_bound is None \
-                else torch.maximum(log_spec.max(), self.log_spec_bound)
+        self.log_spec_bound = (
+            log_spec.max()
+            if self.log_spec_bound is None
+            else torch.maximum(log_spec.max(), self.log_spec_bound)
+        )
         log_spec = torch.maximum(log_spec, self.log_spec_bound - 8.0)
         log_spec = (log_spec + 4.0) / 4.0
         return log_spec
@@ -143,6 +156,7 @@ class ArrayStream(AudioSink):
 
     # dft_pad: add ending content frames to match padding from a centered STFT
     dft_pad: bool = False
+
     def runoff(self, dft_pad: Optional[bool] = None) -> torch.Tensor:
         dft_pad = self.dft_pad if dft_pad is None else dft_pad
         if dft_pad:
@@ -170,34 +184,36 @@ class ArrayStream(AudioSink):
         return self.runoff()
 
     staging: Optional[Batcher] = None
-    async def _push(self, sec: float, exact: bool = False) -> \
-            AsyncIterator[torch.Tensor]:
+
+    async def _push(
+        self, sec: float, exact: bool = False
+    ) -> AsyncIterator[torch.Tensor]:
         batching = int(sec * SAMPLE_RATE // HOP_LENGTH)
-        init = self.window(self.buffer()) if self.staging is None \
-                else self.staging
+        init = self.window(self.buffer()) if self.staging is None else self.staging
         self.staging = Batcher(init, batching, exact=exact)
         async for frame in self.staging:
             batched = batching if exact else frame.shape[-1]
             cutoff = max(self.spectogram.shape[-1] + batched - N_FRAMES, 0)
             self.offset += cutoff
-            self.spectogram = torch.cat((
-                    self.spectogram[:, cutoff:], frame), -1)
+            self.spectogram = torch.cat((self.spectogram[:, cutoff:], frame), -1)
             yield self.runoff()
 
     reader: Optional[Awaitable] = None
+
     def start(self, **kw) -> None:
         if self.reader is None:
             self.reader = asyncio.create_task(self.read(**kw))
 
-    async def push(self, sec: float, exact: bool=False, **kw) -> \
-            AsyncIterator[torch.Tensor]:
+    async def push(
+        self, sec: float, exact: bool = False, **kw
+    ) -> AsyncIterator[torch.Tensor]:
         self.start(**kw)
         async for i in self._push(sec, exact):
             yield i
         assert self.reader is not None
         await self.reader
 
-    async def request(self, sec: float, exact: bool=True, **kw) -> torch.Tensor:
+    async def request(self, sec: float, exact: bool = True, **kw) -> torch.Tensor:
         try:
             return await anext(self.push(sec, exact))
         except StopAsyncIteration:
@@ -224,17 +240,17 @@ class ArrayStream(AudioSink):
     def all_amplitudes(self, **kw) -> np.ndarray:
         return asyncio.run(self.amplitudes(**kw))
 
+
 class RawAudioFile(ArrayStream):
-    def __init__(
-            self, *, period: int = HOP_LENGTH, fname: PathType = 'out.raw',
-            **kw):
+    def __init__(self, *, period: int = HOP_LENGTH, fname: PathType = "out.raw", **kw):
         super().__init__(**kw)
         self.fname = fname
         self.period = period
 
     fp: Optional[IO[bytes]] = None
+
     async def read(self) -> None:
-        fp = open(self.fname, 'rb') if self.fp is None else self.fp
+        fp = open(self.fname, "rb") if self.fp is None else self.fp
         data = fp.read(self.period)
         while len(data) != 0:
             io_hold = self.write(data)
@@ -243,28 +259,33 @@ class RawAudioFile(ArrayStream):
             data = fp.read(self.period)
         self.finished.set()
 
+
 class AudioFile(RawAudioFile):
-    def __init__(
-            self, *, period: int = SAMPLE_RATE, fname: PathType = 'out.wav',
-            **kw):
+    def __init__(self, *, period: int = SAMPLE_RATE, fname: PathType = "out.wav", **kw):
         assert not subprocess.run(
-                ["which", "ffmpeg"], stdout=subprocess.PIPE).returncode
+            ["which", "ffmpeg"], stdout=subprocess.PIPE
+        ).returncode
         super().__init__(period=period or -1, fname=fname, **kw)
 
     async def read(self) -> None:
         cmd = [
             "ffmpeg",
             "-nostdin",
-            "-threads", "0",
-            "-i", self.fname,
-            "-f", "s16le",
-            "-ac", "1",
-            "-acodec", "pcm_s16le",
-            "-ar", str(self.rate),
-            "-"
+            "-threads",
+            "0",
+            "-i",
+            self.fname,
+            "-f",
+            "s16le",
+            "-ac",
+            "1",
+            "-acodec",
+            "pcm_s16le",
+            "-ar",
+            str(self.rate),
+            "-",
         ]
-        ps = subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        ps = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.fp = ps.stdout
         await super().read()
         _, stderr = ps.communicate()
@@ -277,13 +298,13 @@ class AudioFile(RawAudioFile):
             "ffprobe",
             "-hide_banner",
             "-show_format",
-            "-of", "json",
-            "-i", self.fname,
+            "-of",
+            "json",
+            "-i",
+            self.fname,
         ]
-        ps = subprocess.Popen(
-                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        ps = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdout, stderr = ps.communicate()
         if ps.returncode not in (None, 0):
             raise RuntimeError(f"Failed to load audio: {stderr.decode()}")
-        return float(json.loads(stdout)['format']['duration'])
-
+        return float(json.loads(stdout)["format"]["duration"])

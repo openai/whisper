@@ -5,16 +5,7 @@ import re
 import sys
 import time
 import zlib
-from typing import (
-    Callable,
-    List,
-    Optional,
-    TextIO,
-    Union,
-    TypeVar,
-    Generic,
-    Any
-)
+from typing import Any, Callable, Generic, List, Optional, TextIO, TypeVar, Union
 
 system_encoding = sys.getdefaultencoding()
 
@@ -86,14 +77,16 @@ def format_timestamp(
         f"{hours_marker}{minutes:02d}:{seconds:02d}{decimal_marker}{milliseconds:03d}"
     )
 
+
 def hms(sec: float) -> str:
     trim = sec < 3600
     h = "" if trim else str(int(sec) // 3600) + ":"
     m_fill = " " if trim else "0"
     m = "   " if sec < 60 else str(int(sec) // 60 % 60).rjust(2, m_fill) + ":"
-    s = str(int(sec) % 60).rjust(2, '0') + "."
-    c = str(round((sec % 1) * 100)).rjust(2, '0')
+    s = str(int(sec) % 60).rjust(2, "0") + "."
+    c = str(round((sec % 1) * 100)).rjust(2, "0")
     return h + m + s + c
+
 
 def tod(seconds: float) -> str:
     return time.strftime("%H:%M:%S", time.localtime(seconds))
@@ -349,28 +342,34 @@ def get_writer(
 
 T = TypeVar("T")
 
+
 # boilerplate for property with _{name} storage and passthrough getter/setter
 class PassthroughProperty(Generic[T]):
     def __init__(self, default: T):
         self.value = default
 
     f: Optional[Callable[[Any, T], None]] = None
+
     def setter(self, f: Callable[[Any, T], None]):
         self.f = f
         return self
 
     g: Optional[property] = None
+
     def property(self, g: Callable[[Any], T]):
         self.g = property(g)
         return self
+
 
 class PassthroughPropertyDefaults(type):
     def __new__(cls, clsname, bases, attrs):
         def closure(f, v):
             def prop(self):
                 return getattr(self, v)
+
             def setter(self, value):
                 setattr(self, v, value)
+
             prop.__name__ = setter.__name__ = f
             return property(prop), setter
 
@@ -383,4 +382,3 @@ class PassthroughPropertyDefaults(type):
             getter, setter = closure(k, private)
             updates[k] = (v.g or getter).setter(v.f or setter)
         return super().__new__(cls, clsname, bases, {**attrs, **updates})
-

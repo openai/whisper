@@ -1,27 +1,30 @@
 import argparse
+import asyncio
 import os
 import traceback
 import warnings
-import asyncio
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union, Dict
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 import tqdm
 
 from .audio import (
+    CHUNK_LENGTH,
     FRAMES_PER_SECOND,
     HOP_LENGTH,
     N_FRAMES,
     SAMPLE_RATE,
-    CHUNK_LENGTH,
     pad_or_trim,
 )
+from .buffer import ArrayStream, AudioFile
 from .decoding import DecodingOptions, DecodingResult
 from .timing import add_word_timestamps
-from .tokenizer import LANGUAGES, TO_LANGUAGE_CODE, get_tokenizer, Tokenizer
+from .tokenizer import LANGUAGES, TO_LANGUAGE_CODE, Tokenizer, get_tokenizer
 from .utils import (
+    PassthroughProperty,
+    PassthroughPropertyDefaults,
     exact_div,
     format_timestamp,
     get_end,
@@ -30,13 +33,11 @@ from .utils import (
     optional_float,
     optional_int,
     str2bool,
-    PassthroughProperty,
-    PassthroughPropertyDefaults,
 )
-from .buffer import ArrayStream, AudioFile
 
 if TYPE_CHECKING:
     from .model import Whisper
+
 
 @dataclass
 class LanguageHypothesis:
@@ -45,15 +46,17 @@ class LanguageHypothesis:
     evidence: int = 0
     last: int = -1
 
+
 class Transcriber(metaclass=PassthroughPropertyDefaults):
-    prefix: str = '''"'\u201c\u00bf([{-'''
-    postfix: str = '''"'.\u3002,\uff0c!\uff01?\uff1f:\uff1a\u201d)]}\u3001'''
+    prefix: str = """"'\u201c\u00bf([{-"""
+    postfix: str = """"'.\u3002,\uff0c!\uff01?\uff1f:\uff1a\u201d)]}\u3001"""
     punctuation: str = prefix + postfix
 
     verbose: Optional[bool] = None
 
     _decode_options: dict = {}
     decode_props: Tuple[str, ...] = ("fp16", "language", "task")
+
     @property
     def decode_options(self) -> dict:
         for k in self.decode_props:
@@ -68,6 +71,7 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
                 setattr(self, k, value[k])
 
     dtype: torch.dtype = torch.float16
+
     @property
     def fp16(self) -> bool:
         return self.dtype == torch.float16
@@ -93,8 +97,7 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
         self._device = value
         if value == torch.device("cpu"):
             if torch.cuda.is_available():
-                warnings.warn(
-                        "Performing inference on CPU when CUDA is available")
+                warnings.warn("Performing inference on CPU when CUDA is available")
             self.fp16device()
 
     def fp16device(self) -> None:
@@ -110,6 +113,7 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
 
     prev: Optional[torch.Tensor] = None
     _latest: Optional[torch.Tensor] = None
+
     @PassthroughProperty[Optional[torch.Tensor]](None).setter
     def latest(self, value: Optional[torch.Tensor]) -> None:
         self.prev = self._latest
@@ -117,6 +121,7 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
 
     _hypothesis: LanguageHypothesis = LanguageHypothesis()
     _language: Optional[str]
+
     @PassthroughProperty[Optional[str]](None).property
     def language(self) -> Optional[str]:
         if self._language is not None:
@@ -125,20 +130,24 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
             return "en"
         if self.verbose:
             print(
-                    "Detecting language using up to the first 30 seconds."
-                    "Use `--language` to specify the language")
+                "Detecting language using up to the first 30 seconds."
+                "Use `--language` to specify the language"
+            )
         if self.latest is None:
             return None
         if self._seek == self._hypothesis.last:
             return self._hypothesis.language
         if self.frame_offset > 0 or self.latest.shape[-1] == N_FRAMES * 2:
-            mel = self.latest if self.prev is None else torch.cat(
-                    (self.prev[:self.frame_offset], self.latest), -1)
+            mel = (
+                self.latest
+                if self.prev is None
+                else torch.cat((self.prev[: self.frame_offset], self.latest), -1)
+            )
             self._language = self.detect_language(mel)
             return self._language
         self._hypothesis.last = self._seek or 0
         self._hypothesis.since += 1
-        if 2 ** self._hypothesis.evidence < self._hypothesis.since:
+        if 2**self._hypothesis.evidence < self._hypothesis.since:
             return self._hypothesis.language
         self._hypothesis.since = 0
         guess = self.detect_language()
@@ -152,22 +161,25 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
     def clip_timestamps(self, value: Union[str, List[float], Tuple[float]]):
         self._seek_clips = None
         if isinstance(value, str):
-            self._clip_timestamps = tuple(map(float, value.split(","))) \
-                    if value else (0,)
+            self._clip_timestamps = (
+                tuple(map(float, value.split(","))) if value else (0,)
+            )
         else:
             self._clip_timestamps = tuple(value) or (0,)
 
     _seek_clips: Optional[List[Tuple[int, Optional[int]]]] = None
+
     @property
     def seek_clips(self) -> List[Tuple[int, Optional[int]]]:
         if self._seek_clips is None:
             seek_points = tuple(
-                    round(ts * FRAMES_PER_SECOND)
-                    for ts in self.clip_timestamps) + (None,)
+                round(ts * FRAMES_PER_SECOND) for ts in self.clip_timestamps
+            ) + (None,)
             self._seek_clips = list(zip(seek_points[::2], seek_points[1::2]))
         return self._seek_clips
 
     _seek: Optional[int]
+
     @PassthroughProperty[Optional[int]](None).property
     def seek(self) -> Optional[int]:
         return self.seek_clips[0][0] if self._seek is None else self._seek
@@ -179,25 +191,30 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
         if value < len(clips):
             self.seek = clips[value][0]
 
-    time_offset = property(lambda self: float(
-            self.seek * HOP_LENGTH / SAMPLE_RATE))
-    window_end_time = property(lambda self: float(
-            (self.seek + N_FRAMES) * HOP_LENGTH / SAMPLE_RATE))
+    time_offset = property(lambda self: float(self.seek * HOP_LENGTH / SAMPLE_RATE))
+    window_end_time = property(
+        lambda self: float((self.seek + N_FRAMES) * HOP_LENGTH / SAMPLE_RATE)
+    )
 
     _temperature: Union[Optional[float], Tuple[float, ...]]
+
     @PassthroughProperty[Union[Optional[float], Tuple[float, ...]]](
-            (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)).setter
+        (0.0, 0.2, 0.4, 0.6, 0.8, 1.0)
+    ).setter
     def temperature(self, value: Union[Optional[float], Tuple[float, ...]]):
-        self._temperature = (value,) if isinstance(value, (int, float)) else (
-                Transcriber._temperature if value is None else value)
+        self._temperature = (
+            (value,)
+            if isinstance(value, (int, float))
+            else (Transcriber._temperature if value is None else value)
+        )
 
     @PassthroughProperty("transcribe").setter
     def task(self, value: str):
         self._task = value
         if self.word_timestamps and value == "translate":
             warnings.warn(
-                    "Word-level timestamps on translations may not be "
-                    "reliable.")
+                "Word-level timestamps on translations may not be " "reliable."
+            )
 
     @PassthroughProperty(False).setter
     def word_timestamps(self, value: bool):
@@ -207,6 +224,7 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
     get_tokenizer = staticmethod(get_tokenizer)
     _tokenizer: Optional[Tokenizer] = None
     _tokenizer_cache: Dict[str, Tokenizer] = {}
+
     @property
     def tokenizer(self) -> Tokenizer:
         if self._tokenizer is None:
@@ -235,6 +253,7 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
 
     _initial_prompt_tokens: Optional[List[int]] = None
     _initial_prompt_cache: Dict[Tokenizer, List[int]] = {}
+
     @property
     def initial_prompt_tokens(self) -> List[int]:
         if self._initial_prompt_tokens is None:
@@ -246,9 +265,9 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
                     return []
                 if tokenizer not in self._initial_prompt_cache:
                     self._initial_prompt_cache[tokenizer] = tokenizer.encode(
-                            " " + self.initial_prompt.strip())
-                self._initial_prompt_tokens = \
-                        self._initial_prompt_cache[tokenizer]
+                        " " + self.initial_prompt.strip()
+                    )
+                self._initial_prompt_tokens = self._initial_prompt_cache[tokenizer]
                 return self._initial_prompt_cache[tokenizer]
         return self._initial_prompt_tokens
 
@@ -256,23 +275,25 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
     last_speech_timestamp: float = 0.0
     frame_offset: int = 0
     all_segments: List[dict]
+
     def __init__(
-            self,
-            model: "Whisper",
-            *,
-            verbose: Optional[bool] = None,
-            temperature: Union[Optional[float], Tuple[float, ...]] = None,
-            compression_ratio_threshold: Optional[float] = 2.4,
-            logprob_threshold: Optional[float] = -1.0,
-            no_speech_threshold: Optional[float] = 0.6,
-            condition_on_previous_text: bool = True,
-            initial_prompt: Optional[str] = None,
-            word_timestamps: bool = False,
-            prepend_punctuations: str = prefix,
-            append_punctuations: str = postfix,
-            clip_timestamps: Union[str, List[float]] = "0",
-            hallucination_silence_threshold: Optional[float] = None,
-            **decode_options):
+        self,
+        model: "Whisper",
+        *,
+        verbose: Optional[bool] = None,
+        temperature: Union[Optional[float], Tuple[float, ...]] = None,
+        compression_ratio_threshold: Optional[float] = 2.4,
+        logprob_threshold: Optional[float] = -1.0,
+        no_speech_threshold: Optional[float] = 0.6,
+        condition_on_previous_text: bool = True,
+        initial_prompt: Optional[str] = None,
+        word_timestamps: bool = False,
+        prepend_punctuations: str = prefix,
+        append_punctuations: str = postfix,
+        clip_timestamps: Union[str, List[float]] = "0",
+        hallucination_silence_threshold: Optional[float] = None,
+        **decode_options,
+    ):
         """
         Transcribe an audio file using Whisper
 
@@ -374,14 +395,16 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
 
             needs_fallback = False
             if self.compression_ratio_threshold is not None and (
-                    decode_result.compression_ratio >
-                    self.compression_ratio_threshold):
+                decode_result.compression_ratio > self.compression_ratio_threshold
+            ):
                 needs_fallback = True  # too repetitive
             if self.logprob_threshold is not None and (
-                    decode_result.avg_logprob < self.logprob_threshold):
+                decode_result.avg_logprob < self.logprob_threshold
+            ):
                 needs_fallback = True  # average log probability is too low
             if self.no_speech_threshold is not None and (
-                    decode_result.no_speech_prob > self.no_speech_threshold):
+                decode_result.no_speech_prob > self.no_speech_threshold
+            ):
                 needs_fallback = False  # silence
             if not needs_fallback:
                 break
@@ -389,8 +412,8 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
         return decode_result
 
     def new_segment(
-            self, *, start: float, end: float, tokens: torch.Tensor,
-            result: DecodingResult) -> dict:
+        self, *, start: float, end: float, tokens: torch.Tensor, result: DecodingResult
+    ) -> dict:
         _tokens = tokens.tolist()
         text_tokens = [token for token in _tokens if token < self.tokenizer.eot]
         return {
@@ -422,9 +445,7 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
     def is_segment_anomaly(self, segment: Optional[dict]) -> bool:
         if segment is None or not segment["words"]:
             return False
-        words = [
-                w for w in segment["words"]
-                if w["word"] not in self.punctuation][:8]
+        words = [w for w in segment["words"] if w["word"] not in self.punctuation][:8]
         score = sum(self.word_anomaly_score(w) for w in words)
         return score >= 3 or score + 0.01 >= len(words)
 
@@ -433,11 +454,15 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
         return next((s for s in segments if s["words"]), None)
 
     def reseek(
-            self, current_segments: List[dict], segment_size: int,
-            single_timestamp_ending: bool, tokens: torch.Tensor,
-            timestamp_tokens: torch.Tensor, result: DecodingResult):
-        consecutive = torch.where(
-                timestamp_tokens[:-1] & timestamp_tokens[1:])[0]
+        self,
+        current_segments: List[dict],
+        segment_size: int,
+        single_timestamp_ending: bool,
+        tokens: torch.Tensor,
+        timestamp_tokens: torch.Tensor,
+        result: DecodingResult,
+    ):
+        consecutive = torch.where(timestamp_tokens[:-1] & timestamp_tokens[1:])[0]
         consecutive.add_(1)
         if len(consecutive) > 0:
             # if the output contains two consecutive timestamp tokens
@@ -449,17 +474,16 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
             for current_slice in slices:
                 sliced_tokens = tokens[last_slice:current_slice]
                 start_timestamp_pos = (
-                        sliced_tokens[0].item() -
-                        self.tokenizer.timestamp_begin)
+                    sliced_tokens[0].item() - self.tokenizer.timestamp_begin
+                )
                 end_timestamp_pos = (
-                        sliced_tokens[-1].item() -
-                        self.tokenizer.timestamp_begin)
+                    sliced_tokens[-1].item() - self.tokenizer.timestamp_begin
+                )
                 current_segments.append(
                     self.new_segment(
-                        start=self.time_offset + \
-                                start_timestamp_pos * self.time_precision,
-                        end=self.time_offset + \
-                                end_timestamp_pos * self.time_precision,
+                        start=self.time_offset
+                        + start_timestamp_pos * self.time_precision,
+                        end=self.time_offset + end_timestamp_pos * self.time_precision,
                         tokens=sliced_tokens,
                         result=result,
                     )
@@ -474,31 +498,42 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
                 # otherwise, ignore the unfinished segment and seek to the last
                 # timestamp
                 last_timestamp_pos = (
-                        tokens[last_slice - 1].item() -
-                        self.tokenizer.timestamp_begin)
+                    tokens[last_slice - 1].item() - self.tokenizer.timestamp_begin
+                )
                 self.seek += last_timestamp_pos * self.input_stride
         else:
             duration = segment_size * HOP_LENGTH / SAMPLE_RATE
             timestamps = tokens[timestamp_tokens.nonzero().flatten()]
-            if len(timestamps) > 0 and \
-                    timestamps[-1].item() != self.tokenizer.timestamp_begin:
+            if (
+                len(timestamps) > 0
+                and timestamps[-1].item() != self.tokenizer.timestamp_begin
+            ):
                 # no consecutive timestamps but it has a timestamp; use the last
                 # one.
-                last_timestamp_pos = \
-                        timestamps[-1].item() - self.tokenizer.timestamp_begin
+                last_timestamp_pos = (
+                    timestamps[-1].item() - self.tokenizer.timestamp_begin
+                )
                 duration = last_timestamp_pos * self.time_precision
 
-            current_segments.append(self.new_segment(
+            current_segments.append(
+                self.new_segment(
                     start=self.time_offset,
                     end=self.time_offset + duration,
                     tokens=tokens,
-                    result=result))
+                    result=result,
+                )
+            )
             self.seek += segment_size
 
     def timestamp(
-            self, current_segments: List[dict], segment_size: int,
-            single_timestamp_ending: bool, mel_segment: torch.Tensor,
-            previous_seek: int, content_frames: int) -> bool:
+        self,
+        current_segments: List[dict],
+        segment_size: int,
+        single_timestamp_ending: bool,
+        mel_segment: torch.Tensor,
+        previous_seek: int,
+        content_frames: int,
+    ) -> bool:
         add_word_timestamps(
             segments=current_segments,
             model=self.model,
@@ -512,8 +547,7 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
 
         if not single_timestamp_ending:
             last_word_end = get_end(current_segments)
-            if last_word_end is not None and \
-                    last_word_end > self.time_offset:
+            if last_word_end is not None and last_word_end > self.time_offset:
                 self.seek = round(last_word_end * FRAMES_PER_SECOND)
 
         # skip silence before possible hallucinations
@@ -521,24 +555,19 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
             threshold = self.hallucination_silence_threshold
             if not single_timestamp_ending:
                 last_word_end = get_end(current_segments)
-                if last_word_end is not None and \
-                        last_word_end > self.time_offset:
-                    remaining_duration = \
-                            self.window_end_time - last_word_end
+                if last_word_end is not None and last_word_end > self.time_offset:
+                    remaining_duration = self.window_end_time - last_word_end
                     if remaining_duration > threshold:
-                        self.seek = round(
-                                last_word_end * FRAMES_PER_SECOND)
+                        self.seek = round(last_word_end * FRAMES_PER_SECOND)
                     else:
                         self.seek = previous_seek + segment_size
 
             # if first segment might be a hallucination, skip leading silence
             first_segment = self.next_words_segment(current_segments)
-            if first_segment is not None and self.is_segment_anomaly(
-                    first_segment):
+            if first_segment is not None and self.is_segment_anomaly(first_segment):
                 gap = first_segment["start"] - self.time_offset
                 if gap > threshold:
-                    self.seek = previous_seek + round(
-                            gap * FRAMES_PER_SECOND)
+                    self.seek = previous_seek + round(gap * FRAMES_PER_SECOND)
                     return True
 
             # skip silence before any possible hallucination that is
@@ -550,14 +579,13 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
                 if not segment["words"]:
                     continue
                 if self.is_segment_anomaly(segment):
-                    next_segment = self.next_words_segment(
-                            current_segments[si + 1 :])
+                    next_segment = self.next_words_segment(current_segments[si + 1 :])
                     if next_segment is not None:
-                        hal_next_start = \
-                                next_segment["words"][0]["start"]
+                        hal_next_start = next_segment["words"][0]["start"]
                     else:
-                        hal_next_start = self.time_offset + \
-                                segment_size * HOP_LENGTH / SAMPLE_RATE
+                        hal_next_start = (
+                            self.time_offset + segment_size * HOP_LENGTH / SAMPLE_RATE
+                        )
                     silence_before = (
                         segment["start"] - hal_last_end > threshold
                         or segment["start"] < threshold
@@ -573,8 +601,7 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
                             max(self.time_offset + 1, segment["start"])
                             * FRAMES_PER_SECOND
                         )
-                        if content_duration - segment["end"] < \
-                                threshold:
+                        if content_duration - segment["end"] < threshold:
                             self.seek = content_frames
                         current_segments[si:] = []
                         break
@@ -586,19 +613,17 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
         return False
 
     def __call__(
-            self, mel: torch.Tensor, offset: int = 0,
-            single_pass: bool = False) -> dict:
+        self, mel: torch.Tensor, offset: int = 0, single_pass: bool = False
+    ) -> dict:
         self.latest, self.frame_offset = mel, offset
         content_frames = mel.shape[-1] - N_FRAMES + offset
-        content_duration = float(content_frames * HOP_LENGTH / SAMPLE_RATE)
         # NOTE: This loop is obscurely flattened to make the diff readable.
         # A later commit should turn this into a simpler nested loop.
         # for seek_clip_start, seek_clip_end in seek_clips:
         #     while seek < seek_clip_end
         while self.clip_idx < len(self.seek_clips):
             seek_clip_start, seek_clip_end = self.seek_clips[self.clip_idx]
-            seek_clip_end = content_frames if seek_clip_end is None else \
-                    seek_clip_end
+            seek_clip_end = content_frames if seek_clip_end is None else seek_clip_end
             if self.seek < seek_clip_start:
                 self.seek = seek_clip_start
             if self.seek >= seek_clip_end:
@@ -607,22 +632,23 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
                 self.clip_idx += 1
                 continue
             segment_size = min(
-                    N_FRAMES, content_frames - self.seek,
-                    seek_clip_end - self.seek)
-            mel_segment = mel[
-                    :, self.seek - offset : self.seek + segment_size - offset]
-            mel_segment = pad_or_trim(mel_segment, N_FRAMES).to(
-                    self.device).to(self.dtype)
+                N_FRAMES, content_frames - self.seek, seek_clip_end - self.seek
+            )
+            mel_segment = mel[:, self.seek - offset : self.seek + segment_size - offset]
+            mel_segment = (
+                pad_or_trim(mel_segment, N_FRAMES).to(self.device).to(self.dtype)
+            )
 
-            self.decode_options["prompt"] = \
-                    self.all_tokens[self.prompt_reset_since:]
+            self.decode_options["prompt"] = self.all_tokens[self.prompt_reset_since :]
             result: DecodingResult = self.decode_with_fallback(mel_segment)
 
             if self.no_speech_threshold is not None:
                 # no voice activity check
                 should_skip = result.no_speech_prob > self.no_speech_threshold
-                if self.logprob_threshold is not None and \
-                        result.avg_logprob > self.logprob_threshold:
+                if (
+                    self.logprob_threshold is not None
+                    and result.avg_logprob > self.logprob_threshold
+                ):
                     # don't skip if the logprob is high enough, despite the
                     # no_speech_prob
                     should_skip = False
@@ -636,19 +662,27 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
             current_segments: List[dict] = []
 
             tokens = torch.tensor(result.tokens)
-            timestamp_tokens: torch.Tensor = tokens.ge(
-                    self.tokenizer.timestamp_begin)
-            single_timestamp_ending = (
-                    timestamp_tokens[-2:].tolist() == [False, True])
+            timestamp_tokens: torch.Tensor = tokens.ge(self.tokenizer.timestamp_begin)
+            single_timestamp_ending = timestamp_tokens[-2:].tolist() == [False, True]
 
             self.reseek(
-                    current_segments, segment_size, single_timestamp_ending,
-                    tokens, timestamp_tokens, result)
+                current_segments,
+                segment_size,
+                single_timestamp_ending,
+                tokens,
+                timestamp_tokens,
+                result,
+            )
 
             if self.word_timestamps:
                 if self.timestamp(
-                        current_segments, segment_size, single_timestamp_ending,
-                        mel_segment, previous_seek, content_frames):
+                    current_segments,
+                    segment_size,
+                    single_timestamp_ending,
+                    mel_segment,
+                    previous_seek,
+                    content_frames,
+                ):
                     continue
 
             if self.verbose:
@@ -656,25 +690,29 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
                     start, end = segment["start"], segment["end"]
                     text = segment["text"]
                     line = (
-                            f"[{format_timestamp(start)} --> "
-                            f"{format_timestamp(end)}] {text}")
+                        f"[{format_timestamp(start)} --> "
+                        f"{format_timestamp(end)}] {text}"
+                    )
                     print(make_safe(line))
 
             # if a segment is instantaneous or does not contain text, clear it
             for i, segment in enumerate(current_segments):
-                if segment["start"] == segment["end"] or \
-                        segment["text"].strip() == "":
+                if segment["start"] == segment["end"] or segment["text"].strip() == "":
                     segment["text"] = ""
                     segment["tokens"] = []
                     segment["words"] = []
 
-            self.all_segments.extend([
+            self.all_segments.extend(
+                [
                     {"id": i, **segment}
                     for i, segment in enumerate(
-                        current_segments, start=len(self.all_segments))])
-            self.all_tokens.extend([
-                    token for segment in current_segments
-                    for token in segment["tokens"]])
+                        current_segments, start=len(self.all_segments)
+                    )
+                ]
+            )
+            self.all_tokens.extend(
+                [token for segment in current_segments for token in segment["tokens"]]
+            )
 
             if not self.condition_on_previous_text or result.temperature > 0.5:
                 # do not feed the prompt tokens if a high temperature was used
@@ -686,9 +724,12 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
                 break
 
         self.result = dict(
-                segments=self.all_segments, language=self.language,
-                text=self.tokenizer.decode(
-                    self.all_tokens[len(self.initial_prompt_tokens):]))
+            segments=self.all_segments,
+            language=self.language,
+            text=self.tokenizer.decode(
+                self.all_tokens[len(self.initial_prompt_tokens) :]
+            ),
+        )
         self.latest = None
         return self.result
 
@@ -698,17 +739,18 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
     def restore(self, offset: int) -> None:
         processing, seconds = 0, offset * HOP_LENGTH / SAMPLE_RATE
         while len(self.all_segments) > 0 and (
-                self.all_segments[-1]["start"] >= seconds
-                if len(self.all_segments) == 1 else
-                self.all_segments[-2]["end"] > seconds):
+            self.all_segments[-1]["start"] >= seconds
+            if len(self.all_segments) == 1
+            else self.all_segments[-2]["end"] > seconds
+        ):
             rewriting = self.all_segments.pop()
             processing += len(rewriting["tokens"])
-        self.all_tokens = self.all_tokens[:len(self.all_tokens) - processing]
+        self.all_tokens = self.all_tokens[: len(self.all_tokens) - processing]
         if len(self.all_segments) > 0 and (
-                self.all_segments[-1]["start"] < seconds and
-                self.all_segments[-1]["end"] >= seconds):
-            self.seek = round(
-                    self.all_segments[-1]["end"] * SAMPLE_RATE / HOP_LENGTH)
+            self.all_segments[-1]["start"] < seconds
+            and self.all_segments[-1]["end"] >= seconds
+        ):
+            self.seek = round(self.all_segments[-1]["end"] * SAMPLE_RATE / HOP_LENGTH)
         else:
             self.seek = offset
 
@@ -728,12 +770,16 @@ def audio_tensor(audio: Union[str, np.ndarray, torch.Tensor]) -> torch.Tensor:
 class MinimalTranscriber(Transcriber):
     exact: bool = True
     chlen: float = CHUNK_LENGTH
+
     async def process(self, stream: ArrayStream, **kw) -> dict:
         data = await stream.request(self.chlen, self.exact)
         while data.shape[-1] > 0:
             self(data, stream.offset, True)
-            t = self.chlen - (stream.offset + data.shape[-1] - self.seek) \
-                    / FRAMES_PER_SECOND + CHUNK_LENGTH
+            t = (
+                self.chlen
+                - (stream.offset + data.shape[-1] - self.seek) / FRAMES_PER_SECOND
+                + CHUNK_LENGTH
+            )
             data = await stream.request(t, self.exact)
         return self.result
 
@@ -755,12 +801,16 @@ class ProgressTranscriber(MinimalTranscriber):
     @PassthroughProperty(None).property
     def pbar(self):
         if self._pbar is None:
-            n = self.latest.shape[-1] if self.duration is None \
-                    else -int(self.duration * -FRAMES_PER_SECOND)
+            n = (
+                self.latest.shape[-1]
+                if self.duration is None
+                else -int(self.duration * -FRAMES_PER_SECOND)
+            )
             # show the progress bar when verbose is False
             # (if True, transcribed text will be printed)
             self._pbar = tqdm.tqdm(
-                    total=n, unit="frames", disable=self.verbose is not False)
+                total=n, unit="frames", disable=self.verbose is not False
+            )
             self._pbar.__enter__()
         return self._pbar
 
@@ -784,10 +834,7 @@ class ProgressTranscriber(MinimalTranscriber):
         return await self.process(stream, **kw)
 
 
-def transcribe(
-        model: "Whisper",
-        audio: Union[str, np.ndarray, torch.Tensor],
-        **kw):
+def transcribe(model: "Whisper", audio: Union[str, np.ndarray, torch.Tensor], **kw):
     """
     Transcribe an audio file using Whisper
 

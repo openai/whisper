@@ -1,14 +1,18 @@
-import torch
-import numpy as np
-from collections.abc import Callable, AsyncIterable, AsyncIterator, Awaitable
+from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Callable
 from typing import Generic, TypeVar, Union
 
+import numpy as np
+import torch
+
 A = TypeVar("A", bound=Union[np.ndarray, torch.Tensor])
+
 
 class ArrayWrapper(Generic[A]):
     pass
 
+
 ArrayTypes = Union[A, ArrayWrapper[A]]
+
 
 class LoopbackIterator(Generic[A]):
     async def iter(self):
@@ -23,14 +27,17 @@ class LoopbackIterator(Generic[A]):
             self.__aiter__()
         return await anext(self._iter)
 
+
 async def empty():
     return
     yield
+
 
 class Unwrap(LoopbackIterator):
     _initial: Union[ArrayTypes, Awaitable[ArrayTypes]]
     started: bool
     iterator: AsyncIterable[ArrayTypes]
+
     def __init__(self, iterator: AsyncIterable[ArrayTypes]):
         while isinstance(iterator, PassthroughTransform):
             iterator = iterator.handoff()
@@ -74,12 +81,13 @@ class Unwrap(LoopbackIterator):
 
     @property
     async def concat(self):
-        return np.concatenate if isinstance(await self.dtype, np.dtype) \
-                else torch.cat
+        return np.concatenate if isinstance(await self.dtype, np.dtype) else torch.cat
+
 
 class PassthroughTransform(LoopbackIterator):
     def handoff(self) -> AsyncIterable[ArrayTypes]:
         raise NotImplementedError
+
 
 class BoxedIterator(PassthroughTransform):
     def __init__(self, iterator):
@@ -98,6 +106,7 @@ class BoxedIterator(PassthroughTransform):
             yield i
             if self.flag != flag:
                 raise Exception("source can only be used by one iterator")
+
 
 def LookAlong(axis: int):
     assert axis >= 0
@@ -119,10 +128,9 @@ def LookAlong(axis: int):
 
     return LookAlong
 
+
 class PassthroughMap(PassthroughTransform):
-    def __init__(
-            self, apply: Callable[[A], ArrayTypes],
-            iterator: AsyncIterator[A]):
+    def __init__(self, apply: Callable[[A], ArrayTypes], iterator: AsyncIterator[A]):
         self.iterator, self.apply = iterator, apply
 
     def handoff(self) -> AsyncIterator[A]:
@@ -131,6 +139,7 @@ class PassthroughMap(PassthroughTransform):
     async def iter(self) -> AsyncIterator[ArrayTypes]:
         async for i in self.iterator:
             yield self.apply(i)
+
 
 class Group:
     def __init__(self, concat, axis=-1):
@@ -155,16 +164,18 @@ class Group:
         if taking == amount or not exact:
             self.shape += amount - taking
             self.consumed = 0
-            res = self.concat([self.holding[0][start:]] + [
-                    i.value for i in self.holding[1 : i + 1]])
-            self.holding = self.holding[i + 1:]
+            res = self.concat(
+                [self.holding[0][start:]] + [i.value for i in self.holding[1 : i + 1]]
+            )
+            self.holding = self.holding[i + 1 :]
             return res
         if i == 0:
-            return self.holding[0][start:self.consumed]
+            return self.holding[0][start : self.consumed]
         res = self.concat(
-                [self.holding[0][start:]] +
-                [i.value for i in self.holding[1 : i]] +
-                [self.holding[i][:self.consumed]])
+            [self.holding[0][start:]]
+            + [i.value for i in self.holding[1:i]]
+            + [self.holding[i][: self.consumed]]
+        )
         self.holding = self.holding[i:]
         return res
 
@@ -175,9 +186,11 @@ class Group:
         self.holding = []
         return res
 
+
 class Taken:
     def take(self, *a, **kw):
         raise Exception("batch queue moved")
+
 
 class Batcher(PassthroughTransform):
     def __init__(self, iterator, size, axis=-1, exact=False):
@@ -192,14 +205,19 @@ class Batcher(PassthroughTransform):
         return lambda tensors: f(tensors, self.axis)
 
     _iterator = None
+
     async def iterator(self):
         if self._iterator is None:
-            self.axis = len(await self.preview.shape) + self._axis \
-                    if self._axis < 0 else self._axis
+            self.axis = (
+                len(await self.preview.shape) + self._axis
+                if self._axis < 0
+                else self._axis
+            )
             if not hasattr(self, "group"):
                 self.group = Group(await self.concat())
             self._iterator = PassthroughMap(
-                    LookAlong(self.axis), BoxedIterator(self.preview))
+                LookAlong(self.axis), BoxedIterator(self.preview)
+            )
         return self._iterator
 
     def handoff(self):
@@ -219,4 +237,3 @@ class Batcher(PassthroughTransform):
                     return self.group.all()
                 raise
         return self.group.take(self.size, self.exact)
-
