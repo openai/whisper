@@ -212,9 +212,7 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
     def task(self, value: str):
         self._task = value
         if self.word_timestamps and value == "translate":
-            warnings.warn(
-                "Word-level timestamps on translations may not be " "reliable."
-            )
+            warnings.warn("Word-level timestamps on translations may not be reliable.")
 
     @PassthroughProperty(False).setter
     def word_timestamps(self, value: bool):
