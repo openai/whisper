@@ -133,7 +133,6 @@ class ArrayStream(AudioSink):
             amp, N_FFT, HOP_LENGTH, window=self.hann, center=False, return_complex=True
         )
 
-    # https://github.com/openai/whisper/blob/c5d4256/whisper/audio.py#L149
     log_spec_bound: Optional[torch.Tensor] = None
 
     def transform(self, stft: torch.Tensor) -> torch.Tensor:

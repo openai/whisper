@@ -4,6 +4,7 @@ import os
 import traceback
 import warnings
 from dataclasses import dataclass
+from math import ceil
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -147,15 +148,16 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
             return self._language
         self._hypothesis.last = self._seek or 0
         self._hypothesis.since += 1
-        if 2**self._hypothesis.evidence < self._hypothesis.since:
+        if 2**self._hypothesis.evidence > self._hypothesis.since:
             return self._hypothesis.language
         self._hypothesis.since = 0
         guess = self.detect_language()
         if guess == self._hypothesis.language:
             self._hypothesis.evidence += 1
-        self._hypothesis.language = guess
-        self._hypothesis.evidence = 1
-        return None
+        else:
+            self._hypothesis.language = guess
+            self._hypothesis.evidence = 0
+        return guess
 
     @PassthroughProperty[Union[str, List[float], Tuple[float]]]((0,)).setter
     def clip_timestamps(self, value: Union[str, List[float], Tuple[float]]):
@@ -257,17 +259,33 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
         if self._initial_prompt_tokens is None:
             if self.initial_prompt is None:
                 self._initial_prompt_tokens = []
+            elif self.language is None:
+                return []
             else:
                 tokenizer = self.tokenizer
-                if tokenizer is None:
-                    return []
                 if tokenizer not in self._initial_prompt_cache:
                     self._initial_prompt_cache[tokenizer] = tokenizer.encode(
                         " " + self.initial_prompt.strip()
                     )
-                self._initial_prompt_tokens = self._initial_prompt_cache[tokenizer]
+                if self._tokenizer is not None:
+                    self._initial_prompt_tokens = self._initial_prompt_cache[tokenizer]
                 return self._initial_prompt_cache[tokenizer]
         return self._initial_prompt_tokens
+
+    _initial_tokens: int = 0
+    _initial_finalized: bool = False
+    _all_tokens: Optional[list] = None
+
+    @property
+    def all_tokens(self):
+        if self._all_tokens is None:
+            self._all_tokens = []
+        if not self._initial_finalized:
+            initial = self.initial_prompt_tokens
+            self._all_tokens = initial + self._all_tokens[self._initial_tokens :]
+            self._initial_tokens = len(initial)
+            self._initial_finalized = self._initial_prompt_tokens is not None
+        return self._all_tokens
 
     prompt_reset_since: int = 0
     last_speech_timestamp: float = 0.0
@@ -375,7 +393,6 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
         self.hallucination_silence_threshold = hallucination_silence_threshold
         self.decode_options = decode_options
 
-        self.all_tokens = self.initial_prompt_tokens[:]
         self.all_segments = []
 
     def decode_with_fallback(self, segment: torch.Tensor) -> DecodingResult:
@@ -784,7 +801,7 @@ class ProgressTranscriber(MinimalTranscriber):
             n = (
                 self.latest.shape[-1]
                 if self.duration is None
-                else -int(self.duration * -FRAMES_PER_SECOND)
+                else ceil(self.duration * FRAMES_PER_SECOND)
             )
             # show the progress bar when verbose is False
             # (if True, transcribed text will be printed)
