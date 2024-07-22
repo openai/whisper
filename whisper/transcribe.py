@@ -122,6 +122,7 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
 
     _hypothesis: LanguageHypothesis = LanguageHypothesis()
     _language: Optional[str]
+    _language_detection_warned: bool = False
 
     @PassthroughProperty[Optional[str]](None).property
     def language(self) -> Optional[str]:
@@ -129,15 +130,18 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
             return self._language
         if not self.model.is_multilingual:
             return "en"
-        if self.verbose:
+        if self.verbose and not self._language_detection_warned:
             print(
                 "Detecting language using up to the first 30 seconds."
                 "Use `--language` to specify the language"
             )
+            self._language_detection_warned = True
         if self.latest is None:
             return None
-        if self._seek == self._hypothesis.last:
+        available = self.frame_offset + self.latest.shape[-1]
+        if available == self._hypothesis.last:
             return self._hypothesis.language
+        self._hypothesis.last = available
         if self.frame_offset > 0 or self.latest.shape[-1] == N_FRAMES * 2:
             mel = (
                 self.latest
@@ -146,7 +150,6 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
             )
             self._language = self.detect_language(mel)
             return self._language
-        self._hypothesis.last = self._seek or 0
         self._hypothesis.since += 1
         if 2**self._hypothesis.evidence > self._hypothesis.since:
             return self._hypothesis.language
