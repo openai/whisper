@@ -769,14 +769,15 @@ def audio_tensor(audio: Union[str, np.ndarray, torch.Tensor]) -> torch.Tensor:
 
 class MinimalTranscriber(Transcriber):
     exact: bool = True
-    chlen: float = CHUNK_LENGTH
+    # amount of time per chunk that is considered in-context
+    contextualized: float = CHUNK_LENGTH
 
     async def process(self, stream: ArrayStream, **kw) -> dict:
-        data = await stream.request(self.chlen, self.exact)
+        data = await stream.request(CHUNK_LENGTH, self.exact)
         while data.shape[-1] > 0:
             self(data, stream.offset, True)
             t = (
-                self.chlen
+                self.contextualized
                 - (stream.offset + data.shape[-1] - self.seek) / FRAMES_PER_SECOND
                 + CHUNK_LENGTH
             )
