@@ -734,24 +734,6 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
     def reporthook(self) -> None:
         pass
 
-    def restore(self, offset: int) -> None:
-        processing, seconds = 0, offset * HOP_LENGTH / SAMPLE_RATE
-        while len(self.all_segments) > 0 and (
-            self.all_segments[-1]["start"] >= seconds
-            if len(self.all_segments) == 1
-            else self.all_segments[-2]["end"] > seconds
-        ):
-            rewriting = self.all_segments.pop()
-            processing += len(rewriting["tokens"])
-        self.all_tokens = self.all_tokens[: len(self.all_tokens) - processing]
-        if len(self.all_segments) > 0 and (
-            self.all_segments[-1]["start"] < seconds
-            and self.all_segments[-1]["end"] >= seconds
-        ):
-            self.seek = round(self.all_segments[-1]["end"] * SAMPLE_RATE / HOP_LENGTH)
-        else:
-            self.seek = offset
-
 
 class InMemoryAudio(AudioFile):
     dft_pad = True
