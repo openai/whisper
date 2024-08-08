@@ -1,5 +1,5 @@
 numba
-numpy
+numpy==1.26.4
 torch
 tqdm
 more-itertools
