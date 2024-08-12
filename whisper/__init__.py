@@ -101,6 +101,7 @@ def load_model(
     device: Optional[Union[str, torch.device]] = None,
     download_root: str = None,
     in_memory: bool = False,
+    weights_only: bool = False,
 ) -> Whisper:
     """
     Load a Whisper ASR model
@@ -116,6 +117,8 @@ def load_model(
         path to download the model files; by default, it uses "~/.cache/whisper"
     in_memory: bool
         whether to preload the model weights into host memory
+    weights_only: bool
+        whether to load only the model weights
 
     Returns
     -------
@@ -143,7 +146,7 @@ def load_model(
     with (
         io.BytesIO(checkpoint_file) if in_memory else open(checkpoint_file, "rb")
     ) as fp:
-        checkpoint = torch.load(fp, map_location=device, weights_only=True)
+        checkpoint = torch.load(fp, map_location=device, weights_only=weights_only)
     del checkpoint_file
 
     dims = ModelDimensions(**checkpoint["dims"])
