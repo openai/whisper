@@ -70,7 +70,7 @@ def transcribe(
         If False, displays minimal details. If None, does not display anything
 
     word_stream_callback: Callable
-        A function to get the words as stream
+        Function that receives ready words as the other voice chunks are in progress.
 
     temperature: Union[float, Tuple[float, ...]]
         Temperature for sampling. It can be a tuple of temperatures, which will be successively used
