@@ -2,7 +2,7 @@ import argparse
 import os
 import traceback
 import warnings
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union, Callable
 
 import numpy as np
 import torch
@@ -40,6 +40,7 @@ def transcribe(
     audio: Union[str, np.ndarray, torch.Tensor],
     *,
     verbose: Optional[bool] = None,
+    word_stream_callback: Optional[Callable] = None,
     temperature: Union[float, Tuple[float, ...]] = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
     compression_ratio_threshold: Optional[float] = 2.4,
     logprob_threshold: Optional[float] = -1.0,
@@ -67,6 +68,9 @@ def transcribe(
     verbose: bool
         Whether to display the text being decoded to the console. If True, displays all the details,
         If False, displays minimal details. If None, does not display anything
+
+    word_stream_callback: Callable
+        A function to get the words as stream
 
     temperature: Union[float, Tuple[float, ...]]
         Temperature for sampling. It can be a tuple of temperatures, which will be successively used
@@ -392,6 +396,7 @@ def transcribe(
                     prepend_punctuations=prepend_punctuations,
                     append_punctuations=append_punctuations,
                     last_speech_timestamp=last_speech_timestamp,
+                    word_stream_callback=word_stream_callback
                 )
 
                 if not single_timestamp_ending:
