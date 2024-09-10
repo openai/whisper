@@ -52,5 +52,5 @@ jobs:
       - run: pip3 install torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu
       - uses: actions/checkout@v3
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
-      - run: pip install .["dev"]
+      - run: pip install .["dev"] 'numpy<2'
       - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
