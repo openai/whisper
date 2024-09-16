@@ -49,8 +49,7 @@ jobs:
     steps:
       - uses: conda-incubator/setup-miniconda@v2
       - run: conda install -n test ffmpeg python=${{ matrix.python-version }}
-      - run: pip3 install torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu
       - uses: actions/checkout@v3
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
-      - run: pip install .["dev"]
+      - run: pip3 install .["dev"] 'numpy<2' torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
       - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
