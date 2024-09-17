@@ -26,20 +26,21 @@ def exact_div(x, y):
     return x // y
 
 
-def str2bool(string):
-    str2val = {"True": True, "False": False}
-    if string in str2val:
-        return str2val[string]
-    else:
-        raise ValueError(f"Expected one of {set(str2val.keys())}, got {string}")
+def str2bool(string: str) -> bool:
+    if string.lower() in {'true', 'yes', 'y', '1'}:
+        return True
+    if string.lower() in {'false', 'no', 'n', '0'}:
+        return False
+
+    raise ValueError(f"Expected one of true/yes/1 or false/no/0, but got {string}")
 
 
 def optional_int(string):
-    return None if string == "None" else int(string)
+    return None if string.lower() == "none" else int(string)
 
 
 def optional_float(string):
-    return None if string == "None" else float(string)
+    return None if string.lower() == "none" else float(string)
 
 
 def compression_ratio(text) -> float:
