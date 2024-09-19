@@ -283,12 +283,12 @@ def transcribe(
             segment_duration = segment_size * HOP_LENGTH / SAMPLE_RATE
             mel_segment = pad_or_trim(mel_segment, N_FRAMES).to(model.device).to(dtype)
 
-            prompt_reseed = all_tokens[prompt_reset_since:]
             if carry_initial_prompt:
-                prompt_reseed = (
-                    initial_prompt_tokens + prompt_reseed[-remaining_prompt_length:]
-                )
-            decode_options["prompt"] = prompt_reseed
+                nignored = max(len(initial_prompt_tokens), prompt_reset_since)
+                remaining_prompt = all_tokens[nignored:][-remaining_prompt_length:]
+                decode_options["prompt"] = initial_prompt_tokens + remaining_prompt
+            else:
+                decode_options["prompt"] = all_tokens[prompt_reset_since:]
 
             result: DecodingResult = decode_with_fallback(mel_segment)
             tokens = torch.tensor(result.tokens)
