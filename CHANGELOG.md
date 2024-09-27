@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## [v20240927](https://github.com/openai/whisper/releases/tag/v20240927)
+
+* pinning numpy<2 in tests ([#2332](https://github.com/openai/whisper/pull/2332))
+* Relax triton requirements for compatibility with pytorch 2.4 and newer ([#2307](https://github.com/openai/whisper/pull/2307))
+* Skip silence around hallucinations ([#1838](https://github.com/openai/whisper/pull/1838))
+* Fix triton env marker ([#1887](https://github.com/openai/whisper/pull/1887))
+
 ## [v20231117](https://github.com/openai/whisper/releases/tag/v20231117)
 
 * Relax triton requirements for compatibility with pytorch 2.1 and newer ([#1802](https://github.com/openai/whisper/pull/1802))
