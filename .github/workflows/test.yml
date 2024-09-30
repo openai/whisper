@@ -44,22 +44,22 @@ jobs:
         include:
           - python-version: '3.8'
             pytorch-version: 1.13.1
-            numpy-requirement: 'numpy<2'
+            numpy-requirement: "'numpy<2'"
           - python-version: '3.8'
             pytorch-version: 2.0.1
-            numpy-requirement: 'numpy<2'
+            numpy-requirement: "'numpy<2'"
           - python-version: '3.9'
             pytorch-version: 2.1.2
-            numpy-requirement: 'numpy<2'
+            numpy-requirement: "'numpy<2'"
           - python-version: '3.10'
             pytorch-version: 2.2.2
-            numpy-requirement: 'numpy<2'
+            numpy-requirement: "'numpy<2'"
           - python-version: '3.11'
             pytorch-version: 2.3.1
-            numpy-requirement: 'numpy'
+            numpy-requirement: "'numpy'"
           - python-version: '3.12'
             pytorch-version: 2.4.1
-            numpy-requirement: 'numpy'
+            numpy-requirement: "'numpy'"
     steps:
       - uses: conda-incubator/setup-miniconda@v2
       - run: conda install -n test ffmpeg python=${{ matrix.python-version }}
