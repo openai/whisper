@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## [v20240930](https://github.com/openai/whisper/releases/tag/v20240930)
+
+* allowing numpy 2 in tests ([#2362](https://github.com/openai/whisper/pull/2362))
+* large-v3-turbo model ([#2361](https://github.com/openai/whisper/pull/2361))
+* test on python/pytorch versions up to 3.12 and 2.4.1 ([#2360](https://github.com/openai/whisper/pull/2360))
+* using sdpa if available ([#2359](https://github.com/openai/whisper/pull/2359))
+
 ## [v20240927](https://github.com/openai/whisper/releases/tag/v20240927)
 
 * pinning numpy<2 in tests ([#2332](https://github.com/openai/whisper/pull/2332))
