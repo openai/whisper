@@ -191,7 +191,9 @@ def find_alignment(
         for i, block in enumerate(model.decoder.blocks)
     ]
 
-    with torch.no_grad():
+    from .model import disable_sdpa
+
+    with torch.no_grad(), disable_sdpa():
         logits = model(mel.unsqueeze(0), tokens.unsqueeze(0))[0]
         sampled_logits = logits[len(tokenizer.sot_sequence) :, : tokenizer.eot]
         token_probs = sampled_logits.softmax(dim=-1)
