@@ -1,7 +1,8 @@
 import base64
 import gzip
+from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable, Optional, Tuple
 
 import numpy as np
 import torch
@@ -11,6 +12,14 @@ from torch import Tensor, nn
 from .decoding import decode as decode_function
 from .decoding import detect_language as detect_language_function
 from .transcribe import transcribe as transcribe_function
+
+try:
+    from torch.nn.functional import scaled_dot_product_attention
+
+    SDPA_AVAILABLE = True
+except (ImportError, RuntimeError, OSError):
+    scaled_dot_product_attention = None
+    SDPA_AVAILABLE = False
 
 
 @dataclass
@@ -59,7 +68,19 @@ def sinusoids(length, channels, max_timescale=10000):
     return torch.cat([torch.sin(scaled_time), torch.cos(scaled_time)], dim=1)
 
 
+@contextmanager
+def disable_sdpa():
+    prev_state = MultiHeadAttention.use_sdpa
+    try:
+        MultiHeadAttention.use_sdpa = False
+        yield
+    finally:
+        MultiHeadAttention.use_sdpa = prev_state
+
+
 class MultiHeadAttention(nn.Module):
+    use_sdpa = True
+
     def __init__(self, n_state: int, n_head: int):
         super().__init__()
         self.n_head = n_head
@@ -92,20 +113,30 @@ class MultiHeadAttention(nn.Module):
 
     def qkv_attention(
         self, q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None
-    ):
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         n_batch, n_ctx, n_state = q.shape
         scale = (n_state // self.n_head) ** -0.25
-        q = q.view(*q.shape[:2], self.n_head, -1).permute(0, 2, 1, 3) * scale
-        k = k.view(*k.shape[:2], self.n_head, -1).permute(0, 2, 3, 1) * scale
+        q = q.view(*q.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
+        k = k.view(*k.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
         v = v.view(*v.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
 
-        qk = q @ k
-        if mask is not None:
-            qk = qk + mask[:n_ctx, :n_ctx]
-        qk = qk.float()
+        if SDPA_AVAILABLE and MultiHeadAttention.use_sdpa:
+            a = scaled_dot_product_attention(
+                q, k, v, is_causal=mask is not None and n_ctx > 1
+            )
+            out = a.permute(0, 2, 1, 3).flatten(start_dim=2)
+            qk = None
+        else:
+            qk = (q * scale) @ (k * scale).transpose(-1, -2)
+            if mask is not None:
+                qk = qk + mask[:n_ctx, :n_ctx]
+            qk = qk.float()
 
-        w = F.softmax(qk, dim=-1).to(q.dtype)
-        return (w @ v).permute(0, 2, 1, 3).flatten(start_dim=2), qk.detach()
+            w = F.softmax(qk, dim=-1).to(q.dtype)
+            out = (w @ v).permute(0, 2, 1, 3).flatten(start_dim=2)
+            qk = qk.detach()
+
+        return out, qk
 
 
 class ResidualAttentionBlock(nn.Module):
@@ -197,7 +228,7 @@ class TextDecoder(nn.Module):
         """
         x : torch.LongTensor, shape = (batch_size, <= n_ctx)
             the text tokens
-        xa : torch.Tensor, shape = (batch_size, n_mels, n_audio_ctx)
+        xa : torch.Tensor, shape = (batch_size, n_audio_ctx, n_audio_state)
             the encoded audio features to be attended on
         """
         offset = next(iter(kv_cache.values())).shape[1] if kv_cache else 0
@@ -236,7 +267,8 @@ class Whisper(nn.Module):
             self.dims.n_text_head,
             self.dims.n_text_layer,
         )
-        # use the last half layers for alignment by default; see `set_alignment_heads()` below
+        # use the last half among the decoder layers for time alignment by default;
+        # to use a specific set of heads, see `set_alignment_heads()` below.
         all_heads = torch.zeros(
             self.dims.n_text_layer, self.dims.n_text_head, dtype=torch.bool
         )
@@ -269,7 +301,11 @@ class Whisper(nn.Module):
 
     @property
     def is_multilingual(self):
-        return self.dims.n_vocab == 51865
+        return self.dims.n_vocab >= 51865
+
+    @property
+    def num_languages(self):
+        return self.dims.n_vocab - 51765 - int(self.is_multilingual)
 
     def install_kv_cache_hooks(self, cache: Optional[dict] = None):
         """

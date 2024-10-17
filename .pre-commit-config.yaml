@@ -1,0 +1,28 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.0.1
+    hooks:
+      - id: check-json
+      - id: end-of-file-fixer
+        types: [file, python]
+      - id: trailing-whitespace
+        types: [file, python]
+      - id: mixed-line-ending
+      - id: check-added-large-files
+        args: [--maxkb=4096]
+  - repo: https://github.com/psf/black
+    rev: 23.7.0
+    hooks:
+      - id: black
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+      - id: isort
+        name: isort (python)
+        args: ["--profile", "black", "-l", "88", "--trailing-comma", "--multi-line", "3"]
+  - repo: https://github.com/pycqa/flake8.git
+    rev: 6.0.0
+    hooks:
+      - id: flake8
+        types: [python]
+        args: ["--max-line-length", "88", "--ignore", "E203,E501,W503,W504"]
