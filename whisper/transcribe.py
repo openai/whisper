@@ -2,7 +2,7 @@ import argparse
 import os
 import traceback
 import warnings
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union, Self
 
 import numpy as np
 import torch
@@ -34,12 +34,57 @@ from .utils import (
 if TYPE_CHECKING:
     from .model import Whisper
 
+class TranscribeProgressReceiver:
+    """
+    A class that allows external classes to inherit and handle transcription progress in customized
+    manners.
+    """
+    def start(self, total: int) -> Self:
+        """
+        The method is called when the transcription starts with integral `total` parameter in frames.
+        In most case this method should return `self`
+        """
+        return self
+    def update(self, n: int):
+        """
+        The `update` method is called with increment `n` in frames whenever a segment is transcribed.
+        """
+        pass
+    def update_line(self, start: float, end: float, text: str):
+        """
+        It is called whenever a segment is transcribed.
+
+        Parameters
+        ----------
+        start: float
+            The floating point start time of the segment in seconds
+
+        end: float
+            The floating point end time of the segment in seconds
+
+        text: str
+            The transcribed text
+        """
+        pass
+    def __enter__(self) -> Self:
+        """
+        Inherit this method if resources allocation is needed at the start of the transcription.
+        In most cases this method should return `self`
+        """
+        return self
+    def __exit__(self, exception_type, exception_value, exception_traceback):
+        """
+        Inherit this method if resources need to be released when the transcription is finished or
+        terminated.
+        """
+        pass
 
 def transcribe(
     model: "Whisper",
     audio: Union[str, np.ndarray, torch.Tensor],
     *,
     verbose: Optional[bool] = None,
+    progress_receiver: TranscribeProgressReceiver = TranscribeProgressReceiver(),
     temperature: Union[float, Tuple[float, ...]] = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
     compression_ratio_threshold: Optional[float] = 2.4,
     logprob_threshold: Optional[float] = -1.0,
@@ -253,7 +298,8 @@ def transcribe(
     # show the progress bar when verbose is False (if True, transcribed text will be printed)
     with tqdm.tqdm(
         total=content_frames, unit="frames", disable=verbose is not False
-    ) as pbar:
+    ) as pbar, \
+    progress_receiver.start(total=content_frames) as ext_progress:
         last_speech_timestamp = 0.0
         # NOTE: This loop is obscurely flattened to make the diff readable.
         # A later commit should turn this into a simpler nested loop.
@@ -459,10 +505,11 @@ def transcribe(
                 if last_word_end is not None:
                     last_speech_timestamp = last_word_end
 
-            if verbose:
-                for segment in current_segments:
-                    start, end, text = segment["start"], segment["end"], segment["text"]
-                    line = f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}"
+            for segment in current_segments:
+                start, end, text = segment["start"], segment["end"], segment["text"]
+                line = f"[{format_timestamp(start)} --> {format_timestamp(end)}] {text}"
+                ext_progress.update_line(start, end, make_safe(text))
+                if verbose:
                     print(make_safe(line))
 
             # if a segment is instantaneous or does not contain text, clear it
@@ -490,6 +537,7 @@ def transcribe(
 
             # update progress bar
             pbar.update(min(content_frames, seek) - previous_seek)
+            ext_progress.update(min(content_frames, seek) - previous_seek)
 
     return dict(
         text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
