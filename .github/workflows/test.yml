@@ -43,6 +43,9 @@ jobs:
       matrix:
         include:
           - python-version: '3.8'
+            pytorch-version: 1.10.1
+            numpy-requirement: "'numpy<2'"
+          - python-version: '3.8'
             pytorch-version: 1.13.1
             numpy-requirement: "'numpy<2'"
           - python-version: '3.8'
@@ -59,6 +62,9 @@ jobs:
             numpy-requirement: "'numpy'"
           - python-version: '3.12'
             pytorch-version: 2.4.1
+            numpy-requirement: "'numpy'"
+          - python-version: '3.12'
+            pytorch-version: 2.5.0
             numpy-requirement: "'numpy'"
     steps:
       - uses: conda-incubator/setup-miniconda@v2
