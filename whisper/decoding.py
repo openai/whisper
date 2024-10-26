@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 @torch.no_grad()
 def detect_language(
-    model: "Whisper", mel: Tensor, tokenizer: Tokenizer = None
+    model: "Whisper", mel: Tensor, tokenizer: Tokenizer = None, language_bias: Optional[dict[str,float]] = None
 ) -> Tuple[Tensor, List[dict]]:
     """
     Detect the spoken language in the audio, and return them as list of strings, along with the ids
@@ -55,6 +55,14 @@ def detect_language(
     n_audio = mel.shape[0]
     x = torch.tensor([[tokenizer.sot]] * n_audio).to(mel.device)  # [n_audio, 1]
     logits = model.logits(x, mel)[:, 0]
+
+    # apply language_bias to logits
+    if language_bias:
+        biases = torch.zeros(logits.size(1), device=logits.device)
+        for lang, bias in language_bias.items():
+            token = tokenizer.to_language_token(lang)
+            biases[token] = bias
+        logits += biases
 
     # collect detected languages; suppress all non-language tokens
     mask = torch.ones(logits.shape[-1], dtype=torch.bool)

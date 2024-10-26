@@ -51,6 +51,7 @@ def transcribe(
     append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
     clip_timestamps: Union[str, List[float]] = "0",
     hallucination_silence_threshold: Optional[float] = None,
+    language_bias: Optional[dict[str,float]] = None,
     **decode_options,
 ):
     """
@@ -113,6 +114,10 @@ def transcribe(
         When word_timestamps is True, skip silent periods longer than this threshold (in seconds)
         when a possible hallucination is detected
 
+    language_bias: Optional[dict[str,float]] = None
+        A dictionary of language codes to positive or negative float values. These values will be
+        applied to the language detection logits before choosing the language.
+
     Returns
     -------
     A dictionary containing the resulting text ("text") and segment-level details ("segments"), and
@@ -143,7 +148,7 @@ def transcribe(
                     "Detecting language using up to the first 30 seconds. Use `--language` to specify the language"
                 )
             mel_segment = pad_or_trim(mel, N_FRAMES).to(model.device).to(dtype)
-            _, probs = model.detect_language(mel_segment)
+            _, probs = model.detect_language(mel_segment, language_bias=language_bias)
             decode_options["language"] = max(probs, key=probs.get)
             if verbose is not None:
                 print(
