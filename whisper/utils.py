@@ -1,9 +1,11 @@
 import json
 import os
+import pathlib
 import re
 import sys
+import time
 import zlib
-from typing import Callable, List, Optional, TextIO
+from typing import Any, Callable, Generic, List, Optional, TextIO, TypeVar, Union
 
 system_encoding = sys.getdefaultencoding()
 
@@ -21,9 +23,17 @@ else:
         return string
 
 
+PathType = Union[str, pathlib.Path]
+
+
 def exact_div(x, y):
     assert x % y == 0
     return x // y
+
+
+# https://stackoverflow.com/a/17511341/3476782
+def ceildiv(a: Union[int, float], b: Union[int, float]) -> int:
+    return int(-(a // -b))
 
 
 def str2bool(string):
@@ -66,6 +76,20 @@ def format_timestamp(
     return (
         f"{hours_marker}{minutes:02d}:{seconds:02d}{decimal_marker}{milliseconds:03d}"
     )
+
+
+def hms(sec: float) -> str:
+    trim = sec < 3600
+    h = "" if trim else str(int(sec) // 3600) + ":"
+    m_fill = " " if trim else "0"
+    m = "   " if sec < 60 else str(int(sec) // 60 % 60).rjust(2, m_fill) + ":"
+    s = str(int(sec) % 60).rjust(2, "0") + "."
+    c = str(round((sec % 1) * 100)).rjust(2, "0")
+    return h + m + s + c
+
+
+def tod(seconds: float) -> str:
+    return time.strftime("%H:%M:%S", time.localtime(seconds))
 
 
 def get_start(segments: List[dict]) -> Optional[float]:
@@ -314,3 +338,47 @@ def get_writer(
         return write_all
 
     return writers[output_format](output_dir)
+
+
+T = TypeVar("T")
+
+
+# boilerplate for property with _{name} storage and passthrough getter/setter
+class PassthroughProperty(Generic[T]):
+    def __init__(self, default: T):
+        self.value = default
+
+    f: Optional[Callable[[Any, T], None]] = None
+
+    def setter(self, f: Callable[[Any, T], None]):
+        self.f = f
+        return self
+
+    g: Optional[property] = None
+
+    def property(self, g: Callable[[Any], T]):
+        self.g = property(g)
+        return self
+
+
+class PassthroughPropertyDefaults(type):
+    def __new__(cls, clsname, bases, attrs):
+        def closure(f, v):
+            def prop(self):
+                return getattr(self, v)
+
+            def setter(self, value):
+                setattr(self, v, value)
+
+            prop.__name__ = setter.__name__ = f
+            return property(prop), setter
+
+        updates = {}
+        for k, v in attrs.items():
+            if not isinstance(v, PassthroughProperty):
+                continue
+            private = "_" + k
+            updates[private] = v.value
+            getter, setter = closure(k, private)
+            updates[k] = (v.g or getter).setter(v.f or setter)
+        return super().__new__(cls, clsname, bases, {**attrs, **updates})
