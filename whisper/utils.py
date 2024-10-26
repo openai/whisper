@@ -302,15 +302,20 @@ def get_writer(
         "json": WriteJSON,
     }
 
+    writer_funcs = []
     if output_format == "all":
-        all_writers = [writer(output_dir) for writer in writers.values()]
+        writer_funcs = [writer(output_dir) for writer in writers.values()]
+    else:
+        for format in output_format.split(','):
+            if format in writers:
+                writer_funcs.append(writers[format](output_dir))
+            else:
+                raise ValueError(f"Output format '{format}' is not supported.")
 
-        def write_all(
-            result: dict, file: TextIO, options: Optional[dict] = None, **kwargs
-        ):
-            for writer in all_writers:
-                writer(result, file, options, **kwargs)
-
-        return write_all
-
-    return writers[output_format](output_dir)
+    def write_all (
+        result: dict, file: TextIO, options: Optional[dict] = None, **kwargs
+    ):
+        for writer in writer_funcs:
+            writer(result, file, options, **kwargs)
+    
+    return write_all
