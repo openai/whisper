@@ -279,7 +279,7 @@ class Transcriber(metaclass=PassthroughPropertyDefaults):
     _initial_finalized: bool = False
     _all_tokens: Optional[list] = None
 
-    @property
+    @PassthroughProperty[Optional[list]](None).property
     def all_tokens(self):
         if self._all_tokens is None:
             self._all_tokens = []
