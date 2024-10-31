@@ -138,7 +138,45 @@ def dtw_cuda(x, BLOCK_SIZE=1024):
     return backtrace(trace.cpu().numpy())
 
 
+def dtw_hpu(x, BLOCK_SIZE=1024):
+    """
+    DTW implementation for HPU.
+    """
+    M, N = x.shape
+    assert M < BLOCK_SIZE, f"M should be smaller than {BLOCK_SIZE=}"
+
+    x_skew = F.pad(x, (0, M + 1), value=np.inf).flatten()[: M * (N + M)].reshape(M, N + M)
+    x_skew = x_skew.T.contiguous()
+
+    # Initialize cost and trace matrices with high values for comparison
+    cost = torch.ones(N + M + 2, M + 2, device="hpu") * np.inf
+    cost[0, 0] = 0  # Start point for DTW
+    trace = torch.zeros_like(cost, dtype=torch.int32, device="hpu")
+
+    for k in range(1, N + M + 1):
+        p0 = cost[k - 1, :M]
+        p1 = cost[k, :M]
+        p2 = cost[k, 1:M + 1]
+
+        c0 = p0.clone()
+        c1 = p1.clone()
+        c2 = p2.clone()
+
+        x_row = x_skew[k - 1, :M]
+
+        cost_row = x_row + torch.min(torch.min(c0, c1), c2)
+        cost[k + 1, 1:M + 1] = cost_row
+
+        # Track path by storing traces
+        trace[k + 1, 1:M + 1] = 2 * (c2 <= c0) * (c2 <= c1) + 1 * (c1 <= c0) * (c1 <= c2) + 0 * (c0 <= c1) * (c0 <= c2)
+
+    trace = trace.T.flatten()[: (M + 1) * (M + N + 3)].reshape(M + 1, M + N + 3)[:, : N + 1]
+    return backtrace(trace.cpu().numpy())
+
+
 def dtw(x: torch.Tensor) -> np.ndarray:
+    if torch.hpu.is_available():
+        return dtw_hpu(x)
     if x.is_cuda:
         try:
             return dtw_cuda(x)
