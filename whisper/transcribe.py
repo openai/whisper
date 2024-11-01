@@ -76,7 +76,7 @@ def transcribe(
     compression_ratio_threshold: float
         If the gzip compression ratio is above this value, treat as failed
 
-    compression_ratio_halcination_threshold: float
+    compression_ratio_hallucination_threshold: float
         If the gzip compression ratio is above this value after all attempts to decode, treat as a hallucination and skip
 
     logprob_threshold: float
