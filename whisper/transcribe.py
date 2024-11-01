@@ -225,7 +225,7 @@ def transcribe(
             and t == temperatures[-1]
             ):
             # Discard the segment
-                continue  # Skip to the next segment
+                return None  # Skip to the next segment
             if not needs_fallback:
                 break
 
@@ -301,6 +301,14 @@ def transcribe(
                 decode_options["prompt"] = all_tokens[prompt_reset_since:]
 
             result: DecodingResult = decode_with_fallback(mel_segment)
+            if result is None:
+                if verbose:
+                    print(
+                        f"Discarding segment {format_timestamp(time_offset)} - {format_timestamp(time_offset + segment_duration)} "
+                        "due to high compression ratio."
+                    )
+                seek += segment_size  # Move to the next segment
+                continue  # Skip processing this segment
             tokens = torch.tensor(result.tokens)
 
             if no_speech_threshold is not None:
