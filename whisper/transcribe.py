@@ -47,6 +47,7 @@ def transcribe(
     no_speech_threshold: Optional[float] = 0.6,
     condition_on_previous_text: bool = True,
     initial_prompt: Optional[str] = None,
+    carry_initial_prompt: bool = False,
     word_timestamps: bool = False,
     prepend_punctuations: str = "\"'“¿([{-",
     append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
@@ -208,7 +209,7 @@ def transcribe(
                 compression_ratio_threshold is not None
                 and decode_result.compression_ratio > compression_ratio_threshold
             ):
-                needs_fallback = True  # too repetitive <-- We can inprove it...
+                needs_fallback = True  # too repetitive
             if (
                 logprob_threshold is not None
                 and decode_result.avg_logprob < logprob_threshold
@@ -220,9 +221,9 @@ def transcribe(
             ):
                 needs_fallback = False  # silence
             if (
-            compression_ratio_hallucination_threshold is not None
-            and decode_result.compression_ratio > compression_ratio_hallucination_threshold
-            and t == temperatures[-1]
+                compression_ratio_hallucination_threshold is not None
+                and decode_result.compression_ratio > compression_ratio_hallucination_threshold
+                and t == temperatures[-1]
             ):
             # Discard the segment
                 return None  # Skip to the next segment
