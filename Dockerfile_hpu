@@ -1,0 +1,35 @@
+# Use the official Gaudi Docker image with PyTorch
+FROM vault.habana.ai/gaudi-docker/1.17.0/ubuntu22.04/habanalabs/pytorch-installer-2.3.1:latest
+
+# Set environment variables for Habana
+ENV HABANA_VISIBLE_DEVICES=all
+ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
+ENV PT_HPU_LAZY_ACC_PAR_MODE=0
+ENV PT_HPU_ENABLE_LAZY_COLLECTIVES=1
+
+# Install essential Linux packages and ffmpeg
+ENV DEBIAN_FRONTEND="noninteractive" TZ=Etc/UTC
+RUN apt-get update && apt-get install -y \
+    tzdata \
+    bash-completion \
+    python3-pip \
+    openssh-server \
+    vim \
+    git \
+    iputils-ping \
+    net-tools \
+    protobuf-compiler \
+    curl \
+    bc \
+    gawk \
+    tmux \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the Whisper repo contents
+ADD whisper /root/whisper
+WORKDIR /root/whisper
+
+# Install Python packages from Whisper requirements
+RUN pip install --upgrade pip \
+    && pip install -r requirements.txt \

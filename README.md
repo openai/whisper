@@ -140,6 +140,36 @@ result = whisper.decode(model, mel, options)
 print(result.text)
 ```
 
+## Intel® Gaudi® hpu usage
+
+### Build the Docker Image
+
+```bash
+docker build -t whisper_hpu:latest -f Dockerfile_hpu .
+```
+
+### Run the Container
+
+```bash
+docker run -it --runtime=habana \
+  -e HABANA_VISIBLE_DEVICES=all \
+  -e OMPI_MCA_btl_vader_single_copy_mechanism=none \
+  --cap-add=sys_nice \
+  --net=host \
+  --ipc=host \
+  -v /path/to/your/whisper:/workspace/whisper \
+  whisper_hpu:latest \
+  /bin/bash
+```
+
+Make sure to replace `/path/to/your/whisper` with the path to the Whisper repository on your local machine.
+
+### Command-line usage with Intel® Gaudi® hpu
+
+To run the `whisper` command with Intel® Gaudi® hpu, you can use the `--device hpu` option:
+
+    whisper audio.flac audio.mp3 audio.wav --model turbo --device hpu
+
 ## More examples
 
 Please use the [🙌 Show and tell](https://github.com/openai/whisper/discussions/categories/show-and-tell) category in Discussions for sharing more example usages of Whisper and third-party extensions such as web demos, integrations with other tools, ports for different platforms, etc.
