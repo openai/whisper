@@ -175,8 +175,17 @@ def dtw_hpu(x, BLOCK_SIZE=1024):
 
 
 def dtw(x: torch.Tensor) -> np.ndarray:
-    if torch.hpu.is_available():
-        return dtw_hpu(x)
+    try:
+        from habana_frameworks.torch.utils.library_loader import load_habana_module
+        load_habana_module()
+
+        if torch.hpu.is_available():
+            return dtw_hpu(x)
+    except (ImportError, subprocess.CalledProcessError):
+        warnings.warn(
+            "Failed to import Habana modules, likely due to missing Habana libraries; "
+        )
+
     if x.is_cuda:
         try:
             return dtw_cuda(x)
