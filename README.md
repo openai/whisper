@@ -148,6 +148,9 @@ print(result.text)
 docker build -t whisper_hpu:latest -f Dockerfile_hpu .
 ```
 
+In the `Dockerfile_hpu`, we use the `vault.habana.ai/gaudi-docker/1.17.0/ubuntu22.04/habanalabs/pytorch-installer-2.3.1:latest` base image, make sure to replace it with the appropriate version for your environment if needed.
+See the [PyTorch Docker Images for the Intel® Gaudi® Accelerator](https://developer.habana.ai/catalog/pytorch-container/) for more information.
+
 ### Run the Container
 
 ```bash
