@@ -34,4 +34,5 @@ COPY requirements.txt /root/whisper/requirements.txt
 
 # Install Python packages from requirements.txt
 RUN pip install --upgrade pip \
+    && pip install optimum[habana]==1.13.1 \
     && pip install -r requirements.txt
