@@ -520,7 +520,7 @@ def cli():
             load_habana_module()
             if not torch.hpu.is_available():
                 warnings.warn("HPU is not available; using CPU instead")
-            device_name = "cpu"
+            device_name = "hpu"
 
         return device_name
 
