@@ -22,8 +22,16 @@ RUN apt-get update && apt-get install -y \
     bc \
     gawk \
     tmux \
-    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
+
+# Download and install the static build of ffmpeg
+RUN mkdir -p /usr/local/bin/ffmpeg && \
+    cd /usr/local/bin/ffmpeg && \
+    wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz && \
+    tar -xf ffmpeg-release-amd64-static.tar.xz && \
+    cp -a ffmpeg-*-static/ffmpeg /usr/bin/ffmpeg && \
+    cp -a ffmpeg-*-static/ffprobe /usr/bin/ffprobe && \
+    rm -rf /usr/local/bin/ffmpeg
 
 # Add Whisper repo contents
 ADD . /root/whisper

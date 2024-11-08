@@ -160,7 +160,7 @@ docker run -it --runtime=habana \
   --cap-add=sys_nice \
   --net=host \
   --ipc=host \
-  -v /path/to/your/whisper:/workspace/whisper \
+  -v /path/to/your/whisper:/root/whisper \
   whisper_hpu:latest \
   /bin/bash
 ```
@@ -171,7 +171,20 @@ Make sure to replace `/path/to/your/whisper` with the path to the Whisper reposi
 
 To run the `whisper` command with Intel® Gaudi® hpu, you can use the `--device hpu` option:
 
-    whisper audio.flac audio.mp3 audio.wav --model turbo --device hpu
+    python3 -m whisper.transcribe audio.flac audio.mp3 audio.wav --model turbo --device hpu
+
+
+### Python usage with Intel® Gaudi® hpu
+
+To use Intel® Gaudi® hpu within Python, you can specify the device when loading the model:
+
+```python
+import whisper
+
+model = whisper.load_model("turbo", device="hpu")
+result = model.transcribe("audio.mp3")
+print(result["text"])
+```
 
 ## More examples
 
