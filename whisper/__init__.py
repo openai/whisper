@@ -165,10 +165,14 @@ def load_model(
 
     if device == "hpu":
         from habana_frameworks.torch.utils.library_loader import load_habana_module
-        from habana_frameworks.torch.hpu import wrap_in_hpu_graph
 
         load_habana_module()
         if torch.hpu.is_available():
-            return wrap_in_hpu_graph(model)
+            from habana_frameworks.torch.hpu import wrap_in_hpu_graph
 
+            model = model.eval().to(device)
+
+            model = wrap_in_hpu_graph(model)
+
+            return model
     return model.to(device)
