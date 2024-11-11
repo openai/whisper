@@ -1,5 +1,5 @@
 # Use the official Gaudi Docker image with PyTorch
-FROM vault.habana.ai/gaudi-docker/1.17.0/ubuntu22.04/habanalabs/pytorch-installer-2.3.1:latest
+FROM vault.habana.ai/gaudi-docker/1.18.0/ubuntu22.04/habanalabs/pytorch-installer-2.4.0:latest
 
 # Set environment variables for Habana
 ENV HABANA_VISIBLE_DEVICES=all
@@ -46,4 +46,5 @@ RUN pip install --upgrade pip \
     && pip install transformers==4.33.0 \
     && pip install huggingface-hub==0.26.2 \
     && pip install tiktoken==0.8.0 \
+    && pip install torch-geometric==2.6.1 \
     && pip install numba==0.60.0
