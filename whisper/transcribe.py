@@ -18,6 +18,7 @@ from .audio import (
     pad_or_trim,
 )
 from .decoding import DecodingOptions, DecodingResult
+from .hpu_utils import is_hpu_device
 from .timing import add_word_timestamps
 from .tokenizer import LANGUAGES, TO_LANGUAGE_CODE, get_tokenizer
 from .utils import (
@@ -124,6 +125,11 @@ def transcribe(
             warnings.warn("Performing inference on CPU when CUDA is available")
         if dtype == torch.float16:
             warnings.warn("FP16 is not supported on CPU; using FP32 instead")
+            dtype = torch.float32
+
+    if is_hpu_device(model.device):
+        if dtype == torch.float16:
+            warnings.warn("FP16 is not supported on HPU; using FP32 instead")
             dtype = torch.float32
 
     if dtype == torch.float32:

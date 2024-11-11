@@ -157,7 +157,7 @@ def load_model(
     del checkpoint_file
 
     dims = ModelDimensions(**checkpoint["dims"])
-    model = Whisper(dims)
+    model = Whisper(dims, device=torch.device(device))
     model.load_state_dict(checkpoint["model_state_dict"])
 
     if alignment_heads is not None:
@@ -170,9 +170,8 @@ def load_model(
         if torch.hpu.is_available():
             from habana_frameworks.torch.hpu import wrap_in_hpu_graph
 
-            model = model.eval().to(device)
-
             model = wrap_in_hpu_graph(model)
+            model = model.eval().to(torch.device(device))
 
             return model
     return model.to(device)
