@@ -1,14 +1,16 @@
+import importlib.util
 import platform
 import sys
 from pathlib import Path
 
-import pkg_resources
 from setuptools import find_packages, setup
 
 
 def read_version(fname="whisper/version.py"):
-    exec(compile(open(fname, encoding="utf-8").read(), fname, "exec"))
-    return locals()["__version__"]
+    spec = importlib.util.spec_from_file_location("version", fname)
+    version_module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(version_module)
+    return version_module.__version__
 
 
 requirements = []
