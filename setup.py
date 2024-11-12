@@ -3,6 +3,7 @@ import platform
 import sys
 from pathlib import Path
 
+from packaging.requirements import Requirement
 from setuptools import find_packages, setup
 
 
@@ -11,6 +12,11 @@ def read_version(fname="whisper/version.py"):
     version_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(version_module)
     return version_module.__version__
+
+
+def parse_requirements(file_path = Path(__file__).with_name("requirements.txt")):
+    lines = file_path.read_text(encoding="utf-8").splitlines()
+    return [str(Requirement(line)) for line in lines if not line.startswith("#")]
 
 
 requirements = []
@@ -30,12 +36,7 @@ setup(
     url="https://github.com/openai/whisper",
     license="MIT",
     packages=find_packages(exclude=["tests*"]),
-    install_requires=[
-        str(r)
-        for r in pkg_resources.parse_requirements(
-            Path(__file__).with_name("requirements.txt").open()
-        )
-    ],
+    install_requires=parse_requirements(Path(__file__).with_name("requirements.txt")),
     entry_points={
         "console_scripts": ["whisper=whisper.transcribe:cli"],
     },
