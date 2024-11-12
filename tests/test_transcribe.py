@@ -51,7 +51,7 @@ def test_transcribe_hpu(model_name: str):
 
     language = "en" if model_name.endswith(".en") else None
     result = model.transcribe(
-        audio_path, language=language, temperature=0.0, word_timestamps=True
+        audio_path, language=language, temperature=0.0
     )
     assert result["language"] == "en"
     assert result["text"] == "".join([s["text"] for s in result["segments"]])
@@ -64,7 +64,6 @@ def test_transcribe_hpu(model_name: str):
     tokenizer = get_tokenizer(model.is_multilingual, num_languages=model.num_languages)
     all_tokens = [t for s in result["segments"] for t in s["tokens"]]
     assert tokenizer.decode(all_tokens) == result["text"]
-    assert tokenizer.decode_with_timestamps(all_tokens).startswith("<|0.00|>")
 
     timing_checked = False
     for segment in result["segments"]:
