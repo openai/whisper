@@ -23,13 +23,12 @@ RUN mkdir -p /usr/local/bin/ffmpeg && \
     cp -a ffmpeg-*-static/ffprobe /usr/bin/ffprobe && \
     rm -rf /usr/local/bin/ffmpeg
 
-# Add Whisper repo contents
-ADD . /root/whisper
-WORKDIR /root/whisper
+COPY . /workspace/whisper
+WORKDIR /workspace/whisper
 
 # Copy HPU requirements
-COPY requirements_hpu.txt /root/whisper/requirements.txt
+COPY requirements_hpu.txt /workspace/requirements_hpu.txt
 
 # Install Python packages
 RUN pip install --upgrade pip \
-    && pip install -r requirements.txt
+    && pip install -r requirements_hpu.txt

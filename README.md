@@ -93,6 +93,10 @@ Adding `--task translate` will translate the speech into English:
 
     whisper japanese.wav --language Japanese --task translate
 
+The following command will transcribe speech in audio files, using the Intel® Gaudi® HPU (`--device hpu` option):
+
+    whisper audio.flac audio.mp3 audio.wav --model turbo --device hpu
+
 Run the following to view all available options:
 
     whisper --help
@@ -148,23 +152,40 @@ print(result.text)
 docker build -t whisper_hpu:latest -f Dockerfile.hpu .
 ```
 
-In the `Dockerfile.hpu`, we use the `vault.habana.ai/gaudi-docker/1.17.0/ubuntu22.04/habanalabs/pytorch-installer-2.3.1:latest` base image, make sure to replace it with the appropriate version for your environment if needed.
+In the `Dockerfile.hpu`, we use the `vault.habana.ai/gaudi-docker/1.18.0/ubuntu22.04/habanalabs/pytorch-installer-2.3.1:latest` base image, make sure to replace it with the appropriate version for your environment if needed.
 See the [PyTorch Docker Images for the Intel® Gaudi® Accelerator](https://developer.habana.ai/catalog/pytorch-container/) for more information.
 
 ### Run the Container
 
 ```bash
-docker run -it --runtime=habana -v /path/to/your/whisper:/root/whisper whisper_hpu:latest /bin/bash
+docker run -it --runtime=habana whisper_hpu:latest
 ```
 
-Make sure to replace `/path/to/your/whisper` with the path to the Whisper repository on your local machine.
+Using a mapping volume (`-v`) is optional, but it allows you to access the Whisper repository from within the container. 
+You can make this by adding `-v /path/to/your/whisper:/workspace/whisper` to the `docker run` command.
+If you decide to use the mapping make sure to replace `/path/to/your/whisper` with the path to the Whisper repository on your local machine.
 
 ### Command-line usage with Intel® Gaudi® hpu
 
-To run the `whisper` command with Intel® Gaudi® hpu, you can use the `--device hpu` option:
+To run the `transcribe` process with Intel® Gaudi® HPU, you can use the `--device hpu` option:
 
-    python3 -m whisper.transcribe audio.flac audio.mp3 audio.wav --model turbo --device hpu
+```bash
+python3 -m whisper.transcribe audio_file.wav --model turbo --device hpu
+```
 
+* Note: Change `audio_file.wav` to the path of the audio file you want to transcribe. (Example file: https://www.kaggle.com/datasets/pavanelisetty/sample-audio-files-for-speech-recognition?resource=download)
+
+To run the `transcribe` tests with Intel® Gaudi® HPU, make sure to install the `pytest` package:
+
+```bash
+pip install pytest
+```
+
+and run the following command:
+
+```bash
+PYTHONPATH=. pytest -s tests/test_transcribe.py::test_transcribe_hpu
+```
 
 ### Python usage with Intel® Gaudi® hpu
 
