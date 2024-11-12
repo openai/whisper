@@ -37,14 +37,9 @@ RUN mkdir -p /usr/local/bin/ffmpeg && \
 ADD . /root/whisper
 WORKDIR /root/whisper
 
-# Copy requirements.txt explicitly
-COPY requirements.txt /root/whisper/requirements.txt
+# Copy HPU requirements
+COPY requirements_hpu.txt /root/whisper/requirements.txt
 
-# Install Python packages from requirements.txt
+# Install Python packages
 RUN pip install --upgrade pip \
-    && pip install optimum-habana==1.14.1 \
-    && pip install transformers==4.33.0 \
-    && pip install huggingface-hub==0.26.2 \
-    && pip install tiktoken==0.8.0 \
-    && pip install torch-geometric==2.6.1 \
-    && pip install numba==0.60.0
+    && pip install -r requirements.txt
