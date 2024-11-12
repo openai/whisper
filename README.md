@@ -154,15 +154,7 @@ See the [PyTorch Docker Images for the Intel® Gaudi® Accelerator](https://deve
 ### Run the Container
 
 ```bash
-docker run -it --runtime=habana \
-  -e HABANA_VISIBLE_DEVICES=all \
-  -e OMPI_MCA_btl_vader_single_copy_mechanism=none \
-  --cap-add=sys_nice \
-  --net=host \
-  --ipc=host \
-  -v /path/to/your/whisper:/root/whisper \
-  whisper_hpu:latest \
-  /bin/bash
+docker run -it --runtime=habana -v /path/to/your/whisper:/root/whisper whisper_hpu:latest /bin/bash
 ```
 
 Make sure to replace `/path/to/your/whisper` with the path to the Whisper repository on your local machine.
