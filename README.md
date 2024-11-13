@@ -1,22 +1,38 @@
+## Enhanced Features
 
-## Personalized Features
+This fork of OpenAI's Whisper includes several enhancements to improve file organization, user experience, and ease of transcription. Below is a summary of the new features:
 
-This fork of OpenAI's Whisper includes the following enhancements:
+### 1. **Automated Folder Creation for Each Transcription Run**
+   - Each time an audio file is transcribed, a unique folder is created under a parent directory named `Results`.
+   - The unique folder is named based on the original audio file name and a timestamp, e.g., `Results/[audio_file_name]_[timestamp]`.
+   - This structure keeps transcription results organized and prevents overwriting, making it easy to manage and review multiple transcriptions.
 
-1. **Automated Folder Creation for Each Transcription Run**:
-   - Each time an audio file is transcribed, a unique folder is created under a parent folder named `Results`.
-   - This folder stores the transcription results, organized by audio file and timestamp.
-   - This makes it easy to review transcriptions from multiple audio files without overwriting previous results.
+### 2. **Temporary File Storage for Uploaded Audio Files**
+   - Uploaded audio files are stored temporarily in a folder named `TempUploads`.
+   - This separation between original audio files and transcription results enhances organization and simplifies the process of clearing temporary files when they’re no longer needed.
 
-2. **New Script: `run_and_save.py`**:
-   - This script allows you to transcribe an audio file and automatically save the output in a structured directory.
-   - Usage:
-     ```bash
-     python run_and_save.py /path/to/your_audio_file.mp3 --model tiny
-     ```
-   - The output is saved in `Results/[audio_file_name]_[timestamp]/transcription.txt`.
-   - The `--model` argument lets you select the model size (options: `tiny`, `base`, `small`, `medium`, `large`).
+### 3. **Interactive Web Interface: `app.py`**
+   - The `app.py` script, built with Streamlit, serves as the main interface for Whisper. This web-based UI provides an intuitive way to interact with Whisper without needing the command line.
+   - **Features**:
+     - **Upload Audio Files**: Supports various audio formats (e.g., MP3, WAV, M4A, MP4) and stores them temporarily in `TempUploads`.
+     - **Choose Model Size**: Allows users to select from Whisper model sizes (`tiny`, `base`, `small`, `medium`, `large`).
+     - **Organized Transcription Output**: Each transcription is saved in a unique folder under `Results`, with the transcription stored as `transcription.txt`.
+   - **Usage**:
+     - First, install Streamlit if you haven’t already:
+       ```bash
+       pip install streamlit
+       ```
+     - Then, run the app:
+       ```bash
+       streamlit run app.py
+       ```
+     - Open your browser and go to the provided URL (usually `http://localhost:8501`) to access the app.
 
+---
+
+These updates make `app.py` the primary and streamlined interface for managing transcriptions with Whisper. Temporary files and organized results folders ensure clear file management, while the web UI allows users to interact with Whisper effortlessly.
+
+These enhancements make it easier to manage multiple transcription tasks, keep audio files and transcriptions organized, and provide an intuitive user interface for interacting with Whisper.
 
 # Whisper
 
