@@ -1,3 +1,23 @@
+
+## Personalized Features
+
+This fork of OpenAI's Whisper includes the following enhancements:
+
+1. **Automated Folder Creation for Each Transcription Run**:
+   - Each time an audio file is transcribed, a unique folder is created under a parent folder named `Results`.
+   - This folder stores the transcription results, organized by audio file and timestamp.
+   - This makes it easy to review transcriptions from multiple audio files without overwriting previous results.
+
+2. **New Script: `run_and_save.py`**:
+   - This script allows you to transcribe an audio file and automatically save the output in a structured directory.
+   - Usage:
+     ```bash
+     python run_and_save.py /path/to/your_audio_file.mp3 --model tiny
+     ```
+   - The output is saved in `Results/[audio_file_name]_[timestamp]/transcription.txt`.
+   - The `--model` argument lets you select the model size (options: `tiny`, `base`, `small`, `medium`, `large`).
+
+
 # Whisper
 
 [[Blog]](https://openai.com/blog/whisper)
