@@ -1,5 +1,5 @@
-name: Release
-
+name: Jones Technology Foundation 
+.github/workflows/python-publish.yml
 on:
   push:
     branches:
