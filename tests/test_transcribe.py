@@ -51,7 +51,7 @@ def test_transcribe_hpu(model_name: str):
 
     language = "en" if model_name.endswith(".en") else None
     result = model.transcribe(
-        audio_path, language=language, temperature=0.0
+        audio_path, language=language, temperature=0.0, word_timestamps=True
     )
     assert result["language"] == "en"
     assert result["text"] == "".join([s["text"] for s in result["segments"]])
