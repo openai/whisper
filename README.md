@@ -1,4 +1,4 @@
-# Whisper Enhanced Transcription and Translation
+# Personalized Improvements and Features
 
 This fork of OpenAI's Whisper provides an enhanced interface for audio transcription and translation. Using Streamlit, the app offers an interactive way to transcribe audio files to English and translate them into various languages.
 
