@@ -1,4 +1,4 @@
-name: test
+name: Jones Technology Foundation 
 on:
   push:
     branches:
