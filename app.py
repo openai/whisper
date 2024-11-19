@@ -59,7 +59,7 @@ if st.button("Transcribe"):
             # Display the transcription result in the app
             st.write("### Transcription Result (English)")
             st.write(result["text"])
-            st.write(f"Transcription saved to {output_file}")
+            #st.write(f"Transcription saved to {output_file}")
 
             # Translate if a target language is selected
             if target_language != "None":
@@ -74,7 +74,7 @@ if st.button("Transcribe"):
                 # Display the translated result
                 st.write(f"### Translated Transcription ({target_language})")
                 st.write(translation)
-                st.write(f"Translation saved to {translation_file}")
+                #st.write(f"Translation saved to {translation_file}")
 
         except Exception as e:
             st.write("An error occurred:", e)
