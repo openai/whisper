@@ -147,14 +147,31 @@ def load_model(
     with (
         io.BytesIO(checkpoint_file) if in_memory else open(checkpoint_file, "rb")
     ) as fp:
-        checkpoint = torch.load(fp, map_location=device)
+        if device == "hpu":
+            """If the device is HPU,
+            the model should be loaded on CPU first
+            and then moved to HPU."""
+            checkpoint = torch.load(fp, map_location="cpu")
+        else:
+            checkpoint = torch.load(fp, map_location=device)
     del checkpoint_file
 
     dims = ModelDimensions(**checkpoint["dims"])
-    model = Whisper(dims)
+    model = Whisper(dims, compute_device=torch.device(device))
     model.load_state_dict(checkpoint["model_state_dict"])
 
     if alignment_heads is not None:
         model.set_alignment_heads(alignment_heads)
 
+    if device == "hpu":
+        from habana_frameworks.torch.utils.library_loader import load_habana_module
+
+        load_habana_module()
+        if torch.hpu.is_available():
+            from habana_frameworks.torch.hpu import wrap_in_hpu_graph
+
+            model = wrap_in_hpu_graph(model)
+            model = model.eval().to(torch.device(device))
+
+            return model
     return model.to(device)

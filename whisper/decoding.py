@@ -8,6 +8,7 @@ from torch import Tensor
 from torch.distributions import Categorical
 
 from .audio import CHUNK_LENGTH
+from .hpu_utils import is_hpu_device
 from .tokenizer import Tokenizer, get_tokenizer
 from .utils import compression_ratio
 
@@ -456,7 +457,17 @@ class ApplyTimestampRules(LogitFilter):
 
         # timestamps have to appear in pairs, except directly before EOT; mask logits accordingly
         for k in range(tokens.shape[0]):
-            sampled_tokens = tokens[k, self.sample_begin :]
+            if is_hpu_device(tokens.device):
+                """
+                If tokens are on HPU, `sampled_tokens` is cloned to force evaluation.
+
+                On Habana HPUs, tensors may use lazy execution, which can lead to runtime errors if not explicitly 
+                evaluated. Cloning `sampled_tokens` ensures it is fully evaluated on the HPU, preventing potential 
+                synchronization issues.
+                """
+                sampled_tokens = tokens[k, self.sample_begin :].clone()
+            else:
+                sampled_tokens = tokens[k, self.sample_begin :]
             seq = [t for t in sampled_tokens.tolist()]
             last_was_timestamp = (
                 len(seq) >= 1 and seq[-1] >= self.tokenizer.timestamp_begin
