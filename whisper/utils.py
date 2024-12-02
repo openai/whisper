@@ -129,12 +129,16 @@ class SubtitlesWriter(ResultWriter):
         max_line_count: Optional[int] = None,
         highlight_words: bool = False,
         max_words_per_line: Optional[int] = None,
+        subtitle_format: Optional[str] = None,
+        font_color: Optional[str] = None,
     ):
         options = options or {}
         max_line_width = max_line_width or options.get("max_line_width")
         max_line_count = max_line_count or options.get("max_line_count")
         highlight_words = highlight_words or options.get("highlight_words", False)
         max_words_per_line = max_words_per_line or options.get("max_words_per_line")
+        subtitle_format = subtitle_format or options.get("subtitle_format", None)
+        font_color = font_color or options.get("font_color", "#ffffff")
         preserve_segments = max_line_count is None or max_line_width is None
         max_line_width = max_line_width or 1000
         max_words_per_line = max_words_per_line or 1000
@@ -209,7 +213,7 @@ class SubtitlesWriter(ResultWriter):
 
                         yield start, end, "".join(
                             [
-                                re.sub(r"^(\s*)(.*)$", r"\1<u>\2</u>", word)
+                                re.sub(r"^(\s*)(.*)$", fr"\1<font color={font_color}><{subtitle_format}>\2</{subtitle_format}></font>", word)
                                 if j == i
                                 else word
                                 for j, word in enumerate(all_words)
