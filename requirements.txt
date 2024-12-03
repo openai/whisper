@@ -1,6 +1,6 @@
 numba
-numpy
-torch
+numpy>=1.22.2 # minimum version requirement to fix vulnerability per snyk
+torch>=2.2.0 # minimum version requirement to fix vulnerability per snyk
 tqdm
 more-itertools
 tiktoken
