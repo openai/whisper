@@ -381,7 +381,7 @@ def get_tokenizer(
 
     if multilingual:
         encoding_name = "multilingual"
-        language = language or "en"
+        language = language or "default"
         task = task or "transcribe"
     else:
         encoding_name = "gpt2"
