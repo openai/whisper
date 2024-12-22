@@ -12,7 +12,7 @@ Whisper is a general-purpose speech recognition model. It is trained on a large 
 
 ![Approach](https://raw.githubusercontent.com/openai/whisper/main/approach.png)
 
-A Transformer sequence-to-sequence model is trained on various speech processing tasks, including multilingual speech recognition, speech translation, spoken language identification, and voice activity detection. These tasks are represented together as a sequence of tokens to be predicted by the decoder. This allows a single model to replace many stages of a traditional speech-processing pipeline. The multitask training format uses a set of special tokens that serve as task specifiers or classification targets.
+A Transformer sequence-to-sequence model is trained on various speech processing tasks. They include multilingual speech recognition, speech translation, spoken language identification, and voice activity detection. These tasks are represented together as a sequence of tokens predicted by the decoder. This allows a single model to replace many stages of a traditional speech-processing pipeline. The multitask training format uses a set of special tokens that serve as task specifiers or classification targets.
 
 
 ## Setup
@@ -29,7 +29,7 @@ To update the package to the latest version of this repository, please run:
 
     pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git
 
-It also requires you to install the command-line tool [`ffmpeg`](https://ffmpeg.org/) to be installed on your system, which is available from most package managers:
+It also requires you to install the command-line tool [`ffmpeg`](https://ffmpeg.org/) on your system. The tool is available from most package managers:
 
 ```bash
 # on Ubuntu or Debian
@@ -48,7 +48,7 @@ choco install ffmpeg
 scoop install ffmpeg
 ```
 
-You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken](https://github.com/openai/tiktoken) does not provide a pre-built wheel for your platform. If you see installation errors during the `pip install` command above, please follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install Rust development environment. Additionally, you may need to configure the `PATH` environment variable, e.g. `export PATH="$HOME/.cargo/bin:$PATH"`. If the installation fails with `No module named 'setuptools_rust'`, you need to install `setuptools_rust`, e.g. by running:
+You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken](https://github.com/openai/tiktoken) does not provide a pre-built wheel for your platform. If you see installation errors during the `pip install` command above, follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install Rust development environment. Additionally, you may need to configure the `PATH` environment variable, e.g. `export PATH="$HOME/.cargo/bin:$PATH"`. If the installation fails with `No module named 'setuptools_rust'`, you need to install `setuptools_rust`, e.g. by running:
 
 ```bash
 pip install setuptools-rust
@@ -58,7 +58,7 @@ pip install setuptools-rust
 ## Available models and languages
 
 There are six model sizes, four with English-only versions, offering speed and accuracy tradeoffs.
-Below are the names of the available models and their approximate memory requirements and inference speed relative to the large model.
+You can find the names of the available models and their approximate memory requirements and inference speed relative to the large model in a table below.
 The relative speeds below are measured by transcribing English speech on a A100. The real-world speed may vary significantly depending on many factors including the language, the speaking speed, and the available hardware.
 
 |  Size  | Parameters | English-only model | Multilingual model | Required VRAM | Relative speed |
@@ -71,9 +71,9 @@ The relative speeds below are measured by transcribing English speech on a A100.
 | turbo  |   809 M    |        N/A         |      `turbo`       |     ~6 GB     |      ~8x       |
 
 The `.en` models for English-only applications tend to perform better, especially for the `tiny.en` and `base.en` models. We observed that the difference becomes less significant for the `small.en` and `medium.en` models.
-Additionally, the `turbo` model is an optimized version of `large-v3` that offers faster transcription speed with a minimal degradation in accuracy.
+Additionally, the `turbo` model is an optimized version of `large-v3`. It offers faster transcription speed with a minimal degradation in accuracy.
 
-Whisper's performance varies widely depending on the language. The figure below shows a performance breakdown of `large-v3` and `large-v2` models by language, using WERs (word error rates) or CER (character error rates, shown in *Italic*) evaluated on the Common Voice 15 and Fleurs datasets. Additional WER/CER metrics corresponding to the other models and datasets can be found in Appendix D.1, D.2, and D.4 of [the paper](https://arxiv.org/abs/2212.04356), as well as the BLEU (Bilingual Evaluation Understudy) scores for translation in Appendix D.3.
+Whisper's performance varies widely depending on the language. The figure below shows a performance breakdown of `large-v3` and `large-v2` models by language, using WERs (word error rates) or CER (character error rates, shown in *Italic*) evaluated on the Common Voice 15 and Fleurs datasets. More WER/CER metrics corresponding to the other models and datasets can be found in Appendix D.1, D.2, and D.4 of [the paper](https://arxiv.org/abs/2212.04356), as well as the BLEU (Bilingual Evaluation Understudy) scores for translation in Appendix D.3.
 
 ![WER breakdown by language](https://github.com/openai/whisper/assets/266841/f4619d66-1058-4005-8f67-a9d811b77c62)
 
@@ -93,7 +93,7 @@ Adding `--task translate` will translate the speech into English:
 
     whisper japanese.wav --language Japanese --task translate
 
-Run the following to view all available options:
+Run the following command to view all available options:
 
     whisper --help
 
