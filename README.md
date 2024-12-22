@@ -29,7 +29,7 @@ To update the package to the latest version of this repository, please run:
 
     pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git
 
-It also requires the command-line tool [`ffmpeg`](https://ffmpeg.org/) to be installed on your system, which is available from most package managers:
+It also requires you to install the command-line tool [`ffmpeg`](https://ffmpeg.org/) to be installed on your system, which is available from most package managers:
 
 ```bash
 # on Ubuntu or Debian
