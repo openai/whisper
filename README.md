@@ -73,7 +73,7 @@ The relative speeds below are measured by transcribing English speech on a A100.
 The `.en` models for English-only applications tend to perform better, especially for the `tiny.en` and `base.en` models. We observed that the difference becomes less significant for the `small.en` and `medium.en` models.
 Additionally, the `turbo` model is an optimized version of `large-v3`. It offers faster transcription speed with a minimal degradation in accuracy.
 
-Whisper's performance varies widely depending on the language. The figure below shows a performance breakdown of `large-v3` and `large-v2` models by language, using WERs (word error rates) or CER (character error rates, shown in *Italic*) evaluated on the Common Voice 15 and Fleurs datasets. More WER/CER metrics corresponding to the other models and datasets can be found in Appendix D.1, D.2, and D.4 of [the paper](https://arxiv.org/abs/2212.04356), as well as the BLEU (Bilingual Evaluation Understudy) scores for translation in Appendix D.3.
+Whisper's performance varies widely depending on the language. The figure below shows a performance breakdown of `large-v3` and `large-v2` models by language. It includes WERs (word error rates) or CERs (character error rates, shown in *Italic*) evaluated on the Common Voice 15 and Fleurs datasets. More WER/CER metrics corresponding to the other models and datasets can be found in Appendix D.1, D.2, and D.4 of [the paper](https://arxiv.org/abs/2212.04356), as well as the BLEU (Bilingual Evaluation Understudy) scores for translation in Appendix D.3.
 
 ![WER breakdown by language](https://github.com/openai/whisper/assets/266841/f4619d66-1058-4005-8f67-a9d811b77c62)
 
@@ -102,7 +102,7 @@ See [tokenizer.py](https://github.com/openai/whisper/blob/main/whisper/tokenizer
 
 ## Python usage
 
-Transcription can also be performed within Python: 
+Transcription can also be done within Python: 
 
 ```python
 import whisper
