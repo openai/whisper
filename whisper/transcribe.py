@@ -218,6 +218,8 @@ def transcribe(
             if (
                 no_speech_threshold is not None
                 and decode_result.no_speech_prob > no_speech_threshold
+                and logprob_threshold is not None
+                and decode_result.avg_logprob < logprob_threshold
             ):
                 needs_fallback = False  # silence
             if (
