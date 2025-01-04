@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+    rev: v5.0.0
     hooks:
       - id: check-json
       - id: end-of-file-fixer
@@ -11,17 +11,17 @@ repos:
       - id: check-added-large-files
         args: [--maxkb=4096]
   - repo: https://github.com/psf/black
-    rev: 23.7.0
+    rev: 24.10.0
     hooks:
       - id: black
   - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
+    rev: 5.13.2
     hooks:
       - id: isort
         name: isort (python)
         args: ["--profile", "black", "-l", "88", "--trailing-comma", "--multi-line", "3"]
   - repo: https://github.com/pycqa/flake8.git
-    rev: 6.0.0
+    rev: 7.1.1
     hooks:
       - id: flake8
         types: [python]
