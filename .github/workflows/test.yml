@@ -16,7 +16,7 @@ jobs:
         run: git fetch origin ${{ github.base_ref }}
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.9"
           architecture: x64
       - name: Get pip cache dir
         id: pip-cache
@@ -33,7 +33,7 @@ jobs:
             ${{ runner.os }}-pip-pre-commit
       - name: pre-commit
         run: |
-          pip install -U pre-commit
+          pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
