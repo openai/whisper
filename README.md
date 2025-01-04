@@ -90,7 +90,7 @@ pip install setuptools-rust
 
 ## Available models and languages
 
-There are six model sizes, four with English-only versions, offering a compromise between speed and accuracy. In the table below are the names of the available models, their approximate memory requirements and their inference speed relative to the large model. The relative speeds given in the table are measured by transcribing English speech on a A100. The real-world speed may vary significantly depending on many factors including the language, the speaking speed, and the available hardware.
+There are six model sizes, four with English-only versions, offering a compromise between speed and accuracy. In the table below are the names of the available models, their approximate memory requirements and their inference speed relative to the large model. The relative speeds given in the table are measured by transcribing English speech on the A100 graphics processing unit (GPU). The real-world speed may vary significantly depending on many factors including the language, the speaking speed, and the available hardware.
 
 |  Size  | Parameters | English-only model | Multilingual model | Required VRAM | Relative speed |
 |:------:|:----------:|:------------------:|:------------------:|:-------------:|:--------------:|
