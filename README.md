@@ -60,25 +60,28 @@ scoop install ffmpeg
 * You can download and install (or update to) the latest release of Whisper with the following command:
 
 ```bash
-    pip install -U openai-whisper
+pip install -U openai-whisper
 ```
 
 * Alternatively, use the following command to pull and install the latest commit from this repository and its Python dependencies:
 
 ```bash
-    pip install git+https://github.com/openai/whisper.git 
+pip install git+https://github.com/openai/whisper.git 
 ```
 
 * To update the package to the latest version of this repository, run:
 
 ```bash
-    pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git
+pip install --upgrade --no-deps --force-reinstall git+https://github.com/openai/whisper.git
 ```
 ## Installation troubleshooting
 
 If you see installation errors during the installation of Whisper, follow these steps:
 * Check if you have [`rust`](http://rust-lang.org) installed on your system. If not, follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install the Rust development environment.
-* Additionally, you may need to configure the `PATH` environment variable. You can use the following command: `export PATH="$HOME/.cargo/bin:$PATH"`.
+* Additionally, you may need to configure the `PATH` environment variable. You can use the following command: 
+ ```bash
+export PATH="$HOME/.cargo/bin:$PATH"
+```
 * If the installation fails with `No module named 'setuptools_rust'`, install `setuptools_rust`. You can use the following command:
 
 ```bash
