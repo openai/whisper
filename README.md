@@ -6,6 +6,8 @@
 [[Model card]](https://github.com/openai/whisper/blob/main/model-card.md)
 [[Colab example]](https://colab.research.google.com/github/openai/whisper/blob/master/notebooks/LibriSpeech.ipynb)
 
+## Contents <!-- omit in toc -->
+
 - [Introduction](#introduction)
 - [Approach](#approach)
 - [Prerequisites](#prerequisites)
@@ -76,7 +78,7 @@ scoop install ffmpeg
 
 If you see installation errors during the installation of Whisper, follow these steps:
 * Check if you have [`rust`](http://rust-lang.org) installed on your system. If not, follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install the Rust development environment.
-* Additionally, you may need to configure the `PATH` environment variable, e.g. `export PATH="$HOME/.cargo/bin:$PATH"`.
+* Additionally, you may need to configure the `PATH` environment variable. You can use the following command: `export PATH="$HOME/.cargo/bin:$PATH"`.
 * If the installation fails with `No module named 'setuptools_rust'`, install `setuptools_rust`. You can use the following command:
 
 ```bash
@@ -169,8 +171,8 @@ print(result.text)
 
 ## More examples
 
-Use the [🙌 Show and tell](https://github.com/openai/whisper/discussions/categories/show-and-tell) category in Discussions for sharing more example usages of Whisper and third-party extensions such as web demos, integrations with other tools, ports for different platforms, etc.
+Use the [🙌 Show and tell](https://github.com/openai/whisper/discussions/categories/show-and-tell) category in Discussions for sharing more example usages of Whisper and third-party extensions such as web demos, integrations with other tools or ports for different platforms.
 
 ## License
 
-Whisper's code and model weights are released under the MIT License. See [LICENSE](https://github.com/openai/whisper/blob/main/LICENSE) for further details.
+Whisper's code and model weights are released under the Massachusetts Institute of Technology (MIT) License. See [LICENSE](https://github.com/openai/whisper/blob/main/LICENSE) for further details.
