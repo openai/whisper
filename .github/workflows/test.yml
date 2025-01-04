@@ -64,7 +64,10 @@ jobs:
             pytorch-version: 2.4.1
             numpy-requirement: "'numpy'"
           - python-version: '3.12'
-            pytorch-version: 2.5.0
+            pytorch-version: 2.5.1
+            numpy-requirement: "'numpy'"
+          - python-version: '3.13'
+            pytorch-version: 2.5.1
             numpy-requirement: "'numpy'"
     steps:
       - uses: conda-incubator/setup-miniconda@v3
