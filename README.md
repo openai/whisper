@@ -23,7 +23,7 @@
 
 ## Introduction
 
-Whisper is a speech recognition model for general purpose. It is trained on a large dataset of diverse audio. Whisper is also a multitasking model that can perform multilingual speech recognition, speech translation, and language identification.
+Whisper is a multilingual speech recognition model for general purposes, including speech translation and language identification. Whisper is trained on a large dataset of diverse audio.
 
 ## Approach
 
