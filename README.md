@@ -27,13 +27,13 @@ Whisper is a speech recognition model for general purpose. It is trained on a la
 
 ![Approach](https://raw.githubusercontent.com/openai/whisper/main/approach.png)
 
-A Transformer sequence-to-sequence model is trained on various speech processing tasks. The tasks include multilingual speech recognition, speech translation, spoken language identification, and voice activity detection. These tasks are jointly represented as a sequence of tokens to be predicted by the decoder. As a result, a single model replaces many steps in a traditional speech processing. The multitask training format uses a set of special tokens that serve as task specifiers or classification targets.
+A Transformer sequence-to-sequence model is trained on various speech processing tasks. The tasks include multilingual speech recognition, speech translation, spoken language identification, and voice activity detection. These tasks are jointly represented as a sequence of tokens to be predicted by the decoder. As a result, a single model replaces many steps in traditional speech processing. The multitask training format uses a set of special tokens that serve as task specifiers or classification targets.
 
 We used Python 3.9.9 and [PyTorch](https://pytorch.org/) 1.10.1 to train and test our models. The codebase should be compatible with Python 3.8-3.11 and recent PyTorch versions. The codebase also depends on a few Python packages, most notably [OpenAI's tiktoken](https://github.com/openai/tiktoken) for their fast tokenizer implementation.
 
 ## Prerequisites
 
-* Whisper requires the command-line tool [`ffmpeg`](https://ffmpeg.org/) to be installed on your system. The command-line tool is available from most package managers:
+* Whisper requires the command-line tool [`ffmpeg`](https://ffmpeg.org/) to be installed on your system. The command-line tool is available from most package managers. To install [`ffmpeg`](https://ffmpeg.org/), use one of the following commands for your operating system:
 
 ```bash
 # on Ubuntu or Debian
@@ -51,7 +51,7 @@ choco install ffmpeg
 # on Windows using Scoop (https://scoop.sh/)
 scoop install ffmpeg
 ```
-* You may need [`rust`](http://rust-lang.org) installed as well, in case [tiktoken](https://github.com/openai/tiktoken) does not provide a pre-built wheel for your platform. Follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install Rust development environment. 
+* If [tiktoken](https://github.com/openai/tiktoken) does not provide a pre-built wheel for your platform, install [`rust`](http://rust-lang.org). Follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install the Rust development environment. 
 
 ## Installation
 
@@ -75,9 +75,9 @@ scoop install ffmpeg
 ## Installation troubleshooting
 
 If you see installation errors during the installation of Whisper, follow these steps:
-* Check if you have [`rust`](http://rust-lang.org) installed on your system. If not, follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install Rust development environment.
+* Check if you have [`rust`](http://rust-lang.org) installed on your system. If not, follow the [Getting started page](https://www.rust-lang.org/learn/get-started) to install the Rust development environment.
 * Additionally, you may need to configure the `PATH` environment variable, e.g. `export PATH="$HOME/.cargo/bin:$PATH"`.
-* If the installation fails with `No module named 'setuptools_rust'`, you need to install `setuptools_rust`, e.g. by running:
+* If the installation fails with `No module named 'setuptools_rust'`, install `setuptools_rust`. You can use the following command:
 
 ```bash
 pip install setuptools-rust
@@ -85,7 +85,7 @@ pip install setuptools-rust
 
 ## Available models and languages
 
-There are six model sizes, four with English-only versions, offering a compromise between speed and accuracy. In the table below are the names of the available models, their approximate memory requirements and inference speed relative to the large model. The relative speeds given in the table are measured by transcribing English speech on a A100. The real-world speed may vary significantly depending on many factors including the language, the speaking speed, and the available hardware.
+There are six model sizes, four with English-only versions, offering a compromise between speed and accuracy. In the table below are the names of the available models, their approximate memory requirements and their inference speed relative to the large model. The relative speeds given in the table are measured by transcribing English speech on a A100. The real-world speed may vary significantly depending on many factors including the language, the speaking speed, and the available hardware.
 
 |  Size  | Parameters | English-only model | Multilingual model | Required VRAM | Relative speed |
 |:------:|:----------:|:------------------:|:------------------:|:-------------:|:--------------:|
@@ -101,9 +101,9 @@ Additionally, the `turbo` model is an optimized version of `large-v3`. It offers
 
 ## Performance 
 
-Whisper's performance varies widely by language. The figure below shows a performance breakdown of `large-v3` and `large-v2` models by language. The performance breakdown uses WERs (Word Error Rates) or CER (Character Error Rates, shown in *Italics*) evaluated on the Common Voice 15 and Fleurs datasets. Additional WER/CER metrics corresponding to the other models and datasets can be found in:
+Whisper's performance varies widely by language. The figure below shows a performance breakdown of `large-v3` and `large-v2` models by language. The performance breakdown uses Word Error Rates (WER) or Character Error Rates (CER, shown in *Italics*) evaluated on the Common Voice 15 and Fleurs datasets. Additional Word Error Rates or Character Error Rates metrics corresponding to the other models and datasets can be found in:
 * Appendix D.1, D.2, and D.4 of [the paper](https://arxiv.org/abs/2212.04356).
-* The BLEU (Bilingual Evaluation Understudy) scores for translation in Appendix D.3.
+* The Bilingual Evaluation Understudy (BLEU) scores for translation in Appendix D.3.
 
 ![WER breakdown by language](https://github.com/openai/whisper/assets/266841/f4619d66-1058-4005-8f67-a9d811b77c62)
 
