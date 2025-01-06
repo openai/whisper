@@ -72,7 +72,7 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
 
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
-            total=int(source.info().get("Content-Length")),
+            total=int(source.info().get("Content-Length")) if source.info().get("Content-Length") is not None else None,
             ncols=80,
             unit="iB",
             unit_scale=True,
