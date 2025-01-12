@@ -11,19 +11,19 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Fetch base branch
         run: git fetch origin ${{ github.base_ref }}
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.8"
+          python-version: "3.9"
           architecture: x64
       - name: Get pip cache dir
         id: pip-cache
         run: |
           echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
       - name: pip/pre-commit cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ steps.pip-cache.outputs.dir }}
@@ -33,7 +33,7 @@ jobs:
             ${{ runner.os }}-pip-pre-commit
       - name: pre-commit
         run: |
-          pip install -U pre-commit
+          pip install --upgrade pre-commit
           pre-commit install --install-hooks
           pre-commit run --all-files
   whisper-test:
@@ -41,16 +41,35 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11']
-        pytorch-version: [1.13.1, 2.0.0]
-        exclude:
-          - python-version: '3.11'
+        include:
+          - python-version: '3.8'
+            pytorch-version: 1.10.1
+            numpy-requirement: "'numpy<2'"
+          - python-version: '3.8'
             pytorch-version: 1.13.1
+            numpy-requirement: "'numpy<2'"
+          - python-version: '3.8'
+            pytorch-version: 2.0.1
+            numpy-requirement: "'numpy<2'"
+          - python-version: '3.9'
+            pytorch-version: 2.1.2
+            numpy-requirement: "'numpy<2'"
+          - python-version: '3.10'
+            pytorch-version: 2.2.2
+            numpy-requirement: "'numpy<2'"
+          - python-version: '3.11'
+            pytorch-version: 2.3.1
+            numpy-requirement: "'numpy'"
+          - python-version: '3.12'
+            pytorch-version: 2.4.1
+            numpy-requirement: "'numpy'"
+          - python-version: '3.12'
+            pytorch-version: 2.5.0
+            numpy-requirement: "'numpy'"
     steps:
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
       - run: conda install -n test ffmpeg python=${{ matrix.python-version }}
-      - run: pip3 install torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
-      - run: pip install .["dev"]
+      - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
       - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
