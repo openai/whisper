@@ -77,6 +77,7 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             unit="iB",
             unit_scale=True,
             unit_divisor=1024,
+            ascii=True,
         ) as loop:
             while True:
                 buffer = source.read(8192)
