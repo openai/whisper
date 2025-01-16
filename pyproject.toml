@@ -1,3 +1,50 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+
+requires = [ "setuptools>=61.2" ]
+
+[project]
+name = "openai-whisper"
+description = "Robust Speech Recognition via Large-Scale Weak Supervision"
+readme.content-type = "text/markdown"
+readme.file = "README.md"
+license = { text = "MIT" }
+authors = [ { name = "OpenAI" } ]
+requires-python = ">=3.8"
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+]
+dynamic = [ "version" ]
+dependencies = [
+  "more-itertools",
+  "numba",
+  "numpy",
+  "tiktoken",
+  "torch",
+  "tqdm",
+  "triton>=2; (platform_machine=='x86_64' and sys_platform=='linux') or sys_platform=='linux2'",
+]
+optional-dependencies.dev = [ "black", "flake8", "isort", "pytest", "scipy" ]
+urls = { Homepage = "https://github.com/openai/whisper" }
+scripts.whisper = "whisper.transcribe:cli"
+
+[tool.setuptools]
+py-modules = [ "whisper" ]
+include-package-data = true
+
+[tool.setuptools.dynamic]
+version = { attr = "whisper.version.__version__" }
+
+[tool.setuptools.packages.find]
+exclude = [ "tests*" ]
+namespaces = false
+
 [tool.black]
 
 [tool.isort]
@@ -5,4 +52,3 @@ profile = "black"
 include_trailing_comma = true
 line_length = 88
 multi_line_output = 3
-
