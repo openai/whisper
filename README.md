@@ -93,6 +93,10 @@ Adding `--task translate` will translate the speech into English:
 
     whisper japanese.wav --language Japanese --task translate
 
+Adding `--device cuda:<n>` will use the selected cuda GPU number
+
+    whisper japanese.wav --language Japanese --task translate --device cuda:1
+
 Run the following to view all available options:
 
     whisper --help
