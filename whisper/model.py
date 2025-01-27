@@ -207,6 +207,7 @@ class AudioEncoder(nn.Module):
         for block in self.blocks:
             x = block(x)
             if block.attn.attention_scores is not None:
+                print(f"Captured attention scores from layer {len(self.all_attention_scores)}")
                 self.all_attention_scores.append(block.attn.attention_scores)
 
         x = self.ln_post(x)
