@@ -112,7 +112,11 @@ class MultiHeadAttention(nn.Module):
 
         wv, qk = self.qkv_attention(q, k, v, mask)
 
-        self.attention_scores = qk.softmax(dim=-1).detach().cpu().numpy() if qk is not None else None
+        if qk is not None:
+            print(f"✅ Attention shape: {qk.shape}")  # Should print the shape of attention weights
+            self.attention_scores = qk.softmax(dim=-1).detach().cpu().numpy()
+        else:
+            print("❌ No attention computed in MultiHeadAttention!")
 
         return self.out(wv), qk
 
@@ -205,18 +209,21 @@ class AudioEncoder(nn.Module):
         x = (x + self.positional_embedding).to(x.dtype)
 
         attention_list = []
-        for block in self.blocks:
+        for layer_idx, block in enumerate(self.blocks):
             x = block(x)
+
             if block.attn.attention_scores is not None:
-                print(f"Captured attention scores from layer {len(self.all_attention_scores)}")
+                print(f"✅ Captured attention scores from layer {layer_idx}")
                 attention_list.append(block.attn.attention_scores)
+            else:
+                print(f"❌ No attention captured at layer {layer_idx}!")
 
         x = self.ln_post(x)
-
+        # ✅ Debug: If no attention scores were captured, add a debug placeholder
         if attention_list:
             self.all_attention_scores = np.array(attention_list)
         else:
-            print("❌ Warning: No attention scores captured. Adding debug placeholder.")
+            print("❌ Warning: No attention scores captured at all layers. Adding debug placeholder.")
             self.all_attention_scores = np.zeros((1, 1))
         
         return x
