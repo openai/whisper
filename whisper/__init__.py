@@ -50,6 +50,8 @@ _ALIGNMENT_HEADS = {
     "turbo": b"ABzY8j^C+e0{>%RARaKHP%t(lGR*)0g!tONPyhe`",
 }
 
+ffmpeg_path: str = "ffmpeg"
+
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
     os.makedirs(root, exist_ok=True)
