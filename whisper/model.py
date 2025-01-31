@@ -309,8 +309,8 @@ class Whisper(nn.Module):
 
         return attn_maps
     
-    def plot_attention_distribution(self, seq_length: int = 100):
-        """Plots attention distribution over sequence length with a style matching the original reference image."""
+    def plot_cross_attention_distribution(self, seq_length: int = 1500):
+        """Plots cross-attention from the decoder, focusing on attention paid to padded regions."""
         attn_maps = self.get_attention_weights()
 
         if not attn_maps:
@@ -318,37 +318,39 @@ class Whisper(nn.Module):
             return
 
         # Convert to NumPy array
-        attn_maps = np.array(attn_maps)
+        attn_maps = np.array(attn_maps)  # Shape: (layers, batch, heads, seq_len, seq_len)
         print(f"Attention Maps Shape: {attn_maps.shape}")
 
-        # Average over layers
-        avg_attn = np.mean(attn_maps, axis=0)  # Shape: (batch, heads, seq_len, seq_len)
+        # We are interested in **cross-attention** (decoder attending to encoder output)
+        avg_attn = np.mean(attn_maps, axis=0)  # Average over layers
+        avg_attn = np.squeeze(avg_attn)  # Remove batch dim if present
+        print(f"Averaged Attention Shape: {avg_attn.shape}")
 
-        # Remove batch dimension
-        avg_attn = np.squeeze(avg_attn)  # Shape: (heads, seq_len, seq_len)
-
-        # Average over sequence axis to get token importance
-        token_attention = np.mean(avg_attn, axis=1)  # Shape: (heads, seq_len)
-        print(f"Token Attention Shape: {token_attention.shape}")
+        # Get attention for each token (rows) across all input positions (columns)
+        token_attention = np.mean(avg_attn, axis=1)  # Shape: (seq_len,)
 
         # Ensure we only plot up to `seq_length`
-        seq_length = min(seq_length, token_attention.shape[1])
-        token_attention = token_attention[:, :seq_length]
+        seq_length = min(seq_length, token_attention.shape[0])
+        token_attention = token_attention[:seq_length]
 
-        x_positions = np.arange(seq_length)
+        # Generate X-axis positions
+        x_positions = np.arange(len(token_attention))
 
-        # Create the figure
+        # Create figure
         plt.figure(figsize=(12, 4))
 
-        # Plot each head separately for color variation
-        for head in range(token_attention.shape[0]):
-            plt.plot(x_positions, token_attention[head], alpha=0.7, linewidth=0.8)
+        # Plot spikes for attention weights
+        for head in range(attn_maps.shape[2]):  # Iterate over heads
+            plt.plot(x_positions, token_attention, alpha=0.5, linewidth=0.7)
 
-        # Styling to match original image
-        plt.xlabel("Token Position")
+        # Highlight first and last 100 tokens (likely padding)
+        plt.axvspan(0, 100, color='red', alpha=0.2, label="Padding Zone (Start)")
+        plt.axvspan(seq_length - 100, seq_length, color='blue', alpha=0.2, label="Padding Zone (End)")
+
+        plt.xlabel("Token Position (Sequence)")
         plt.ylabel("Attention Score")
-        plt.title("Attention Distribution Over Sequence")
-        plt.grid(False)  # Remove grid for cleaner visualization
+        plt.title("Decoder Cross-Attention on Padded Tokens")
+        plt.legend()
         plt.show()
 
 
