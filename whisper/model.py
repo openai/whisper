@@ -300,17 +300,8 @@ class Whisper(nn.Module):
     ) -> Dict[str, torch.Tensor]:
         return self.decoder(tokens, self.encoder(mel))
     
-    def get_attention_weights(self):
-        """Retrieve stored attention weights from the decoder's layers."""
-        attn_maps = []
-        for block in self.decoder.blocks:
-            if block.attn.attn_weights is not None:
-                attn_maps.append(block.attn.attn_weights.detach().cpu().numpy())
-
-        return attn_maps  # Returns a list of attention weight tensors
-
     def plot_attention_on_padded(self, seq_length: int = 100):
-        """Plots attention weights focusing on padded regions"""
+        """Plots attention weights focusing on padded regions."""
         attn_maps = self.get_attention_weights()
 
         if not attn_maps:
@@ -321,20 +312,24 @@ class Whisper(nn.Module):
         attn_maps = np.array(attn_maps)
 
         # Print debug info
-        print(f"Attention Maps Shape: {attn_maps.shape}")  # Should be (layers, batch, heads, seq_len, seq_len)
+        print(f"Attention Maps Shape (Before Averaging): {attn_maps.shape}")
 
         # Average over layers and heads
-        avg_attn = np.mean(attn_maps, axis=(0, 2))  # Shape: (batch, seq_len, seq_len)
+        avg_attn = np.mean(attn_maps, axis=(0, 2))  # Shape: (batch, ?, seq_len)
 
-        print(f"Averaged Attention Shape: {avg_attn.shape}")  # Should be (batch, seq_len, seq_len)
+        print(f"Averaged Attention Shape (Before Squeeze): {avg_attn.shape}")
 
-        # Check batch dimension
-        if avg_attn.shape[0] > 1:
-            print("Warning: Multiple batches detected, plotting first sample.")
-            avg_attn = avg_attn[0]  # Take the first batch
+        # Squeeze to remove any extra singleton dimensions
+        avg_attn = np.squeeze(avg_attn)  # Removes batch dim
+
+        print(f"Averaged Attention Shape (After Squeeze): {avg_attn.shape}")
+
+        # Ensure correct shape
+        if avg_attn.ndim == 1:  # If still incorrect (seq_len,)
+            avg_attn = avg_attn.reshape((1, -1))  # Force into 2D shape for heatmap
 
         # Ensure shape matches seq_length
-        avg_attn = avg_attn[:seq_length, :seq_length]  # Truncate for visualization
+        avg_attn = avg_attn[:seq_length, :seq_length]  # Truncate to fit expected size
 
         # Plot heatmap
         plt.figure(figsize=(8, 6))
@@ -343,6 +338,7 @@ class Whisper(nn.Module):
         plt.ylabel("Output Positions")
         plt.title("Attention Weights on Padded Regions")
         plt.show()
+
 
     @property
     def device(self):
