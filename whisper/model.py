@@ -319,10 +319,10 @@ class Whisper(nn.Module):
 
         # Convert to NumPy array
         attn_maps = np.array(attn_maps)
-        print(f"Attention Maps Shape: {attn_maps.shape}")
+        print(f"Attention Maps Shape: {attn_maps.shape}")  # Expected (layers, batch, heads, ?, seq_len)
 
         # Average over layers and heads
-        avg_attn = np.mean(attn_maps, axis=(0, 2))  # Expected shape: (batch, seq_len, seq_len)
+        avg_attn = np.mean(attn_maps, axis=(0, 2))  # Should be (batch, ?, seq_len)
         print(f"Averaged Attention Shape (Before Squeeze): {avg_attn.shape}")
 
         # Remove batch and singleton dimensions
@@ -330,15 +330,19 @@ class Whisper(nn.Module):
         print(f"Averaged Attention Shape (After Squeeze): {avg_attn.shape}")
 
         # Check the real sequence length
-        real_seq_length = avg_attn.shape[0]
+        real_seq_length = avg_attn.shape[-1]  # Get correct dimension
         print(f"Real Sequence Length Detected: {real_seq_length}")
 
-        # Extract mean attention for each token
-        token_attention = np.mean(avg_attn, axis=0)  # Shape: (seq_len,)
+        # Extract mean attention for each token (FIXED)
+        token_attention = np.mean(avg_attn, axis=-2)  # Keeps shape (seq_len,)
         print(f"Token Attention Shape: {token_attention.shape}")
 
+        if token_attention.ndim == 0:  # Prevents empty scalar error
+            print("Error: token_attention is a scalar. Fixing shape issue.")
+            token_attention = avg_attn.mean(axis=-1)  # Alternative averaging
+
         # Ensure we plot the full available sequence length
-        seq_length = min(seq_length, real_seq_length)  # Prevent truncation
+        seq_length = min(seq_length, real_seq_length)
         token_attention = token_attention[:seq_length]
         x_positions = np.arange(len(token_attention))
 
@@ -349,6 +353,7 @@ class Whisper(nn.Module):
         plt.ylabel("Attention Score")
         plt.title("Attention Distribution Over Sequence")
         plt.show()
+
 
 
 
