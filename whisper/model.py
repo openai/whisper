@@ -313,8 +313,8 @@ class Whisper(nn.Module):
 
         return attn_maps
         
-    def plot_attention_distribution(self, seq_length: int = 1500):
-        """Plots decoder cross-attention distribution over the full 1500-token audio sequence."""
+    def plot_attention_distribution(self, seq_length: int = 1500, actual_audio_tokens: int = None):
+        """Plots decoder cross-attention distribution with padding region highlighted."""
         attn_maps = self.get_attention_weights()
 
         if not attn_maps:
@@ -341,14 +341,30 @@ class Whisper(nn.Module):
         seq_length = min(seq_length, real_seq_length)
         token_attention = avg_attn[:seq_length]
 
+        # Identify padding boundary if known
+        if actual_audio_tokens is not None:
+            print(f"Actual Audio Ends at Token: {actual_audio_tokens}")
+            padding_start = actual_audio_tokens  # Padding begins here
+        else:
+            padding_start = seq_length  # Default (no padding known)
+
         # Plot the attention distribution
         x_positions = np.arange(len(token_attention))
         plt.figure(figsize=(12, 4))
-        plt.bar(x_positions, token_attention, width=1.5, alpha=0.7)
+        plt.bar(x_positions, token_attention, width=1.5, alpha=0.7, label="Attention Score")
+
+        # Highlight padding region
+        if actual_audio_tokens is not None:
+            plt.axvline(padding_start, color="red", linestyle="dashed", label="Padding Start")
+            plt.fill_between(x_positions, 0, token_attention, where=(x_positions >= padding_start), 
+                            color="red", alpha=0.3, label="Padding Region")
+
         plt.xlabel("Audio Token Position")
         plt.ylabel("Attention Score")
         plt.title("Cross-Attention Distribution Over 1500 Audio Tokens")
+        plt.legend()
         plt.show()
+
 
 
 
