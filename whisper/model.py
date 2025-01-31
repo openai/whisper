@@ -114,8 +114,6 @@ class MultiHeadAttention(nn.Module):
         wv, qk = self.qkv_attention(q, k, v, mask)
 
         self.attn_weights = qk
-        print(qk)
-
         return self.out(wv), qk
 
     def qkv_attention(
@@ -319,12 +317,28 @@ class Whisper(nn.Module):
             print("No attention weights found!")
             return
 
-        # Average over heads and layers
-        avg_attn = np.mean(attn_maps, axis=0)  
-        avg_attn = avg_attn[:, :, :seq_length, :seq_length]  
+        # Convert list to NumPy array
+        attn_maps = np.array(attn_maps)
 
+        # Print debug info
+        print(f"Attention Maps Shape: {attn_maps.shape}")  # Should be (layers, batch, heads, seq_len, seq_len)
+
+        # Average over layers and heads
+        avg_attn = np.mean(attn_maps, axis=(0, 2))  # Shape: (batch, seq_len, seq_len)
+
+        print(f"Averaged Attention Shape: {avg_attn.shape}")  # Should be (batch, seq_len, seq_len)
+
+        # Check batch dimension
+        if avg_attn.shape[0] > 1:
+            print("Warning: Multiple batches detected, plotting first sample.")
+            avg_attn = avg_attn[0]  # Take the first batch
+
+        # Ensure shape matches seq_length
+        avg_attn = avg_attn[:seq_length, :seq_length]  # Truncate for visualization
+
+        # Plot heatmap
         plt.figure(figsize=(8, 6))
-        sns.heatmap(avg_attn.mean(axis=1).squeeze(), cmap="Blues", annot=False)
+        sns.heatmap(avg_attn, cmap="Blues", annot=False)
         plt.xlabel("Input Positions")
         plt.ylabel("Output Positions")
         plt.title("Attention Weights on Padded Regions")
