@@ -319,27 +319,29 @@ class Whisper(nn.Module):
 
         # Convert to NumPy array
         attn_maps = np.array(attn_maps)
-        print(f"Attention Maps Shape: {attn_maps.shape}")  # Expected (layers, batch, heads, ?, seq_len)
+        print(f"Attention Maps Shape: {attn_maps.shape}")  # (layers, batch, heads, ?, seq_len)
 
         # Average over layers and heads
-        avg_attn = np.mean(attn_maps, axis=(0, 2))  # Should be (batch, ?, seq_len)
+        avg_attn = np.mean(attn_maps, axis=(0, 2))  # Expected shape: (batch, ?, seq_len)
         print(f"Averaged Attention Shape (Before Squeeze): {avg_attn.shape}")
 
         # Remove batch and singleton dimensions
-        avg_attn = np.squeeze(avg_attn)  # Shape should now be (seq_len, seq_len)
+        avg_attn = np.squeeze(avg_attn)  
         print(f"Averaged Attention Shape (After Squeeze): {avg_attn.shape}")
 
+        # Handle different shapes
+        if avg_attn.ndim == 1:
+            print("Detected 1D array—attention weights collapsed.")
+            token_attention = avg_attn  # Directly use it as a 1D sequence
+        elif avg_attn.ndim == 2:
+            print("Detected 2D array—computing mean across attention heads.")
+            token_attention = np.mean(avg_attn, axis=-1)  # Average over last dimension
+        else:
+            raise ValueError(f"Unexpected attention shape: {avg_attn.shape}")
+
         # Check the real sequence length
-        real_seq_length = avg_attn.shape[-1]  # Get correct dimension
+        real_seq_length = len(token_attention)
         print(f"Real Sequence Length Detected: {real_seq_length}")
-
-        # Extract mean attention for each token (FIXED)
-        token_attention = np.mean(avg_attn, axis=-2)  # Keeps shape (seq_len,)
-        print(f"Token Attention Shape: {token_attention.shape}")
-
-        if token_attention.ndim == 0:  # Prevents empty scalar error
-            print("Error: token_attention is a scalar. Fixing shape issue.")
-            token_attention = avg_attn.mean(axis=-1)  # Alternative averaging
 
         # Ensure we plot the full available sequence length
         seq_length = min(seq_length, real_seq_length)
@@ -353,6 +355,7 @@ class Whisper(nn.Module):
         plt.ylabel("Attention Score")
         plt.title("Attention Distribution Over Sequence")
         plt.show()
+
 
 
 
