@@ -170,8 +170,13 @@ class ResidualAttentionBlock(nn.Module):
         kv_cache: Optional[dict] = None,
     ):
         x = x + self.attn(self.attn_ln(x), mask=mask, kv_cache=kv_cache)[0]
+        
         if self.cross_attn:
-            x = x + self.cross_attn(self.cross_attn_ln(x), xa, kv_cache=kv_cache)[0]
+            cross_out, cross_attn_weights = self.cross_attn(self.cross_attn_ln(x), xa, kv_cache=kv_cache)
+            x = x + cross_out
+            self.cross_attn.attn_weights = cross_attn_weights  # Store weights
+            print(self.cross_attn.attn_weights)
+
         x = x + self.mlp(self.mlp_ln(x))
         return x
 
@@ -304,57 +309,56 @@ class Whisper(nn.Module):
         """Retrieve stored attention weights from the decoder's layers."""
         attn_maps = []
         for block in self.decoder.blocks:
-            if block.attn.attn_weights is not None:
-                attn_maps.append(block.attn.attn_weights.detach().cpu().numpy())
+            if block.cross_attn and block.cross_attn.attn_weights is not None:
+                attn_maps.append(block.cross_attn.attn_weights.detach().cpu().numpy())
 
         return attn_maps
-    
+        
     def plot_attention_distribution(self, seq_length: int = 1500):
-        """Plots attention distribution over sequence length."""
+        """Plots decoder cross-attention distribution over sequence length."""
         attn_maps = self.get_attention_weights()
 
         if not attn_maps:
-            print("No attention weights found!")
+            print("No cross-attention weights found!")
             return
 
         # Convert to NumPy array
         attn_maps = np.array(attn_maps)
-        print(f"Attention Maps Shape: {attn_maps.shape}")  # (layers, batch, heads, ?, seq_len)
+        print(f"Cross-Attention Maps Shape: {attn_maps.shape}")  # (layers, batch, heads, seq_len, audio_seq_len)
 
         # Average over layers and heads
-        avg_attn = np.mean(attn_maps, axis=(0, 2))  # Expected shape: (batch, ?, seq_len)
-        print(f"Averaged Attention Shape (Before Squeeze): {avg_attn.shape}")
+        avg_attn = np.mean(attn_maps, axis=(0, 2))  # Expected shape: (batch, seq_len, audio_seq_len)
+        print(f"Averaged Cross-Attention Shape (Before Squeeze): {avg_attn.shape}")
 
         # Remove batch and singleton dimensions
         avg_attn = np.squeeze(avg_attn)  
-        print(f"Averaged Attention Shape (After Squeeze): {avg_attn.shape}")
+        print(f"Averaged Cross-Attention Shape (After Squeeze): {avg_attn.shape}")
 
-        # Handle different shapes
-        if avg_attn.ndim == 1:
-            print("Detected 1D array—attention weights collapsed.")
-            token_attention = avg_attn  # Directly use it as a 1D sequence
-        elif avg_attn.ndim == 2:
-            print("Detected 2D array—computing mean across attention heads.")
-            token_attention = np.mean(avg_attn, axis=-1)  # Average over last dimension
-        else:
-            raise ValueError(f"Unexpected attention shape: {avg_attn.shape}")
-
-        # Check the real sequence length
-        real_seq_length = len(token_attention)
+        # Get attention over **audio sequence (1500 tokens)**
+        real_seq_length = avg_attn.shape[-1]  # Ensure we're using full audio sequence
         print(f"Real Sequence Length Detected: {real_seq_length}")
+
+        # Extract mean attention for each audio token
+        token_attention = np.mean(avg_attn, axis=0)  # Shape: (audio_seq_len,)
+        print(f"Token Attention Shape: {token_attention.shape}")
+
+        if token_attention.ndim == 0:  # Prevents empty scalar error
+            print("Error: token_attention is a scalar. Fixing shape issue.")
+            token_attention = avg_attn.mean(axis=-1)  # Alternative averaging
 
         # Ensure we plot the full available sequence length
         seq_length = min(seq_length, real_seq_length)
         token_attention = token_attention[:seq_length]
         x_positions = np.arange(len(token_attention))
 
-        # Plot the attention distribution
+        # Plot the cross-attention distribution
         plt.figure(figsize=(12, 4))
         plt.bar(x_positions, token_attention, width=1.5, alpha=0.7)
-        plt.xlabel("Token Position")
+        plt.xlabel("Audio Token Position")
         plt.ylabel("Attention Score")
-        plt.title("Attention Distribution Over Sequence")
+        plt.title("Cross-Attention Distribution Over 1500 Audio Tokens")
         plt.show()
+
 
 
 
