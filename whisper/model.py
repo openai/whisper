@@ -310,7 +310,7 @@ class Whisper(nn.Module):
         return attn_maps
     
     def plot_attention_distribution(self, seq_length: int = 100):
-        """Plots attention distribution over sequence length."""
+        """Plots attention distribution over sequence length with a style matching the original reference image."""
         attn_maps = self.get_attention_weights()
 
         if not attn_maps:
@@ -321,34 +321,34 @@ class Whisper(nn.Module):
         attn_maps = np.array(attn_maps)
         print(f"Attention Maps Shape: {attn_maps.shape}")
 
-        # Average over layers and heads
-        avg_attn = np.mean(attn_maps, axis=(0, 2))  # Expected shape: (batch, ?, seq_len)
-        print(f"Averaged Attention Shape (Before Squeeze): {avg_attn.shape}")
+        # Average over layers
+        avg_attn = np.mean(attn_maps, axis=0)  # Shape: (batch, heads, seq_len, seq_len)
 
-        # Remove batch and singleton dimensions
-        avg_attn = np.squeeze(avg_attn)  # Shape should now be (seq_len, seq_len)
-        print(f"Averaged Attention Shape (After Squeeze): {avg_attn.shape}")
+        # Remove batch dimension
+        avg_attn = np.squeeze(avg_attn)  # Shape: (heads, seq_len, seq_len)
 
-        # Check if the array is 2D (seq_len, seq_len)
-        if avg_attn.ndim == 1:  # If still incorrect (seq_len,)
-            print("Warning: Attention map has only 1 dimension, reshaping for visualization.")
-            avg_attn = avg_attn.reshape((1, -1))  # Force into 2D shape
-
-        # Extract the mean attention for each token
-        token_attention = np.mean(avg_attn, axis=0)  # Shape: (seq_len,)
+        # Average over sequence axis to get token importance
+        token_attention = np.mean(avg_attn, axis=1)  # Shape: (heads, seq_len)
         print(f"Token Attention Shape: {token_attention.shape}")
 
         # Ensure we only plot up to `seq_length`
-        seq_length = min(seq_length, token_attention.shape[0])  # Prevent out-of-bounds
-        token_attention = token_attention[:seq_length]
-        x_positions = np.arange(len(token_attention))
+        seq_length = min(seq_length, token_attention.shape[1])
+        token_attention = token_attention[:, :seq_length]
 
-        # Plot the attention distribution
+        x_positions = np.arange(seq_length)
+
+        # Create the figure
         plt.figure(figsize=(12, 4))
-        plt.bar(x_positions, token_attention, width=1.5, alpha=0.7)
+
+        # Plot each head separately for color variation
+        for head in range(token_attention.shape[0]):
+            plt.plot(x_positions, token_attention[head], alpha=0.7, linewidth=0.8)
+
+        # Styling to match original image
         plt.xlabel("Token Position")
         plt.ylabel("Attention Score")
         plt.title("Attention Distribution Over Sequence")
+        plt.grid(False)  # Remove grid for cleaner visualization
         plt.show()
 
 
