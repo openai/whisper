@@ -1,0 +1,1 @@
+ the machine. So there are two N cubed operations that need to be performed. We're not doing stress and saligar or anything like that. We're just doing straight tripling nested loop. So that's two to the 37 floating point operations. The running time is 21,000 seconds. So that says that we're getting about 6.25 megaflops out of our machine when we run that code.

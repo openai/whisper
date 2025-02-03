@@ -1,0 +1,1 @@
+ assuming for simplicity that our N is an exact power.

@@ -1,0 +1,1 @@
+ 17 million because we're going to compare with it. So what about the computer block? So if I look at a block, that is going to take me 64 by 64. Also takes 4,096 writes to see. Same number. But now I have to do about 200,000 reads from A, because I need to access all those rows. And then for B, I need to access 64 columns of B. And that's another 2,000.

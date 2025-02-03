@@ -1,0 +1,1 @@
+ ends up being half a million memory accesses total. Okay?

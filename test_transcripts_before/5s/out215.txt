@@ -1,0 +1,1 @@
+ So that's a vector unit. So basically, each of these 18 cores can do 8-

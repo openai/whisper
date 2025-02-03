@@ -1,0 +1,1 @@
+ processors. They put more than one processing core in a chip. And to scale

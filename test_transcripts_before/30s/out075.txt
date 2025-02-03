@@ -1,0 +1,1 @@
+ loop, for example, in this case, you say silk for it, says do all those iterations in parallel. Compiling runtime system are free to schedule them, and so forth. And we could also do it for the inner loop. And it turns out you can't also do it for the middle loop, if you think about it. So I'll let you do that as a little bit of a homework problem. Why can't I just do a silk?

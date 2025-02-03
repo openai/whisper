@@ -1,0 +1,1 @@
+ We're going to just compute one row of C. So we go through one row of C. That's going to take us since a 4,096 long vector there. That's going to basically be 4,096 rights that we're going to do. And we're going to get some spatial locality there, which is good. But we're basically doing the processors doing 4,096 rights. Now to compute that row, I need to access

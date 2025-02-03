@@ -1,0 +1,1 @@
+ and it'll figure out which architecture is that. Okay, now.

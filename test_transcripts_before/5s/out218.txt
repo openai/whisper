@@ -1,0 +1,1 @@
+ It has a cash line size of 64 bytes.

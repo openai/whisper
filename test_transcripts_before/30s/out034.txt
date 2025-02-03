@@ -1,0 +1,1 @@
+ running at 2.9 gigahertz. There are two processor chips for each of these machines. And nine processing cores per chip, so a total of 18 cores. So that's the amount of parallel processing. It does two-way hyperthreading, which we're actually going to not deal a lot with. Hyperthreading gives you a little bit more performance, but it also makes it really hard to measure.

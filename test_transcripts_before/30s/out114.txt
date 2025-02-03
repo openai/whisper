@@ -1,0 +1,1 @@
+ You know, sitting around time when you're doing something, you say, oh, I want to do 10 tests. Let's spin up 10 machines and do all the tests at the same time. When you do that, and the main one we're getting out of this is the AVX and Trin6, we get up to 0.41 of peak. So 41% of peak and get about 50,000 speed up. OK? And it turns out, um,

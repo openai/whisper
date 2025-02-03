@@ -1,0 +1,1 @@
+ said the first rule of program optimization, don't do it. Second rule of program optimization.

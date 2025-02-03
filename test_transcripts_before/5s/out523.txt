@@ -1,0 +1,1 @@
+ What you do is you bust your matrices into, let's say, 64 by 64.

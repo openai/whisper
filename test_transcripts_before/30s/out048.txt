@@ -1,0 +1,1 @@
+ out is about just under 3,000 seconds, which is about 46 minutes. The same code, Python Java. We got almost a nine times speed up over just simply coding it in a different language. Well, let's try C. That's the language we're going to be using here. What happens when you code it in C?

@@ -1,0 +1,1 @@
+ You can give a string that tells you the architecture that you're running on on that special things

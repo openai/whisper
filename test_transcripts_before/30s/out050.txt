@@ -1,0 +1,1 @@
+ Okay, we have the running time of these various things. Okay, and the relative speed up is how much faster it is than the previous row. And the absolute speed up is how it is compared to the first row. And now we're managing to get now 0.014% of peak. So we're still slow, but before we go and try to optimize it further, startingess for

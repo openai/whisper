@@ -1,0 +1,1 @@
+ The idea is when the code is first interpreted, it's executed.

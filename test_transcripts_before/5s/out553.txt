@@ -1,0 +1,1 @@
+ and then a shared L3 cache, and then you go out to the DRAM, you also can go

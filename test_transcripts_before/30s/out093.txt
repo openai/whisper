@@ -1,0 +1,1 @@
+ to do two-level tiling, you can have two tuning parameters, S and T. And now you get to do, you can't do binary search to find it, unfortunately, because it's multidimensional. You kind of have to do it exhaustively. And when you do that, you end up with nine nested loops. But of course, we don't really want to do it. We have three levels of caching.

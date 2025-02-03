@@ -1,0 +1,1 @@
+ is because the performance model is hard to figure out. See, it's much closer to the metal, much closer to the silicon. And so it's much easier to figure out what's going on in that context. OK? But we will have a guest lecture that we're going to talk about performance in managed languages like Python. So it's not that we're going to ignore the topic, but we will.

@@ -1,0 +1,1 @@
+ you can use AVX2, you can use the fuse multiply add vector instruction.

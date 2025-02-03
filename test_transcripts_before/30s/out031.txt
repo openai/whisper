@@ -1,0 +1,1 @@
+ as well as theoretical points of view and technical points of view. So modern processors are really complicated, and the big question is how do we write software to use that modern hardware efficiently? I want to give you an example of performance engineering of a very well-studied problem, namely matrix multiplication, who has never seen this problem.

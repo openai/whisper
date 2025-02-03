@@ -1,0 +1,1 @@
+ to be accumulated. So it's basically 2N cube. We're going to look at it assuming for simplicity that our N is an exact power of 2. Now, the machine that we're going to look at is going to be one of the ones that you'll have access to an AWS. It's a compute-optimized machine, which has a Haswell microarchitecture.

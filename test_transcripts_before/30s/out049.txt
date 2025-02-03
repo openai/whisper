@@ -1,0 +1,1 @@
+ It's exactly the same thing. OK. We're going to use the Clang LLVM 5.0 compiler. I believe we're using 6.0. This term is that right? Yeah. OK. I should have rerun these numbers for 6, but I didn't. So now it's basically 1,100 seconds, which is about 19 minutes. So we got then about its twice as fast as Java and about 18 times faster than Python. So here's where we stand so far.

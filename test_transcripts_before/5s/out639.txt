@@ -1,0 +1,1 @@
+ And what kinds of things are being vectorized, which things are being vectorized, which aren't?

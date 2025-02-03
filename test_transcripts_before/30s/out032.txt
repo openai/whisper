@@ -1,0 +1,1 @@
+ Okay, so we got some jokers in the class I can say. Okay, so this is, you know, it takes N cubed operations because you're basically computing N squared dot products. Okay, so essentially if you add up the total number of operations it's about 2 N cubed because there is essentially a multiply and an add for every pair of terms that need.

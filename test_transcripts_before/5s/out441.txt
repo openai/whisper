@@ -1,0 +1,1 @@
+ We're using just one core and how many cores we have? Eight.

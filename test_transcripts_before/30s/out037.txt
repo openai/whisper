@@ -1,0 +1,1 @@
+ 256 kilobytes and it's got an L3 cache or what's sometimes called an LLC last level cache of 25 megabytes and then it's got 60 gigabytes of DRAM. So this is a honking big machine. This is like you can get things to sing on this. If you look at the peak performance, it's the clock speed times two processor chips, times nine.

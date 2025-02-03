@@ -1,0 +1,1 @@
+ How do we tell whether this is faster?

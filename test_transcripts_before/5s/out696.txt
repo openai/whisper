@@ -1,0 +1,1 @@
+ better than what we did because we assumed it was a power of two, Intel doesn't assume that it's a power of two.

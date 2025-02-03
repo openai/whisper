@@ -1,0 +1,1 @@
+ of the data for the matrix. And it's got an L2 cache, which is also private to the processor.

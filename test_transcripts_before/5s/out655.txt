@@ -1,0 +1,1 @@
+ give it a flag called fast math minus F fast math, which will allow it to do that.

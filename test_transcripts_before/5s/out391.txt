@@ -1,0 +1,1 @@
+ excellent spatial locality because we're just accessing the same location every single time it's going to be

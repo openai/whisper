@@ -1,0 +1,1 @@
+ 15 times faster than Python. Okay, so here's where we stand so far.

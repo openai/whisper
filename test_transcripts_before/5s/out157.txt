@@ -1,0 +1,1 @@
+ Now, if you wanted to use that potential, you had to do parallel programming.

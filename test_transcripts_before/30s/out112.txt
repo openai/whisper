@@ -1,0 +1,1 @@
+ use the instructions, the vector instructions yourself, rather than relying the compiler to do it. And there's a whole manual of intrinsic instructions that you can call from C that allow you to do, the specific vector instructions that you might want to do it. So the compiler doesn't have to figure that out. And you can also use some other more insights

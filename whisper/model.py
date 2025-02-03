@@ -205,7 +205,7 @@ class AudioEncoder(nn.Module):
 
         assert x.shape[1:] == self.positional_embedding.shape, "incorrect audio shape"
 
-        FEAT = True
+        FEAT = False
 
         if FEAT:
             n_extension = 200

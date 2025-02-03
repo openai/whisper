@@ -1,0 +1,1 @@
+ For a processor call, as you see, that around 2005, 2004, 2005, we started to get multiple processing cores per chip. To the extent that today, it's basically impossible to find a single core chip for a laptop or a workstation or whatever. Everything is multi-core. You can't buy just one. You have to buy a parallel processor. And so

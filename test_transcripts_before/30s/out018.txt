@@ -1,0 +1,1 @@
+ reduce power and still keep everything fast. And we'll talk about that in a minute. So if you look at what happened to, from 1977 to 2004, here are Apple computers with similar price tags. And you can see the clock rate really just skyrocketed. One megahertz, 400 megahertz, 1.8 gigahertz. And the data pass went from 8 bits to 30 to 6.

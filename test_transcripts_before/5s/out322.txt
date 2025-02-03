@@ -1,0 +1,1 @@
+ The interpreter basically reads, interprets, and performs each program statement.

@@ -1,0 +1,1 @@
+ So there's a function call overhead even when you're multiplying one by one. So hey, let's.

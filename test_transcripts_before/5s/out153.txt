@@ -1,0 +1,1 @@
+ chip for a laptop or a workstation or whatever. Everything is multi-core.

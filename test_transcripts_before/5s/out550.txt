@@ -1,0 +1,1 @@
+ They've got three levels of caches. Okay? There's L1 cache.

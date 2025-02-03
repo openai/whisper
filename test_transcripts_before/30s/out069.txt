@@ -1,0 +1,1 @@
+ Okay, we then got a relative speed up from about six and a half. So what other simple changes can we try? There's actually a collection of things that we could do that don't even have us touching the code. What else could we do for people who have played with compilers and such? Hint hint. Yeah. Yeah. Yeah, change the compiler flags, okay? So, click.

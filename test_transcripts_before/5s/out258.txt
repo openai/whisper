@@ -1,0 +1,1 @@
+ know what size it is, it's 4,096 by 4,096 as it shows in the code.

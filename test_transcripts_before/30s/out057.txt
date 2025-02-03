@@ -1,0 +1,1 @@
+ code. And then subsequent to that, it runs the compiled code. So try to get the big advantage of the performance by only compiling the things that are necessary for which it's actually going to pay off to invoke the compiler to do. So anyway, so that's the big difference with those kinds of things. One of the reasons we don't use Python in this class is

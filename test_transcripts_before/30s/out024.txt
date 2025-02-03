@@ -1,0 +1,1 @@
+ to use, but we can't use the transistors to make stuff run faster. So what they did is they introduced parallelism in the form of multi-core processors. They put more than one processing core in a chip. And to scale performance, they would have multiple cores. And each generation of Moore's law now was potentially doubling the number of cores. So if you look at what happened,

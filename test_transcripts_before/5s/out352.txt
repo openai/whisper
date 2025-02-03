@@ -1,0 +1,1 @@
+ that we're going to talk about performance in managed languages like

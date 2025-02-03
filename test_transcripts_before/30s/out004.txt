@@ -1,0 +1,1 @@
+ software. What are some of the things that are more important than software? That's probably then performance. Yeah. Deadlines. Deadlines. Good. Cost. Correctness. Extensibility. Yeah, I'm going to go on and on. I think that you folks could probably make a pretty long list. I made a short list of all the kinds of things that are more important than performance.

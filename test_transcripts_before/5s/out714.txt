@@ -1,0 +1,1 @@
+ In this course, we're going to focus on multi-core computing. We are not, in particular,

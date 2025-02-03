@@ -1,0 +1,1 @@
+ In this course, we're going to focus on multi-core computing. We are not, in particular, going to be doing GPUs or file systems or network performance. In the real world, those are hugely important. What we found, however, is that it's better to learn a particular domain, in particular, this particular domain, people who master multi-core performance engineering. In fact,

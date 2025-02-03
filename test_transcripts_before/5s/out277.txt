@@ -1,0 +1,1 @@
+ second we get we take the number of operations divided by the time okay

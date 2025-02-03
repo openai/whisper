@@ -1,0 +1,1 @@
+ here's paralyzed outer loops rather than inter loops. OK? And so when we do parallel loop.

@@ -1,0 +1,1 @@
+ and it'll figure out which architecture is that. Okay? Now, floating point numbers as we'll talk about, turn out to have some undesirable properties like they're not associative. So if you do A times B times C, how you parentize that can give you two different numbers. And so if you give a specification of a code, typically the compiler will not change the order of associative.

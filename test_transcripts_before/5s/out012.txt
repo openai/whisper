@@ -1,0 +1,1 @@
+ talking a little bit about why we do performance engineering.

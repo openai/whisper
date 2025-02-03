@@ -1,0 +1,1 @@
+ 26,000, 262,000 reads from B, which ends up being half a million memory accesses total. So I end up doing way fewer accesses if those blocks will fit in my cache. So I do much less to compute the same size footprint if I compute a block rather than computing a row. A much more efficient.

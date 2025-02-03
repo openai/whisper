@@ -1,0 +1,1 @@
+ OK, do the update. We could otherwise do. We could do for i for k for j, do the update. And it computes exactly the same thing. Or we could do for k for j for i, do the updates. So we can change the order without affecting the correctness. And so do you think the order of loops matters for performance?

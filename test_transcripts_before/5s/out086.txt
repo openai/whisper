@@ -1,0 +1,1 @@
+ warning away because when you start trying to make things fast your code becomes unreadable.

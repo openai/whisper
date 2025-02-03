@@ -1,0 +1,1 @@
+ parallel version works best. So we can do parallel the i loop with

@@ -1,0 +1,1 @@
+ 3% of peak performance. OK? So what's causing the low performance? Why aren't we getting most of the performance out of this machine? Why do you think? Yeah. You know, we're not using all the cars so far. We're using just one core and how many cores we have? 18. 18 cores. 18 cores. Just sitting there, 17 sitting idle while we are trying to opt.

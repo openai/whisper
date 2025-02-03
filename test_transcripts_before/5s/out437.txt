@@ -1,0 +1,1 @@
+ Now we're actually starting to approach 1% of peak performance. We got point.

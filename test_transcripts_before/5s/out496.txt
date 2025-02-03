@@ -1,0 +1,1 @@
+ So I need to just compute one row of C.

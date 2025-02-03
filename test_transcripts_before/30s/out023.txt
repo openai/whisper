@@ -1,0 +1,1 @@
+ to become significant. To the point where now today the dynamic power is far less of a concern than the static power from just the circuit sitting there leaking. And when you miniaturize, you can't stop that effect from happening. So what do the vendors do in 2004 and 2005 and since? They said, oh gosh, we've got all these transistors.

@@ -1,0 +1,1 @@
+ in contiguous blocks called cache lines. Okay, previously accessed cache.

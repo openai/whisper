@@ -1,0 +1,1 @@
+ optimize one. So, multi-core. So, we have nine cores per chip, and there are two of these chips in our test machine. So, we're running on just one of them. So, let's use them all. To do that, we're going to use the Silk infrastructure. And in particular, we can use what's called a parallel loop, which in Silk you call Silk 4. And so, you just relay that outer

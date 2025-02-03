@@ -1,0 +1,1 @@
+ Okay, can anybody figure out the inductive number? How many, for three levels of caching? How many levels of tiling do we have to do? This is a, this is a gimme, right? 12, 12, okay? Yeah, it's in do 12, okay. That really, and man, you know, when I say the code gets ugly when you start making things go fast, okay, right? This is like, ooh.

@@ -1,0 +1,1 @@
+ OK. And as we mentioned, we have floating point units per core, which we can also do a fused multiply add. So each vector res, hold multiple words. I believe in the one, the machine we're using is term as four words. I think so.

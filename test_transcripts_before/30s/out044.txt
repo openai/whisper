@@ -1,0 +1,1 @@
+ Is this fast? Yeah, right, duh, right? Is this fast? No, you know, how do we tell whether this is fast or not? OK? What should we expect from our machine? So let's do a back of the envelope calculation of how many operations there are and how fast we ought to be able to do it. We just went through and said we're at all the parameters.

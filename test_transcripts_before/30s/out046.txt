@@ -1,0 +1,1 @@
+ Okay? Just by dividing it out. How many floating point operations per second do we get? Let me take the number of operations divided by the time. Okay? The peak, as you recall, was about 836 giga-flops. Okay? And we're getting 6.25 mega-flops. Okay? So we're getting about 0.0075% of peak.

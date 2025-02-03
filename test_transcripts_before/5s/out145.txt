@@ -1,0 +1,1 @@
+ So what they did is they introduced parallelism in the form of multi-core product.

@@ -1,0 +1,1 @@
+ choosing a good optimization flag in this case O2, we got for free.

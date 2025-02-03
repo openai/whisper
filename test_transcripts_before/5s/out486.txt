@@ -1,0 +1,1 @@
+ we're going to just compute one row of C. So we go through one

@@ -1,0 +1,1 @@
+ Okay. This is not fast. Okay. This is not fast. So let's do something really simple. Let's code it in Java rather than Python. Okay. So we take just that loop. The code is almost the same. Okay. It's the tripling nested loop. We run it in Java. Okay. And the running time now it turns.

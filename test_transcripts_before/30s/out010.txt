@@ -1,0 +1,1 @@
+ care about, like usability or testability or what have you. Now, in the early days of computing, software performance engineering was common because machine resources were limited. If you look at these machines from 1964 to 1977, look at how many bytes they have on them. In 1964, there is a computer with 524 kilobytes.

@@ -1,0 +1,1 @@
+ So when you compile, you're able to take advantage of the hardware interpreter of machine.

@@ -1,0 +1,1 @@
+ 4,096 reads from A. And I need all of B, okay? Because I go each column of B, okay, as I'm going through, to fully compute C. Do people see that? Okay? So I need to just compute one row of C. I'm going to compute, I need to access one row of A.

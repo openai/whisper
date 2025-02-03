@@ -1,0 +1,1 @@
+ update the state of the machine and then you would fetch the next instruction.

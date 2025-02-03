@@ -1,0 +1,1 @@
+ have nine cores per chip, and there are two of these chips in our test machine.

@@ -1,0 +1,1 @@
+ access when the processor access something if it's in the cache you get a hit that's very cheap

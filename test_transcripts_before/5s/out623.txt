@@ -1,0 +1,1 @@
+ data. That means you give one instruction and it does operations on a vector.

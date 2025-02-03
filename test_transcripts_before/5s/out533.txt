@@ -1,0 +1,1 @@
+ How do we find the right value of S, this tuning parameter? Okay?

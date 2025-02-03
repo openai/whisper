@@ -1,0 +1,1 @@
+ right here, before the tripling nested loop, we take a time measurement and then we take another time measurement at the end and then we print the difference. And then that's just this classic tripling nested loop for matrix multiplication. And so when you run this, how long is this run for, you think? Any guesses? Let's see. Now about, let's do the.

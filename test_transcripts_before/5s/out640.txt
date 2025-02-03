@@ -1,0 +1,1 @@
+ And we'll talk about how you vectorize things that the compiler doesn't want to vectorize.

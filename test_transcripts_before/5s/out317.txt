@@ -1,0 +1,1 @@
+ code which is then interpreted and then just in time compiled to machine.

@@ -1,0 +1,1 @@
+ Take software overhead you get with Python. Now, JIT is somewhere in the middle, what's used in Java.

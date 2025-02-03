@@ -1,0 +1,1 @@
+ frequencies anymore. The reason for that is that originally clock frequency was scaled assuming.

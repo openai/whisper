@@ -1,0 +1,1 @@
+ in working too hard on performance engineering for many years. If you look at technology scaling and you look at how many transistors are on various processor designs up until about 2004, we had Moore's Law in full throttle, with chip densities doubling every two years and really quite amazing.

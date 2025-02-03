@@ -1,0 +1,1 @@
+ That's where we quit. OK? And the reason is because we beat Intel's professionally engineered math kernel library at that point. OK? You know, there's a good question. It's why aren't we getting all of peak? And you know, I invite you to figure that out. OK? It turns out, though, Intel MKL is.

@@ -1,0 +1,1 @@
+ But, um, JIT compilers can recover some of the performance. In fact, it did a pretty good job in this case.

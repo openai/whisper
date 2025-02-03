@@ -1,0 +1,1 @@
+ Yeah, question? The data types are usually distributed. There's 64 bit. Yep. So these days 64 bit is pretty standard. They call that double precision, but it's pretty standard. Unless you're doing AI applications, in which case you may want to do lower precision arithmetic. No, float.

@@ -1,0 +1,1 @@
+ the slides. So then when we do that, we now are getting 12% of peak. And we're doing, if you count up how many cache misses we have, you can see that, you know, here's the data cache for L1 and with parallel divide and concourse, the lowest, but also now so is the last level caching. Okay, and then total number of references is smallest.

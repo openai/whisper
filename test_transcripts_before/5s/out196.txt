@@ -1,0 +1,1 @@
+ If you add up the total number of operations, it's about two N cubed because they're.

@@ -1,0 +1,1 @@
+ Okay, and the data paths went from eight bits to 30 to six.

@@ -1,0 +1,1 @@
+ So the idea is that you do divide and conquer you divide each of the matrices into

@@ -1,0 +1,1 @@
+ and they can do things like dynamic code alteration and so forth at the cost of

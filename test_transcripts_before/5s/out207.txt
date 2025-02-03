@@ -1,0 +1,1 @@
+ amount of parallel processing. It does two-way hyperthreading, which

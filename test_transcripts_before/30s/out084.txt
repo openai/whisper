@@ -1,0 +1,1 @@
+ of A and all of B again, so that when I'm done, we do about 16 million, 17 million memory accesses total. Okay, that's a lot of memory accesses. So what if instead of doing that, I do things in blocks, okay? So what if I want to compute a 64 by 64 block of C rather than a row of C? So let's take a look at what happens there. So remember, by the way, this number, 16.

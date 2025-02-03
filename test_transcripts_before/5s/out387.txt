@@ -1,0 +1,1 @@
+ Let's just take a look at the access pattern for order ijk.

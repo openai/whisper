@@ -1,0 +1,1 @@
+ to operate on a particular datum. And then it's ignoring seven of the eight floating point words on that cache line and going to the next one. So it's wasting an awful lot. So this one has good spatial locality and that it's all adjacent. And you would use the cache lines effectively. This one you're going 4,096 elements apart. It's got poor spatial locality. And that's why.

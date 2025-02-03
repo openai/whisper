@@ -1,0 +1,1 @@
+ ideas are how we might find it. Yeah. You could do that. You might get a number. But who knows what else is going on in the cash while you're doing this? Yeah, test a bunch of them. Experiment. Try them. See which one gives you good numbers. And when you do that, it turns out that 32 gives you the best performance. For this particular problem.

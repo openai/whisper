@@ -1,0 +1,1 @@
+ compiler can be smarter about how it optimizes. And there are a variety of other things. So with this simple technology, we now choosing a good optimization flag in this case O2, we got for free basically a factor of 3.25 without having to do much work at all. And now we're actually starting to approach 1% of peak performance. We got point.

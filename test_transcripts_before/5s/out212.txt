@@ -1,0 +1,1 @@
+ For floating point unit, it is capable of doing eight double

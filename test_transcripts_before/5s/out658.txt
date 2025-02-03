@@ -1,0 +1,1 @@
+ architecture native and fast math, we actually get about double the performance.
