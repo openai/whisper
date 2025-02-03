@@ -224,56 +224,129 @@ class TextDecoder(nn.Module):
         mask = torch.empty(n_ctx, n_ctx).fill_(-np.inf).triu_(1)
         self.register_buffer("mask", mask, persistent=False)
 
-    def forward(self, x: Tensor, xa: Tensor, kv_cache: Optional[dict] = None):
+        # Optimisation: pre-compute and register the mask in CUDA if available
+        if torch.cuda.is_available():
+            self.register_buffer("mask_cuda", mask.cuda(), persistent=False)
+
+<<<<<<< Updated upstream
+
+    def forward(self, tokens: Tensor, audio_features: Tensor) -> Tensor:
         """
-        x : torch.LongTensor, shape = (batch_size, <= n_ctx)
-            the text tokens
-        xa : torch.Tensor, shape = (batch_size, n_audio_ctx, n_audio_state)
-            the encoded audio features to be attended on
+        Args:
+            tokens: (n_batch, n_token)
+            audio_features: (n_batch, n_audio_ctx, n_audio_state)
+
+        Returns:
+            logits: (n_batch, n_token, n_vocab)
         """
-        offset = next(iter(kv_cache.values())).shape[1] if kv_cache else 0
-        x = (
-            self.token_embedding(x)
-            + self.positional_embedding[offset : offset + x.shape[-1]]
-        )
-        x = x.to(xa.dtype)
+        n_batch, n_token = tokens.shape
+        n_audio_ctx, n_audio_state = audio_features.shape[1:]
+
+        x = self.token_embedding(tokens) + self.positional_embedding[:n_token]
+
+        # Optimisation: Move audio_features to GPU once here.
+        if torch.cuda.is_available():
+            audio_features = audio_features.cuda()
+
 
         for block in self.blocks:
-            x = block(x, xa, mask=self.mask, kv_cache=kv_cache)
+            x = block(x, audio_features)
 
         x = self.ln(x)
-        logits = (
-            x @ torch.transpose(self.token_embedding.weight.to(x.dtype), 0, 1)
-        ).float()
+        logits = x @ self.token_embedding.weight.T
+
+        # Optimisation: Apply the precomputed CUDA mask if available.
+        if torch.cuda.is_available():
+             mask = self.mask_cuda[:n_token, :n_token]
+        else:
+            mask = self.mask[:n_token, :n_token]
+        
+        logits = logits + mask
 
         return logits
 
 
-class Whisper(nn.Module):
-    def __init__(self, dims: ModelDimensions):
-        super().__init__()
-        self.dims = dims
-        self.encoder = AudioEncoder(
-            self.dims.n_mels,
-            self.dims.n_audio_ctx,
-            self.dims.n_audio_state,
-            self.dims.n_audio_head,
-            self.dims.n_audio_layer,
-        )
-        self.decoder = TextDecoder(
-            self.dims.n_vocab,
-            self.dims.n_text_ctx,
-            self.dims.n_text_state,
-            self.dims.n_text_head,
-            self.dims.n_text_layer,
-        )
-        # use the last half among the decoder layers for time alignment by default;
-        # to use a specific set of heads, see `set_alignment_heads()` below.
-        all_heads = torch.zeros(
-            self.dims.n_text_layer, self.dims.n_text_head, dtype=torch.bool
-        )
-        all_heads[self.dims.n_text_layer // 2 :] = True
-        self.register_buffer("alignment_heads", all_heads.to_sparse(), persistent=False)
+    def forward(self, x: Tensor, xa: Tensor, kv_cache: Optional[dict] = None):
+=======
+    def forward(
+        self,
+        tokens: Tensor,
+        audio_features: Tensor,
+        kv_cache: Optional[dict] = None
+    ) -> Tensor:
+>>>>>>> Stashed changes
+        """
+        Args:
+            tokens: (n_batch, n_token) or x tensor
+            audio_features: (n_batch, n_audio_ctx, n_audio_state) or xa tensor
+            kv_cache: Optional cache for key/value tensors
+        """
+        if kv_cache is not None:
+            # Handle the kv_cache case
+            offset = next(iter(kv_cache.values())).shape[1] if kv_cache else 0
+            x = (
+                self.token_embedding(tokens)
+                + self.positional_embedding[offset : offset + tokens.shape[-1]]
+            )
+            x = x.to(audio_features.dtype)
+
+            for block in self.blocks:
+                x = block(x, audio_features, mask=self.mask, kv_cache=kv_cache)
+
+            x = self.ln(x)
+            logits = (
+                x @ torch.transpose(self.token_embedding.weight.to(x.dtype), 0, 1)
+            ).float()
+
+            return logits
+        else:
+            # Handle the non-kv_cache case
+            n_batch, n_token = tokens.shape
+            x = self.token_embedding(tokens) + self.positional_embedding[:n_token]
+
+            if torch.cuda.is_available():
+                audio_features = audio_features.cuda()
+
+            for block in self.blocks:
+                x = block(x, audio_features)
+
+            x = self.ln(x)
+            logits = x @ self.token_embedding.weight.T
+
+            if torch.cuda.is_available():
+                mask = self.mask_cuda[:n_token, :n_token]
+            else:
+                mask = self.mask[:n_token, :n_token]
+
+            logits = logits + mask
+
+            return logits
+
+    class Whisper(nn.Module):
+        def __init__(self, dims: ModelDimensions):
+            super().__init__()
+            self.dims = dims
+            self.encoder = AudioEncoder(
+                self.dims.n_mels,
+                self.dims.n_audio_ctx,
+                self.dims.n_audio_state,
+                self.dims.n_audio_head,
+                self.dims.n_audio_layer,
+            )
+            self.decoder = TextDecoder(
+                self.dims.n_vocab,
+                self.dims.n_text_ctx,
+                self.dims.n_text_state,
+                self.dims.n_text_head,
+                self.dims.n_text_layer,
+            )
+            # use the last half among the decoder layers for time alignment by default;
+            # to use a specific set of heads, see `set_alignment_heads()` below.
+            all_heads = torch.zeros(
+                self.dims.n_text_layer, self.dims.n_text_head, dtype=torch.bool
+            )
+            all_heads[self.dims.n_text_layer // 2 :] = True
+            self.register_buffer("alignment_heads", all_heads.to_sparse(), persistent=False)
 
     def set_alignment_heads(self, dump: bytes):
         array = np.frombuffer(
