@@ -179,6 +179,26 @@ class ResidualAttentionBlock(nn.Module):
         x = x + self.mlp(self.mlp_ln(x))
         return x
 
+class AudioEncoderTokenPruner():
+    def __init__(self, n_extension: int):
+        self.n_extension = n_extension
+
+    def prune(self, x: Tensor, positional_embedding: Tensor):
+        audio_length = int((x.shape[1] + 1) // 2)
+        pos_emb = torch.concat((
+            positional_embedding[:audio_length + self.n_extension, :],
+            positional_embedding[-self.n_extension:, :]), dim=0,
+        )
+
+        # extend the x's first dimension by n_extension
+        x = torch.concat((
+            x[:, :audio_length + self.n_extension, :],
+            x[:, -self.n_extension:, :]), dim=1,
+        )
+
+        x = (x + pos_emb).to(x.dtype)
+
+        return x
 
 class AudioEncoder(nn.Module):
     def __init__(
@@ -195,6 +215,8 @@ class AudioEncoder(nn.Module):
         )
         self.ln_post = LayerNorm(n_state)
         self.ext_feat_flag = ext_feat_flag
+        if ext_feat_flag:
+            self.token_pruner = AudioEncoderTokenPruner(n_extension=200)
 
     def forward(self, x: Tensor):
         """
@@ -208,20 +230,7 @@ class AudioEncoder(nn.Module):
         assert x.shape[1:] == self.positional_embedding.shape, "incorrect audio shape"
 
         if self.ext_feat_flag:
-            n_extension = 200
-            audio_length = int((x.shape[2] + 1) // 2)
-            pos_emb = torch.concat((
-                self.positional_embedding[:audio_length + n_extension, :],
-                self.positional_embedding[-n_extension:, :]), dim=0,
-            )
-
-            # extend the x's first dimension by n_extension
-            x = torch.concat((
-                x[:, :audio_length + n_extension, :],
-                x[:, -n_extension:, :]), dim=1,
-            )
-
-            x = (x + pos_emb).to(x.dtype)
+            x = self.token_pruner.prune(x, self.positional_embedding)
         else:
             x = (x + self.positional_embedding).to(x.dtype)
 

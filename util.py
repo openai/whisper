@@ -1,10 +1,10 @@
 import timeit
 import whisper
 from typing import Tuple
+import matplotlib.pyplot as plt
 
-
-def load_model(model_name: str = "tiny.en") -> whisper.Whisper:
-    return whisper.load_model(model_name, ext_feature_flag=False)
+def load_model(model_name: str = "tiny.en", ff: bool = False) -> whisper.Whisper:
+    return whisper.load_model(model_name, ext_feature_flag=ff)
 
 
 def transcribe(model: whisper.Whisper, audio_path: str) -> Tuple[str, float]:
@@ -40,16 +40,3 @@ def calculate_wer(hypothesis: str, reference: str) -> float:
                 )
 
     return dp[len(ref_words)][len(hyp_words)] / len(ref_words)
-
-
-if __name__ == "__main__":
-    model = load_model()
-    audio_path = "test_data/30s/out000.wav"
-    transcript_path = "test_transcripts_before/30s/out000.txt"
-
-    hypothesis, elapsed_time = transcribe(model, audio_path)
-    with open(transcript_path, "r") as f:
-        reference = f.read()
-
-    wer = calculate_wer(hypothesis, reference)
-    print(f"WER: {wer:.4f}")
