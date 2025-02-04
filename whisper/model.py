@@ -182,17 +182,19 @@ class ResidualAttentionBlock(nn.Module):
 
 class AudioEncoder(nn.Module):
     def __init__(
-        self, n_mels: int, n_ctx: int, n_state: int, n_head: int, n_layer: int
+        self, n_mels: int, n_ctx: int, n_state: int, n_head: int, n_layer: int, ext_feat_flag: bool = False
     ):
         super().__init__()
         self.conv1 = Conv1d(n_mels, n_state, kernel_size=3, padding=1)
         self.conv2 = Conv1d(n_state, n_state, kernel_size=3, stride=2, padding=1)
         self.register_buffer("positional_embedding", sinusoids(n_ctx, n_state))
 
+
         self.blocks: Iterable[ResidualAttentionBlock] = nn.ModuleList(
             [ResidualAttentionBlock(n_state, n_head) for _ in range(n_layer)]
         )
         self.ln_post = LayerNorm(n_state)
+        self.ext_feat_flag = ext_feat_flag
 
     def forward(self, x: Tensor):
         """
@@ -205,9 +207,7 @@ class AudioEncoder(nn.Module):
 
         assert x.shape[1:] == self.positional_embedding.shape, "incorrect audio shape"
 
-        FEAT = False
-
-        if FEAT:
+        if self.ext_feat_flag:
             n_extension = 200
             audio_length = int((x.shape[2] + 1) // 2)
             pos_emb = torch.concat((
@@ -278,7 +278,7 @@ class TextDecoder(nn.Module):
 
 
 class Whisper(nn.Module):
-    def __init__(self, dims: ModelDimensions):
+    def __init__(self, dims: ModelDimensions, ext_feat_flag: bool = False):
         super().__init__()
         self.dims = dims
         self.encoder = AudioEncoder(
@@ -287,6 +287,7 @@ class Whisper(nn.Module):
             self.dims.n_audio_state,
             self.dims.n_audio_head,
             self.dims.n_audio_layer,
+            ext_feat_flag=ext_feat_flag,
         )
         self.decoder = TextDecoder(
             self.dims.n_vocab,
@@ -302,6 +303,7 @@ class Whisper(nn.Module):
         )
         all_heads[self.dims.n_text_layer // 2 :] = True
         self.register_buffer("alignment_heads", all_heads.to_sparse(), persistent=False)
+        self.ext_feat_flag = ext_feat_flag
 
     def set_alignment_heads(self, dump: bytes):
         array = np.frombuffer(
