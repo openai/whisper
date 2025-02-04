@@ -3,8 +3,8 @@ import whisper
 from typing import Tuple
 import matplotlib.pyplot as plt
 
-def load_model(model_name: str = "tiny.en", ff: bool = False) -> whisper.Whisper:
-    return whisper.load_model(model_name, ext_feature_flag=ff)
+def load_model(model_name: str = "tiny.en", ff: bool = False, cut_region=None) -> whisper.Whisper:
+    return whisper.load_model(model_name, ext_feature_flag=ff, cut_region=cut_region)
 
 
 def transcribe(model: whisper.Whisper, audio_path: str) -> Tuple[str, float]:
