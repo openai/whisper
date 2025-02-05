@@ -549,13 +549,11 @@ def transcribe(
     if censor:
         text = censor_text(text, forbidden_words)
 
-    data = dict(
+    return dict(
         text=text,
         segments=all_segments,
         language=language,
     )
-
-    return data
 
 
 def cli():
