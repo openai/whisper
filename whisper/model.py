@@ -188,21 +188,20 @@ class AudioEncoderTokenPruner():
         # audio_length = int((x.shape[1] + 1) // 2)
         # [0-950, -----, 1300-1500]
 
-        pos_emb = torch.concat((
-            positional_embedding[:self.cut_region[0], :],
-            torch.zeros_like(positional_embedding[self.cut_region[0]:self.cut_region[1], :], device=x.device),
-            positional_embedding[self.cut_region[1]:,:]), dim=0,
-        )
+        cut_start, cut_end = self.cut_region
+        assert 0 <= cut_start < cut_end <= x.shape[1], "Cut region out of bounds!"
 
-        x = torch.concat((
-            x[:, :self.cut_region[0], :],
-            torch.zeros_like(x[:, self.cut_region[0]:self.cut_region[1], :], device=x.device),
-            x[:, self.cut_region[1]:,:]), dim=1,
-        )
+        # Keep only the uncut regions
+        x_pruned = torch.cat((x[:, :cut_start, :], x[:, cut_end:, :]), dim=1)
+        pos_emb_pruned = torch.cat((positional_embedding[:cut_start, :], positional_embedding[cut_end:, :]), dim=0)
 
-        x = (x + pos_emb).to(x.dtype)
+        # Ensure dimensions match
+        assert x_pruned.shape[1] == pos_emb_pruned.shape[0], "Shape mismatch after pruning!"
 
-        return x
+        # Add positional embeddings back
+        x_pruned = (x_pruned + pos_emb_pruned).to(x.dtype)
+
+        return x_pruned
 
 class AudioEncoder(nn.Module):
     def __init__(
