@@ -1,0 +1,8 @@
+import openai
+
+openai.api_key = "your-api-key"
+
+audio_file = open("C:\Users\Aya Magdy\Downloads\Convert\Audio 1 - section 4.mp4", "rb")
+transcript = openai.Audio.transcribe("whisper-1", audio_file)
+
+print(transcript["text"])
