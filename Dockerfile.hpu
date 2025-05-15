@@ -1,0 +1,34 @@
+# Use the official Gaudi Docker image with PyTorch
+FROM vault.habana.ai/gaudi-docker/1.18.0/ubuntu22.04/habanalabs/pytorch-installer-2.4.0:latest
+
+# Set environment variables for Habana
+ENV HABANA_VISIBLE_DEVICES=all
+ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
+ENV PT_HPU_LAZY_ACC_PAR_MODE=0
+ENV PT_HPU_ENABLE_LAZY_COLLECTIVES=1
+
+# Set timezone to UTC and install essential packages
+ENV DEBIAN_FRONTEND="noninteractive" TZ=Etc/UTC
+RUN apt-get update && apt-get install -y \
+    tzdata \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download and install the static build of ffmpeg
+RUN mkdir -p /usr/local/bin/ffmpeg && \
+    cd /usr/local/bin/ffmpeg && \
+    wget https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz && \
+    tar -xf ffmpeg-release-amd64-static.tar.xz && \
+    cp -a ffmpeg-*-static/ffmpeg /usr/bin/ffmpeg && \
+    cp -a ffmpeg-*-static/ffprobe /usr/bin/ffprobe && \
+    rm -rf /usr/local/bin/ffmpeg
+
+COPY . /workspace/whisper
+WORKDIR /workspace/whisper
+
+# Copy HPU requirements
+COPY requirements_hpu.txt /workspace/requirements_hpu.txt
+
+# Install Python packages
+RUN pip install --upgrade pip \
+    && pip install -r requirements_hpu.txt

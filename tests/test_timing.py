@@ -3,7 +3,8 @@ import pytest
 import scipy.ndimage
 import torch
 
-from whisper.timing import dtw_cpu, dtw_cuda, median_filter
+from whisper.hpu_utils import get_x_hpu
+from whisper.timing import dtw_cpu, dtw_cuda, median_filter, dtw_hpu
 
 sizes = [
     (10, 20),
@@ -94,3 +95,15 @@ def test_median_filter_equivalence(shape):
         filtered_gpu = median_filter(x.cuda(), filter_width).cpu()
 
         assert np.allclose(filtered_cpu, filtered_gpu)
+
+
+@pytest.mark.requires_hpu
+@pytest.mark.parametrize("N, M", sizes)
+def test_dtw_hpu_equivalence(N: int, M: int):
+    x_numpy = np.random.randn(N, M).astype(np.float32)
+    x_hpu = get_x_hpu(x_numpy)
+
+    trace_cpu = dtw_cpu(x_numpy)
+    trace_hpu = dtw_hpu(x_hpu)
+
+    assert np.allclose(trace_cpu, trace_hpu)

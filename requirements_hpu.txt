@@ -1,0 +1,6 @@
+optimum-habana==1.14.1
+transformers==4.45.2
+huggingface-hub==0.26.2
+tiktoken==0.8.0
+torch-geometric==2.6.1
+numba==0.60.0

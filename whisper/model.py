@@ -11,6 +11,7 @@ from torch import Tensor, nn
 
 from .decoding import decode as decode_function
 from .decoding import detect_language as detect_language_function
+from .hpu_utils import is_hpu_device
 from .transcribe import transcribe as transcribe_function
 
 try:
@@ -250,9 +251,12 @@ class TextDecoder(nn.Module):
 
 
 class Whisper(nn.Module):
-    def __init__(self, dims: ModelDimensions):
+    def __init__(self, dims: ModelDimensions, compute_device: Optional[torch.device] = None):
         super().__init__()
         self.dims = dims
+        self.compute_device = compute_device or (
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+        )
         self.encoder = AudioEncoder(
             self.dims.n_mels,
             self.dims.n_audio_ctx,
@@ -273,7 +277,11 @@ class Whisper(nn.Module):
             self.dims.n_text_layer, self.dims.n_text_head, dtype=torch.bool
         )
         all_heads[self.dims.n_text_layer // 2 :] = True
-        self.register_buffer("alignment_heads", all_heads.to_sparse(), persistent=False)
+        if not is_hpu_device(self.compute_device):
+            # Convert to sparse format if device is not HPU
+            all_heads = all_heads.to_sparse()
+
+        self.register_buffer("alignment_heads", all_heads, persistent=False)
 
     def set_alignment_heads(self, dump: bytes):
         array = np.frombuffer(
@@ -282,7 +290,11 @@ class Whisper(nn.Module):
         mask = torch.from_numpy(array).reshape(
             self.dims.n_text_layer, self.dims.n_text_head
         )
-        self.register_buffer("alignment_heads", mask.to_sparse(), persistent=False)
+        if not is_hpu_device(self.compute_device):
+            # Convert to sparse format if device is not HPU
+            mask = mask.to_sparse()
+
+        self.register_buffer("alignment_heads", mask, persistent=False)
 
     def embed_audio(self, mel: torch.Tensor):
         return self.encoder(mel)

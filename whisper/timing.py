@@ -10,6 +10,7 @@ import torch
 import torch.nn.functional as F
 
 from .audio import HOP_LENGTH, SAMPLE_RATE, TOKENS_PER_SECOND
+from .hpu_utils import is_hpu_device
 from .tokenizer import Tokenizer
 
 if TYPE_CHECKING:
@@ -138,7 +139,54 @@ def dtw_cuda(x, BLOCK_SIZE=1024):
     return backtrace(trace.cpu().numpy())
 
 
+def dtw_hpu(x, BLOCK_SIZE=1024):
+    """
+    DTW implementation for HPU.
+    """
+    M, N = x.shape
+    assert M < BLOCK_SIZE, f"M should be smaller than {BLOCK_SIZE=}"
+
+    x_skew = F.pad(x, (0, M + 1), value=np.inf).flatten()[: M * (N + M)].reshape(M, N + M)
+    x_skew = x_skew.T.contiguous()
+
+    # Initialize cost and trace matrices with high values for comparison
+    cost = torch.ones(N + M + 2, M + 2, device="hpu") * np.inf
+    cost[0, 0] = 0  # Start point for DTW
+    trace = torch.zeros_like(cost, dtype=torch.int32, device="hpu")
+
+    for k in range(1, N + M + 1):
+        p0 = cost[k - 1, :M]
+        p1 = cost[k, :M]
+        p2 = cost[k, 1:M + 1]
+
+        c0 = p0.clone()
+        c1 = p1.clone()
+        c2 = p2.clone()
+
+        x_row = x_skew[k - 1, :M]
+
+        cost_row = x_row + torch.min(torch.min(c0, c1), c2)
+        cost[k + 1, 1:M + 1] = cost_row
+
+        # Track path by storing traces
+        trace[k + 1, 1:M + 1] = 2 * (c2 <= c0) * (c2 <= c1) + 1 * (c1 <= c0) * (c1 <= c2) + 0 * (c0 <= c1) * (c0 <= c2)
+
+    trace = trace.T.flatten()[: (M + 1) * (M + N + 3)].reshape(M + 1, M + N + 3)[:, : N + 1]
+    return backtrace(trace.cpu().numpy())
+
+
 def dtw(x: torch.Tensor) -> np.ndarray:
+    try:
+        from habana_frameworks.torch.utils.library_loader import load_habana_module
+        load_habana_module()
+
+        if torch.hpu.is_available():
+            return dtw_hpu(x)
+    except (ImportError, subprocess.CalledProcessError):
+        warnings.warn(
+            "Failed to import Habana modules, likely due to missing Habana libraries; "
+        )
+
     if x.is_cuda:
         try:
             return dtw_cuda(x)
@@ -204,7 +252,21 @@ def find_alignment(
         hook.remove()
 
     # heads * tokens * frames
-    weights = torch.stack([QKs[_l][_h] for _l, _h in model.alignment_heads.indices().T])
+    # Adjust alignment head indices for HPU
+    weights = []
+    if is_hpu_device(model.device):
+        # Handle dense layout for HPU
+        alignment_heads_dense = model.alignment_heads.to_dense() if model.alignment_heads.is_sparse else model.alignment_heads
+        indices = alignment_heads_dense.nonzero(as_tuple=True)
+        for _l, _h in zip(*indices):
+            weights.append(QKs[_l][_h])
+    else:
+        # Default behavior for non-HPU devices
+        for _l, _h in model.alignment_heads.indices().T:
+            weights.append(QKs[_l][_h])
+
+    # Stack the weights
+    weights = torch.stack(weights)
     weights = weights[:, :, : num_frames // 2]
     weights = (weights * qk_scale).softmax(dim=-1)
     std, mean = torch.std_mean(weights, dim=-2, keepdim=True, unbiased=False)
