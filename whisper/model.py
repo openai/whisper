@@ -224,31 +224,64 @@ class TextDecoder(nn.Module):
         mask = torch.empty(n_ctx, n_ctx).fill_(-np.inf).triu_(1)
         self.register_buffer("mask", mask, persistent=False)
 
-    def forward(self, x: Tensor, xa: Tensor, kv_cache: Optional[dict] = None):
-        """
-        x : torch.LongTensor, shape = (batch_size, <= n_ctx)
-            the text tokens
-        xa : torch.Tensor, shape = (batch_size, n_audio_ctx, n_audio_state)
-            the encoded audio features to be attended on
-        """
-        offset = next(iter(kv_cache.values())).shape[1] if kv_cache else 0
-        x = (
-            self.token_embedding(x)
-            + self.positional_embedding[offset : offset + x.shape[-1]]
-        )
-        x = x.to(xa.dtype)
+        # Optimisation: pre-compute and register the mask in CUDA if available
+        if torch.cuda.is_available():
+            self.register_buffer("mask_cuda", mask.cuda(), persistent=False)
 
+
+    def forward(self, tokens: Tensor, audio_features: Tensor, kv_cache: Optional[dict] = None) -> Tensor:
+        """
+        Args:
+            tokens: (n_batch, n_token)
+            audio_features: (n_batch, n_audio_ctx, n_audio_state)
+            kv_cache: Optional cache for key/value tensors
+
+        Returns:
+            logits: (n_batch, n_token, n_vocab)
+        """
+        n_batch, n_token = tokens.shape
+        
+        # Get the dtype of audio_features to ensure consistency
+        dtype = audio_features.dtype
+        
+        # Handle kv_cache for token embedding offset
+        if kv_cache is not None:
+            offset = next(iter(kv_cache.values())).shape[1] if kv_cache else 0
+            x = self.token_embedding(tokens) + self.positional_embedding[offset:offset + tokens.shape[1]]
+        else:
+            x = self.token_embedding(tokens) + self.positional_embedding[:n_token]
+        
+        # Convert to the same dtype as audio_features
+        x = x.to(dtype)
+
+        # Optimisation: Move audio_features to GPU once here.
+        if torch.cuda.is_available():
+            audio_features = audio_features.cuda()
+
+        # Process through attention blocks
         for block in self.blocks:
-            x = block(x, xa, mask=self.mask, kv_cache=kv_cache)
+            x = block(x, audio_features, kv_cache=kv_cache)
 
         x = self.ln(x)
-        logits = (
-            x @ torch.transpose(self.token_embedding.weight.to(x.dtype), 0, 1)
-        ).float()
+        
+        # Ensure consistent dtype for matrix multiplication
+        # Convert token_embedding weight to the same dtype as x
+        embedding_weights = self.token_embedding.weight.to(x.dtype)
+        logits = x @ embedding_weights.T
+
+        # Apply mask if not using kv_cache (inference)
+        if kv_cache is None:
+            # Optimisation: Apply the precomputed CUDA mask if available.
+            if torch.cuda.is_available():
+                mask = self.mask_cuda[:n_token, :n_token]
+            else:
+                mask = self.mask[:n_token, :n_token]
+            
+            logits = logits + mask
 
         return logits
-
-
+    
+# The Whisper class has been moved outside of TextDecoder and is now a top-level class
 class Whisper(nn.Module):
     def __init__(self, dims: ModelDimensions):
         super().__init__()
