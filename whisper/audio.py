@@ -7,6 +7,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+import whisper
 from .utils import exact_div
 
 # hard-coded audio hyperparameters
@@ -43,7 +44,7 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
     # and resampling as necessary.  Requires the ffmpeg CLI in PATH.
     # fmt: off
     cmd = [
-        "ffmpeg",
+        whisper.ffmpeg_path,
         "-nostdin",
         "-threads", "0",
         "-i", file,
