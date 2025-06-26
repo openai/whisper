@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## [v20250625](https://github.com/openai/whisper/releases/tag/v20250625)
+
+* Fix: Update torch.load to use weights_only=True to prevent security w… ([#2451](https://github.com/openai/whisper/pull/2451))
+* Fix: Ensure DTW cost tensor is on the same device as input tensor ([#2561](https://github.com/openai/whisper/pull/2561))
+* docs: updated README to specify translation model limitation ([#2547](https://github.com/openai/whisper/pull/2547))
+* Fixed triton kernel update to support latest triton versions ([#2588](https://github.com/openai/whisper/pull/2588))
+* Fix: GitHub display errors for Jupyter notebooks ([#2589](https://github.com/openai/whisper/pull/2589))
+* Bump the github-actions group with 3 updates ([#2592](https://github.com/openai/whisper/pull/2592))
+* Keep GitHub Actions up to date with GitHub's Dependabot ([#2486](https://github.com/openai/whisper/pull/2486))
+* pre-commit: Upgrade black v25.1.0 and isort v6.0.0 ([#2514](https://github.com/openai/whisper/pull/2514))
+* GitHub Actions: Add Python 3.13 to the testing ([#2487](https://github.com/openai/whisper/pull/2487))
+* PEP 621: Migrate from setup.py to pyproject.toml ([#2435](https://github.com/openai/whisper/pull/2435))
+* pre-commit autoupdate && pre-commit run --all-files ([#2484](https://github.com/openai/whisper/pull/2484))
+* Upgrade GitHub Actions ([#2430](https://github.com/openai/whisper/pull/2430))
+* Bugfix: Illogical "Avoid computing higher temperatures on no_speech" ([#1903](https://github.com/openai/whisper/pull/1903))
+* Updating README and doc strings to reflect that n_mels can now be 128 ([#2049](https://github.com/openai/whisper/pull/2049))
+* fix typo data/README.md ([#2433](https://github.com/openai/whisper/pull/2433))
+* Update README.md ([#2379](https://github.com/openai/whisper/pull/2379))
+* Add option to carry initial_prompt with the sliding window ([#2343](https://github.com/openai/whisper/pull/2343))
+* more pytorch versions in tests ([#2408](https://github.com/openai/whisper/pull/2408))
+
 ## [v20240930](https://github.com/openai/whisper/releases/tag/v20240930)
 
 * allowing numpy 2 in tests ([#2362](https://github.com/openai/whisper/pull/2362))
