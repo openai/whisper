@@ -101,7 +101,7 @@ whisper japanese.wav --model medium --language Japanese --task translate
 
 > **Note:** The `turbo` model will return the original language even if `--task translate` is specified. Use `medium` or `large` for the best translation results.
 
-Run the following to view all available options:
+Run the `help` command to view detailed list of commands, options, and usage instructions:
 
 ```bash
 whisper --help
