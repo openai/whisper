@@ -237,7 +237,8 @@ def transcribe(
 
     remaining_prompt_length = model.dims.n_text_ctx // 2 - 1
     if initial_prompt is not None:
-        initial_prompt_tokens = tokenizer.encode(" " + initial_prompt.strip())
+        space = "" if language in {"zh", "ja", "th", "lo", "my", "yue"} else " "
+        initial_prompt_tokens = tokenizer.encode(space + initial_prompt.strip())
         all_tokens.extend(initial_prompt_tokens)
         remaining_prompt_length -= len(initial_prompt_tokens)
     else:
