@@ -1,7 +1,10 @@
 numba
-numpy
-torch
+numpy>=1.22.2 # minimum version requirement to fix vulnerability per snyk
+torch>=2.2.0 # minimum version requirement to fix vulnerability per snyk
 tqdm
 more-itertools
 tiktoken
 triton>=2.0.0;platform_machine=="x86_64" and sys_platform=="linux" or sys_platform=="linux2"
+setuptools>=70.0.0 # not directly required, pinned by Snyk to avoid a vulnerability
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
+wheel>=0.38.0 # not directly required, pinned by Snyk to avoid a vulnerability
