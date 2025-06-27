@@ -224,6 +224,8 @@ def find_alignment(
         # IndexError: arrays used as indices must be of integer (or boolean) type
         return []
     word_boundaries = np.pad(np.cumsum([len(t) for t in word_tokens[:-1]]), (1, 0))
+    if len(word_boundaries) <= 1:
+        return []
 
     jumps = np.pad(np.diff(text_indices), (1, 0), constant_values=1).astype(bool)
     jump_times = time_indices[jumps] / TOKENS_PER_SECOND
