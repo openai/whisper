@@ -52,7 +52,6 @@ _ALIGNMENT_HEADS = {
 
 
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
-    os.makedirs(root, exist_ok=True)
 
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(root, os.path.basename(url))
@@ -69,7 +68,19 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
+    else:
+        # If not already downloaded, check global locations and use
+        # those before downloading.  Prefer /var/ for host specific
+        # override over /usr/ file controlled by package manager.
+        for globalroot in ('/var/lib/openai-whisper/', '/usr/share/openai-whisper/'):
+            candidate = os.path.join(globalroot, os.path.basename(url))
+            if os.path.isfile(candidate):
+                with open(candidate, "rb") as f:
+                    model_bytes = f.read()
+                    return model_bytes if in_memory else candidate
 
+    # Time to download, make sure download directory is available.
+    os.makedirs(root, exist_ok=True)
     with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
         with tqdm(
             total=int(source.info().get("Content-Length")),
