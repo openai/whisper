@@ -208,6 +208,10 @@ class EnglishNumberNormalizer:
                 prefix = current[0] if has_prefix else prefix
                 if f.denominator == 1:
                     value = f.numerator  # store integers as int
+                    # count the number of leading zeros and add back all leading zeros if they were removed
+                    leading_zeros = len(current_without_prefix) - len(current_without_prefix.lstrip('0'))
+                    if leading_zeros > 0 and value != 0:
+                        value = "0" * leading_zeros + str(value)             
                 else:
                     value = current_without_prefix
             elif current not in self.words:
