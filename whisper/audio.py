@@ -51,15 +51,16 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
         "-ac", "1",
         "-acodec", "pcm_s16le",
         "-ar", str(sr),
+        "-loglevel", "error",
         "-"
     ]
     # fmt: on
-    try:
-        out = run(cmd, capture_output=True, check=True).stdout
-    except CalledProcessError as e:
-        raise RuntimeError(f"Failed to load audio: {e.stderr.decode()}") from e
+    result = run(cmd, capture_output=True)
 
-    return np.frombuffer(out, np.int16).flatten().astype(np.float32) / 32768.0
+    if len(result.stderr):
+        raise RuntimeError(f"Failed to load audio: {result.stderr.decode()}")
+
+    return np.frombuffer(result.stdout, np.int16).flatten().astype(np.float32) / 32768.0
 
 
 def pad_or_trim(array, length: int = N_SAMPLES, *, axis: int = -1):
