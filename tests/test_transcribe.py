@@ -7,18 +7,37 @@ import whisper
 from whisper.tokenizer import get_tokenizer
 
 
+class TestingProgressReceiver(whisper.TranscribeProgressReceiver):
+    def start(self, total: int):
+        self.result = ""
+        self.total = total
+        self.progress = 0
+        return self
+    def update_line(self, start: float, end: float, text: str):
+        self.result += text
+    def update(self, n):
+        self.progress += n
+    def get_result(self):
+        return self.result
+    def verify_total(self):
+        return self.total == self.progress
+
 @pytest.mark.parametrize("model_name", whisper.available_models())
 def test_transcribe(model_name: str):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = whisper.load_model(model_name).to(device)
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
+    receiver = TestingProgressReceiver()
 
     language = "en" if model_name.endswith(".en") else None
     result = model.transcribe(
-        audio_path, language=language, temperature=0.0, word_timestamps=True
+        audio_path, language=language, temperature=0.0, word_timestamps=True,
+        progress_receiver=receiver
     )
+    assert receiver.verify_total()
     assert result["language"] == "en"
     assert result["text"] == "".join([s["text"] for s in result["segments"]])
+    assert result["text"] == receiver.get_result()
 
     transcription = result["text"].lower()
     assert "my fellow americans" in transcription
