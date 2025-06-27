@@ -596,6 +596,8 @@ class DecodingTask:
             if self.sample_len is not None:
                 max_prefix_len = self.n_ctx // 2 - self.sample_len
                 prefix_tokens = prefix_tokens[-max_prefix_len:]
+            if not self.options.without_timestamps:
+                tokens = tokens + [self.tokenizer.timestamp_begin]
             tokens = tokens + prefix_tokens
 
         if prompt := self.options.prompt:
