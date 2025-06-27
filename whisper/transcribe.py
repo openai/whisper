@@ -186,6 +186,7 @@ def transcribe(
             [temperature] if isinstance(temperature, (int, float)) else temperature
         )
         decode_result = None
+        results = {}
 
         for t in temperatures:
             kwargs = {**decode_options}
@@ -199,6 +200,8 @@ def transcribe(
 
             options = DecodingOptions(**kwargs, temperature=t)
             decode_result = model.decode(segment, options)
+
+            results[t] = decode_result
 
             needs_fallback = False
             if (
@@ -220,6 +223,9 @@ def transcribe(
                 needs_fallback = False  # silence
             if not needs_fallback:
                 break
+        else:
+            # all failed
+            return max(results.values(), key=lambda r: r.avg_logprob)
 
         return decode_result
 
