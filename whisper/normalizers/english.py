@@ -406,11 +406,11 @@ class EnglishNumberNormalizer:
         s = " ".join(results)
 
         # put a space at number/letter boundary
-        s = re.sub(r"([a-z])([0-9])", r"\1 \2", s)
-        s = re.sub(r"([0-9])([a-z])", r"\1 \2", s)
+        s = re.sub(r"([a-z])(\d)", r"\1 \2", s)
+        s = re.sub(r"(\d)([a-z])", r"\1 \2", s)
 
         # but remove spaces which could be a suffix
-        s = re.sub(r"([0-9])\s+(st|nd|rd|th|s)\b", r"\1\2", s)
+        s = re.sub(r"(\d)\s+(st|nd|rd|th|s)\b", r"\1\2", s)
 
         return s
 
@@ -431,8 +431,8 @@ class EnglishNumberNormalizer:
                 return m.string
 
         # apply currency postprocessing; "$2 and ¢7" -> "$2.07"
-        s = re.sub(r"([€£$])([0-9]+) (?:and )?¢([0-9]{1,2})\b", combine_cents, s)
-        s = re.sub(r"[€£$]0.([0-9]{1,2})\b", extract_cents, s)
+        s = re.sub(r"([€£$])(\d+) (?:and )?¢(\d{1,2})\b", combine_cents, s)
+        s = re.sub(r"[€£$]0.(\d{1,2})\b", extract_cents, s)
 
         # write "one(s)" instead of "1(s)", just for the readability
         s = re.sub(r"\b1(s?)\b", r"one\1", s)
@@ -535,15 +535,15 @@ class EnglishTextNormalizer:
             s = re.sub(pattern, replacement, s)
 
         s = re.sub(r"(\d),(\d)", r"\1\2", s)  # remove commas between digits
-        s = re.sub(r"\.([^0-9]|$)", r" \1", s)  # remove periods not followed by numbers
+        s = re.sub(r"\.(\D|$)", r" \1", s)  # remove periods not followed by numbers
         s = remove_symbols_and_diacritics(s, keep=".%$¢€£")  # keep numeric symbols
 
         s = self.standardize_numbers(s)
         s = self.standardize_spellings(s)
 
         # now remove prefix/suffix symbols that are not preceded/followed by numbers
-        s = re.sub(r"[.$¢€£]([^0-9])", r" \1", s)
-        s = re.sub(r"([^0-9])%", r"\1 ", s)
+        s = re.sub(r"[.$¢€£](\D)", r" \1", s)
+        s = re.sub(r"(\D)%", r"\1 ", s)
 
         s = re.sub(r"\s+", " ", s)  # replace any successive whitespaces with a space
 
