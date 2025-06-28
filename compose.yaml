@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  whisper:
+    build: .
+    container_name: whisper-app
+    ports:
+      - "8501:8501"   # Streamlit
+      - "8000:8000"   # FastAPI
+    environment:
+      - WHISPER_MODEL=turbo
+    volumes:
+      - ./output:/app/output  # Carpeta local para resultados
+    restart: unless-stopped
