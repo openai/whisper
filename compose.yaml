@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  whisper:
+    build: .
+    container_name: whisper-app
+    ports:
+      - "8501:8501"
+      - "8000:8000"
+    environment:
+      - WHISPER_MODEL=turbo
+    volumes:
+      - /home/usuario/whisper_output:/app/output
+    restart: unless-stopped
