@@ -59,26 +59,3 @@ To confirm accurate transcription:
 Starting transcription... (Press Ctrl+C to stop)
 The quick brown fox jumps over the lazy dog
 ```
-```
-
-### **Key Improvements**:
-1. Added **verification steps** to confirm mic is working
-2. Included **accuracy testing** with standard test sentence
-3. Added **troubleshooting table** for common issues
-4. Shows **expected output** example
-
-### **How to Update**:
-1. Open `examples/README.md`
-2. Replace contents with the above markdown
-3. Commit changes:
-   ```bash
-   git add examples/README.md
-   git commit -m "docs: Add detailed verification steps"
-   git push
-   ```
-
-This will help users (including yourself) verify if the transcription is working properly. The test sentence "The quick brown fox..." is particularly useful because:
-- Contains all English letters
-- Easy to recognize when correct
-- Helps identify specific sound recognition issues
-

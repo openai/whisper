@@ -36,6 +36,7 @@ def try_standard_rates():
                 continue
     return None
 
+
 def try_pulseaudio():
     """Force PulseAudio configuration"""
     try:
@@ -52,7 +53,7 @@ def try_direct_hw():
         return None
 
 # Load model first to fail fast if issues
-MODEL = whisper.load_model("tiny")
+MODEL = whisper.load_model("base")
 
 # Get audio config
 config = get_audio_config()
