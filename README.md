@@ -118,7 +118,7 @@ Transcription can also be performed within Python:
 import whisper
 
 model = whisper.load_model("turbo")
-result = model.transcribe("audio.mp3")
+result = whisper.transcribe(model, "audio.mp3")
 print(result["text"])
 ```
 
