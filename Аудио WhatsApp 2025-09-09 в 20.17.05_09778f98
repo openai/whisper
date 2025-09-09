@@ -1,0 +1,2 @@
+pip install openai-whisper
+whisper "Аудио WhatsApp 2025-09-09 в 20.17.05_09778f98" --language Russian --model base
