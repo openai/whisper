@@ -1,0 +1,10 @@
+Transcription - 2025-09-16 10:07:17
+============================================================
+RAW TRANSCRIPTION:
+============================================================
+ In the currently open browser, find the button called add note and press it.
+
+============================================================
+PROCESSED PROMPT:
+============================================================
+In the currently open browser, find the button called add note and press it.

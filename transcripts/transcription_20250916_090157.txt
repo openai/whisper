@@ -1,0 +1,10 @@
+Transcription - 2025-09-16 09:01:57
+============================================================
+RAW TRANSCRIPTION:
+============================================================
+ The error user warning FP16 is not supported on CPU using FP32 instead warnings. Not one, FP16 is not supported on CPU using FP32 instead.
+
+============================================================
+PROCESSED PROMPT:
+============================================================
+The error user warning FP16 is not supported on CPU using FP32 instead warnings. Not one, FP16 is not supported on CPU using FP32 instead.

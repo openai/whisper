@@ -1,0 +1,10 @@
+Transcription - 2025-09-16 10:15:28
+============================================================
+RAW TRANSCRIPTION:
+============================================================
+ Take an HTML snapshot of the currently open web page and create a report showing headings that have item in a number or a question and a number, links to downloads of media files and responses to questions.
+
+============================================================
+PROCESSED PROMPT:
+============================================================
+Take an HTML snapshot of the currently open web page and create a report showing headings that have item in a number or a question and a number, links to downloads of media files and responses to questions.

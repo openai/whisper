@@ -1,0 +1,10 @@
+Transcription - 2025-09-16 10:11:11
+============================================================
+RAW TRANSCRIPTION:
+============================================================
+ Use browser NPC on the current open page in Chrome. Press the add note button.
+
+============================================================
+PROCESSED PROMPT:
+============================================================
+Use browser NPC on the current open page in Chrome. Press the add note button.
