@@ -23,10 +23,10 @@ classifiers = [
 dynamic = [ "version" ]
 dependencies = [
   "more-itertools",
-  "numba",
+  "numba ; python_version < '3.14'",  # https://github.com/numba/numba/issues/9957
   "numpy",
   "tiktoken",
-  "torch",
+  "torch ; python_version < '3.14'",  # https://github.com/pytorch/pytorch/issues/156856
   "tqdm",
   "triton>=2; (platform_machine=='x86_64' and sys_platform=='linux') or sys_platform=='linux2'",
 ]
