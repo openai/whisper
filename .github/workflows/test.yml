@@ -11,12 +11,12 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Fetch base branch
         run: git fetch origin ${{ github.base_ref }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
-          python-version: "3.9"
+          python-version: "3.10"
           architecture: x64
       - name: Get pip cache dir
         id: pip-cache
@@ -70,10 +70,16 @@ jobs:
           - python-version: '3.13'
             pytorch-version: 2.5.1
             numpy-requirement: "'numpy'"
+          - python-version: '3.14'
+            pytorch-version: 2.8.0
+            numpy-requirement: "'numpy>=2.3.4'"
     steps:
       - uses: conda-incubator/setup-miniconda@v3
       - run: conda install -n test ffmpeg python=${{ matrix.python-version }}
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: echo "$CONDA/envs/test/bin" >> $GITHUB_PATH
-      - run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+      - if: matrix.python-version != '3.14'
+        run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} torch==${{ matrix.pytorch-version }}+cpu --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple
+      - if: matrix.python-version == '3.14'
+        run: pip3 install .["dev"] ${{ matrix.numpy-requirement }} --extra-index-url https://pypi.org/simple
       - run: pytest --durations=0 -vv -k 'not test_transcribe or test_transcribe[tiny] or test_transcribe[tiny.en]' -m 'not requires_cuda'
