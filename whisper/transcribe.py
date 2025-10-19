@@ -34,6 +34,15 @@ from .utils import (
 if TYPE_CHECKING:
     from .model import Whisper
 
+# Memory optimization imports
+try:
+    from .optimization.memory_manager import MemoryManager
+    from .optimization.chunk_processor import ChunkProcessor
+    from .optimization.performance_monitor import PerformanceMonitor
+    OPTIMIZATION_AVAILABLE = True
+except ImportError:
+    OPTIMIZATION_AVAILABLE = False
+
 
 def transcribe(
     model: "Whisper",
@@ -52,6 +61,12 @@ def transcribe(
     append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
     clip_timestamps: Union[str, List[float]] = "0",
     hallucination_silence_threshold: Optional[float] = None,
+    # Memory optimization parameters
+    enable_memory_optimization: bool = False,
+    memory_optimization_mode: str = "adaptive",  # "adaptive", "aggressive", "conservative"
+    auto_chunk_large_files: bool = True,
+    max_memory_usage_gb: Optional[float] = None,
+    enable_performance_monitoring: bool = False,
     **decode_options,
 ):
     """
@@ -119,6 +134,26 @@ def transcribe(
         When word_timestamps is True, skip silent periods longer than this threshold (in seconds)
         when a possible hallucination is detected
 
+    enable_memory_optimization: bool
+        Enable automatic memory management and optimization features.
+        Helps prevent out-of-memory errors for large audio files.
+
+    memory_optimization_mode: str
+        Memory optimization strategy: "adaptive" (default), "aggressive", or "conservative".
+        Adaptive mode balances performance and memory usage based on system resources.
+
+    auto_chunk_large_files: bool
+        Automatically chunk large audio files to fit in available memory.
+        Uses intelligent chunking with overlap handling.
+
+    max_memory_usage_gb: Optional[float]
+        Maximum memory usage limit in GB. If None, uses system-dependent defaults.
+        Helps prevent system overload during processing.
+
+    enable_performance_monitoring: bool
+        Enable real-time performance monitoring and optimization recommendations.
+        Provides detailed metrics on processing speed and resource usage.
+
     Returns
     -------
     A dictionary containing the resulting text ("text") and segment-level details ("segments"), and
@@ -134,6 +169,70 @@ def transcribe(
 
     if dtype == torch.float32:
         decode_options["fp16"] = False
+
+    # Initialize memory optimization if enabled
+    memory_manager = None
+    performance_monitor = None
+    chunk_processor = None
+
+    if enable_memory_optimization and OPTIMIZATION_AVAILABLE:
+        # Initialize memory manager
+        memory_manager = MemoryManager(
+            enable_automatic_cleanup=(memory_optimization_mode in ["adaptive", "aggressive"])
+        )
+
+        # Initialize performance monitoring
+        if enable_performance_monitoring:
+            performance_monitor = PerformanceMonitor()
+            performance_monitor.start_session()
+
+        # Check if we should use chunk processing for large files
+        if auto_chunk_large_files and isinstance(audio, str):
+            try:
+                import whisper
+                audio_data = whisper.load_audio(audio)
+                duration = len(audio_data) / SAMPLE_RATE
+
+                # Use chunk processing for files longer than 5 minutes or if memory is limited
+                memory_info = memory_manager.get_cpu_memory_info()
+                should_chunk = (duration > 300.0 or
+                               memory_info.usage_percent > 70 or
+                               (max_memory_usage_gb and memory_info.used_gb > max_memory_usage_gb))
+
+                if should_chunk:
+                    chunk_processor = ChunkProcessor(
+                        memory_manager=memory_manager,
+                        processing_mode={
+                            "conservative": "sequential",
+                            "adaptive": "adaptive",
+                            "aggressive": "parallel"
+                        }.get(memory_optimization_mode, "adaptive")
+                    )
+
+                    # Use chunk processor for large files
+                    model_size = getattr(model, 'model_name', 'base')
+                    result = chunk_processor.process_audio_file(
+                        audio, model, model_size,
+                        language=decode_options.get("language"),
+                        task=decode_options.get("task", "transcribe"),
+                        **{k: v for k, v in decode_options.items() if k not in ["language", "task"]}
+                    )
+
+                    if performance_monitor:
+                        session_summary = performance_monitor.stop_session()
+                        result["performance_summary"] = session_summary
+
+                    return result
+
+            except Exception as e:
+                if verbose:
+                    warnings.warn(f"Memory optimization failed, falling back to standard processing: {e}")
+
+    elif enable_memory_optimization and not OPTIMIZATION_AVAILABLE:
+        warnings.warn(
+            "Memory optimization was requested but optimization modules are not available. "
+            "Falling back to standard Whisper behavior."
+        )
 
     # Pad 30-seconds of silence to the input audio, for slicing
     mel = log_mel_spectrogram(audio, model.dims.n_mels, padding=N_SAMPLES)
@@ -507,11 +606,34 @@ def transcribe(
             # update progress bar
             pbar.update(min(content_frames, seek) - previous_seek)
 
-    return dict(
-        text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
-        segments=all_segments,
-        language=language,
-    )
+    # Finalize memory optimization and performance monitoring
+    result_dict = {
+        "text": tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
+        "segments": all_segments,
+        "language": language,
+    }
+
+    # Add performance monitoring results if enabled
+    if performance_monitor:
+        try:
+            session_summary = performance_monitor.stop_session()
+            result_dict["performance_summary"] = session_summary
+            result_dict["optimization_recommendations"] = performance_monitor.get_optimization_recommendations()
+        except Exception as e:
+            if verbose:
+                warnings.warn(f"Performance monitoring failed: {e}")
+
+    # Perform final memory cleanup if enabled
+    if memory_manager and enable_memory_optimization:
+        try:
+            cleanup_results = memory_manager.cleanup_memory(force=True)
+            if cleanup_results and verbose:
+                print(f"Memory cleanup freed: {cleanup_results}")
+        except Exception as e:
+            if verbose:
+                warnings.warn(f"Memory cleanup failed: {e}")
+
+    return result_dict
 
 
 def cli():
@@ -564,6 +686,13 @@ def cli():
     parser.add_argument("--threads", type=optional_int, default=0, help="number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS")
     parser.add_argument("--clip_timestamps", type=str, default="0", help="comma-separated list start,end,start,end,... timestamps (in seconds) of clips to process, where the last end timestamp defaults to the end of the file")
     parser.add_argument("--hallucination_silence_threshold", type=optional_float, help="(requires --word_timestamps True) skip silent periods longer than this threshold (in seconds) when a possible hallucination is detected")
+
+    # Memory optimization arguments
+    parser.add_argument("--enable_memory_optimization", type=str2bool, default=False, help="enable automatic memory management and GPU optimization")
+    parser.add_argument("--memory_optimization_mode", type=str, default="adaptive", choices=["adaptive", "aggressive", "conservative"], help="memory optimization strategy")
+    parser.add_argument("--auto_chunk_large_files", type=str2bool, default=True, help="automatically chunk large audio files to prevent memory issues")
+    parser.add_argument("--max_memory_usage_gb", type=optional_float, default=None, help="maximum memory usage limit in GB")
+    parser.add_argument("--enable_performance_monitoring", type=str2bool, default=False, help="enable performance monitoring and optimization recommendations")
     # fmt: on
 
     args = parser.parse_args().__dict__
