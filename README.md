@@ -77,25 +77,35 @@ Whisper's performance varies widely depending on the language. The figure below 
 
 ![WER breakdown by language](https://github.com/openai/whisper/assets/266841/f4619d66-1058-4005-8f67-a9d811b77c62)
 
-
-
 ## Command-line usage
 
 The following command will transcribe speech in audio files, using the `turbo` model:
 
-    whisper audio.flac audio.mp3 audio.wav --model turbo
+```bash
+whisper audio.flac audio.mp3 audio.wav --model turbo
+```
 
-The default setting (which selects the `turbo` model) works well for transcribing English. To transcribe an audio file containing non-English speech, you can specify the language using the `--language` option:
+The default setting (which selects the `turbo` model) works well for transcribing English. However, **the `turbo` model is not trained for translation tasks**. If you need to **translate non-English speech into English**, use one of the **multilingual models** (`tiny`, `base`, `small`, `medium`, `large`) instead of `turbo`. 
 
-    whisper japanese.wav --language Japanese
+For example, to transcribe an audio file containing non-English speech, you can specify the language:
 
-Adding `--task translate` will translate the speech into English:
+```bash
+whisper japanese.wav --language Japanese
+```
 
-    whisper japanese.wav --language Japanese --task translate
+To **translate** speech into English, use:
+
+```bash
+whisper japanese.wav --model medium --language Japanese --task translate
+```
+
+> **Note:** The `turbo` model will return the original language even if `--task translate` is specified. Use `medium` or `large` for the best translation results.
 
 Run the following to view all available options:
 
-    whisper --help
+```bash
+whisper --help
+```
 
 See [tokenizer.py](https://github.com/openai/whisper/blob/main/whisper/tokenizer.py) for the list of all available languages.
 
