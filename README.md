@@ -109,6 +109,11 @@ whisper --help
 
 See [tokenizer.py](https://github.com/openai/whisper/blob/main/whisper/tokenizer.py) for the list of all available languages.
 
+## Quick Start
+Transcribe audio with Whisper in one line:
+
+```bash
+whisper audio.mp3 --model turbo
 
 ## Python usage
 
