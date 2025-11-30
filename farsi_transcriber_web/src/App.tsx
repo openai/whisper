@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   FileAudio,
   Upload,
@@ -20,11 +20,14 @@ import Input from './components/Input';
 import Select from './components/Select';
 
 interface FileItem {
-  id: string;
+  id: string; // This is the internal UI ID
+  jobId?: string; // This is the backend Job ID
   name: string;
   status: 'pending' | 'processing' | 'completed' | 'error';
   progress?: number;
   transcription?: TranscriptionSegment[];
+  file?: File;
+  fullText?: string;
 }
 
 interface TranscriptionSegment {
@@ -33,6 +36,8 @@ interface TranscriptionSegment {
   text: string;
 }
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 export default function App() {
   const [fileQueue, setFileQueue] = useState<FileItem[]>([]);
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
@@ -40,6 +45,7 @@ export default function App() {
   const [windowSize, setWindowSize] = useState({ width: 1100, height: 700 });
   const [searchQuery, setSearchQuery] = useState('');
   const [exportFormat, setExportFormat] = useState('txt');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Theme colors
   const theme = {
@@ -56,18 +62,26 @@ export default function App() {
   };
 
   const handleAddFiles = () => {
-    // Simulated file addition for now
-    // TODO: Implement real file picker
-    const newFile: FileItem = {
-      id: Date.now().toString(),
-      name: `recording_${fileQueue.length + 1}.mp3`,
-      status: 'pending',
-    };
-    setFileQueue([...fileQueue, newFile]);
-    if (!selectedFileId) {
-      setSelectedFileId(newFile.id);
+    fileInputRef.current?.click();
+  };
+
+  const onFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      const newFiles: FileItem[] = Array.from(event.target.files).map(file => ({
+        id: Date.now().toString() + Math.random().toString(),
+        name: file.name,
+        status: 'pending',
+        file: file
+      }));
+
+      setFileQueue(prev => [...prev, ...newFiles]);
+      if (!selectedFileId && newFiles.length > 0) {
+        setSelectedFileId(newFiles[0].id);
+      }
+      toast.success(`${newFiles.length} file(s) added to queue`);
     }
-    toast.success('File added to queue');
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleRemoveFile = (id: string) => {
@@ -78,46 +92,98 @@ export default function App() {
     toast.info('File removed from queue');
   };
 
+  const pollJobStatus = async (uiId: string, jobId: string) => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/jobs/${jobId}`);
+        const data = await response.json();
+
+        if (response.status === 404) {
+             clearInterval(pollInterval);
+             setFileQueue(prev => prev.map(f => f.id === uiId ? { ...f, status: 'error' } : f));
+             toast.error('Job not found');
+             return;
+        }
+
+        if (data.status === 'completed') {
+            clearInterval(pollInterval);
+            // Fetch result
+            const resultResponse = await fetch(`${API_BASE_URL}/jobs/${jobId}/result`);
+            const resultData = await resultResponse.json();
+
+            setFileQueue(prev => prev.map(f => {
+                if (f.id === uiId) {
+                    return {
+                        ...f,
+                        status: 'completed',
+                        progress: 100,
+                        transcription: resultData.segments,
+                        fullText: resultData.full_text || resultData.text
+                    };
+                }
+                return f;
+            }));
+            toast.success('Transcription completed!');
+        } else if (data.status === 'error') {
+            clearInterval(pollInterval);
+            setFileQueue(prev => prev.map(f => f.id === uiId ? { ...f, status: 'error' } : f));
+            toast.error(`Transcription failed: ${data.error}`);
+        } else {
+            // Processing or pending
+            setFileQueue(prev => prev.map(f => {
+                if (f.id === uiId) {
+                    return {
+                        ...f,
+                        status: data.status,
+                        progress: data.progress || (data.status === 'processing' ? 50 : 0) // Fake progress if API doesn't provide
+                    };
+                }
+                return f;
+            }));
+        }
+
+      } catch (error) {
+        console.error("Polling error", error);
+        // Don't stop polling on transient network errors immediately, but maybe implementing a retry limit is good.
+      }
+    }, 2000);
+  };
+
   const handleTranscribe = async () => {
     if (!selectedFileId) return;
 
-    const fileIndex = fileQueue.findIndex(f => f.id === selectedFileId);
-    if (fileIndex === -1) return;
+    const fileItem = fileQueue.find(f => f.id === selectedFileId);
+    if (!fileItem || !fileItem.file) return;
 
-    // Update status to processing
-    const updatedQueue = [...fileQueue];
-    updatedQueue[fileIndex].status = 'processing';
-    updatedQueue[fileIndex].progress = 0;
-    setFileQueue(updatedQueue);
+    // Update status to uploading/processing
+    setFileQueue(prev => prev.map(f => f.id === selectedFileId ? { ...f, status: 'processing', progress: 0 } : f));
+
+    const formData = new FormData();
+    formData.append('file', fileItem.file);
+    formData.append('language', 'fa');
 
     try {
-      // TODO: Call real Whisper API
-      // Simulate progress for now
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 10;
-        const updated = [...fileQueue];
-        updated[fileIndex].progress = progress;
+      const response = await fetch(`${API_BASE_URL}/jobs`, {
+        method: 'POST',
+        body: formData,
+      });
 
-        if (progress >= 100) {
-          clearInterval(interval);
-          updated[fileIndex].status = 'completed';
-          updated[fileIndex].transcription = [
-            { start: '00:00:00.000', end: '00:00:05.500', text: 'سلام دنیا، این یک تست است' },
-            { start: '00:00:05.500', end: '00:00:10.200', text: 'خوش آمدید به برنامه تجزیه صوت' },
-            { start: '00:00:10.200', end: '00:00:15.800', text: 'این برنامه با استفاده از مدل ویسپر کار می‌کند' },
-            { start: '00:00:15.800', end: '00:00:22.300', text: 'شما می‌توانید فایل‌های صوتی و تصویری خود را به متن تبدیل کنید' },
-            { start: '00:00:22.300', end: '00:00:28.100', text: 'این ابزار برای تحقیقات علمی و سخنرانی‌ها مفید است' },
-          ];
-          toast.success('Transcription completed!');
-        }
-        setFileQueue(updated);
-      }, 300);
-    } catch (error) {
-      const updated = [...fileQueue];
-      updated[fileIndex].status = 'error';
-      setFileQueue(updated);
-      toast.error('Failed to transcribe file');
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const data = await response.json();
+      const jobId = data.job_id;
+
+      // Update with job ID and start polling
+      setFileQueue(prev => prev.map(f => f.id === selectedFileId ? { ...f, jobId: jobId } : f));
+
+      pollJobStatus(selectedFileId, jobId);
+
+    } catch (error: any) {
+      setFileQueue(prev => prev.map(f => f.id === selectedFileId ? { ...f, status: 'error' } : f));
+      toast.error(error.message || 'Failed to start transcription');
     }
   };
 
@@ -126,13 +192,33 @@ export default function App() {
     toast.success('Copied to clipboard');
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const selectedFile = fileQueue.find(f => f.id === selectedFileId);
-    if (selectedFile?.transcription) {
-      // TODO: Implement real export
-      toast.success(`Exporting as ${exportFormat.toUpperCase()}...`);
-    } else {
-      toast.error('No transcription to export');
+    if (!selectedFile?.jobId || selectedFile.status !== 'completed') {
+      toast.error('No completed transcription to export');
+      return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/export/${selectedFile.jobId}?format=${exportFormat}`);
+        if (!response.ok) throw new Error('Export failed');
+
+        const data = await response.json();
+
+        // Create a blob and download
+        const blob = new Blob([data.content], { type: data.mime_type });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${selectedFile.name.split('.')[0]}.${exportFormat}`; // Simple rename
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        toast.success(`Exported as ${exportFormat.toUpperCase()}`);
+    } catch (error) {
+        toast.error('Failed to export file');
     }
   };
 
@@ -181,6 +267,16 @@ export default function App() {
   return (
     <div className="min-h-screen flex items-center justify-center p-8" style={{ backgroundColor: theme.bg }}>
       <Toaster theme={isDark ? 'dark' : 'light'} position="top-right" />
+
+      {/* Hidden File Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={onFileChange}
+        style={{ display: 'none' }}
+        accept="audio/*,video/*"
+        multiple
+      />
 
       <Resizable
         size={windowSize}
@@ -355,9 +451,10 @@ export default function App() {
                     onChange={(e) => setExportFormat(e.target.value as 'txt' | 'docx' | 'pdf' | 'srt')}
                   >
                     <option value="txt">TXT</option>
-                    <option value="docx">DOCX</option>
-                    <option value="pdf">PDF</option>
+                    <option value="json">JSON</option>
                     <option value="srt">SRT</option>
+                    <option value="vtt">VTT</option>
+                    <option value="tsv">TSV</option>
                   </Select>
                   <Button
                     onClick={handleExport}
