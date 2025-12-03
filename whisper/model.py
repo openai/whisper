@@ -308,19 +308,7 @@ class Whisper(nn.Module):
         return self.dims.n_vocab - 51765 - int(self.is_multilingual)
 
     def install_kv_cache_hooks(self, cache: Optional[dict] = None):
-        """
-        The `MultiHeadAttention` module optionally accepts `kv_cache` which stores the key and value
-        tensors calculated for the previous positions. This method returns a dictionary that stores
-        all caches, and the necessary hooks for the key and value projection modules that save the
-        intermediate tensors to be reused during later calculations.
-
-        Returns
-        -------
-        cache : Dict[nn.Module, torch.Tensor]
-            A dictionary object mapping the key/value projection modules to its cache
-        hooks : List[RemovableHandle]
-            List of PyTorch RemovableHandle objects to stop the hooks to be called
-        """
+   
         cache = {**cache} if cache is not None else {}
         hooks = []
 

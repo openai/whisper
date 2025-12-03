@@ -166,10 +166,7 @@ class Tokenizer:
         return self.encoding.decode(token_ids, **kwargs)
 
     def decode_with_timestamps(self, token_ids: List[int], **kwargs) -> str:
-        """
-        Timestamp tokens are above other special tokens' id range and are ignored by `decode()`.
-        This method decodes given tokens with timestamps tokens annotated, e.g. "<|1.08|>".
-        """
+
         return self.encoding.decode(token_ids, **kwargs)
 
     @cached_property

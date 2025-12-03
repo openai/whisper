@@ -23,21 +23,7 @@ TOKENS_PER_SECOND = exact_div(SAMPLE_RATE, N_SAMPLES_PER_TOKEN)  # 20ms per audi
 
 
 def load_audio(file: str, sr: int = SAMPLE_RATE):
-    """
-    Open an audio file and read as mono waveform, resampling as necessary
 
-    Parameters
-    ----------
-    file: str
-        The audio file to open
-
-    sr: int
-        The sample rate to resample the audio if necessary
-
-    Returns
-    -------
-    A NumPy array containing the audio waveform, in float32 dtype.
-    """
 
     # This launches a subprocess to decode audio while down-mixing
     # and resampling as necessary.  Requires the ffmpeg CLI in PATH.
@@ -90,16 +76,7 @@ def pad_or_trim(array, length: int = N_SAMPLES, *, axis: int = -1):
 
 @lru_cache(maxsize=None)
 def mel_filters(device, n_mels: int) -> torch.Tensor:
-    """
-    load the mel filterbank matrix for projecting STFT into a Mel spectrogram.
-    Allows decoupling librosa dependency; saved using:
 
-        np.savez_compressed(
-            "mel_filters.npz",
-            mel_80=librosa.filters.mel(sr=16000, n_fft=400, n_mels=80),
-            mel_128=librosa.filters.mel(sr=16000, n_fft=400, n_mels=128),
-        )
-    """
     assert n_mels in {80, 128}, f"Unsupported n_mels: {n_mels}"
 
     filters_path = os.path.join(os.path.dirname(__file__), "assets", "mel_filters.npz")
