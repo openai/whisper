@@ -25,9 +25,26 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from farsi_transcriber.core.transcriber import FarsiTranscriber
 from farsi_transcriber.core.export import TranscriptionExporter
+from farsi_transcriber.core.transcriber import FarsiTranscriber
+from farsi_transcriber.core.export import TranscriptionExporter
+import progress_hook
+import diarization
+from dotenv import load_dotenv
+
+load_dotenv() # Load env vars (HF_TOKEN)
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+# Install progress hook
+def update_job_progress(job_id, percentage):
+    if job_id in jobs:
+        jobs[job_id]['progress'] = int(percentage)
+        # Keep status as processing
+        if jobs[job_id]['status'] == 'pending':
+             jobs[job_id]['status'] = 'processing'
+
+progress_hook.install_hook(update_job_progress)
 
 # Configuration
 UPLOAD_FOLDER = tempfile.gettempdir()
@@ -45,7 +62,8 @@ executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
 
 class JobManager:
     @staticmethod
-    def start_job(file_path, language='fa'):
+    @staticmethod
+    def start_job(file_path, language='fa', model_size='medium', do_diarization=False):
         job_id = str(uuid.uuid4())
         jobs[job_id] = {
             'id': job_id,
@@ -54,14 +72,19 @@ class JobManager:
             'result': None,
             'error': None,
             'filename': Path(file_path).name,
-            'submitted_at': time.time()
+            'submitted_at': time.time(),
+            'model_size': model_size,
+            'do_diarization': do_diarization
         }
-        executor.submit(JobManager.process_job, job_id, file_path, language)
+        executor.submit(JobManager.process_job, job_id, file_path, language, model_size, do_diarization)
         return job_id
 
     @staticmethod
-    def process_job(job_id, file_path, language):
+    def process_job(job_id, file_path, language, model_size, do_diarization):
         try:
+            # Set current job ID for the progress hook
+            progress_hook.set_current_job(job_id)
+            
             jobs[job_id]['status'] = 'processing'
 
             # Lazy load model (per thread if needed, but Whisper loads globally mostly)
@@ -69,7 +92,7 @@ class JobManager:
             # Note: In a real prod env, we'd want a dedicated worker process keeping the model in memory.
             # Here we rely on Whisper's caching or global state if possible, but FarsiTranscriber inits it.
             # To avoid reloading model every time, we might want to cache the transcriber instance globally.
-            transcriber = get_transcriber()
+            transcriber = get_transcriber(model_size)
 
             # Since FarsiTranscriber doesn't have a callback for progress,
             # we can't easily update percentage accurately without hacking Whisper.
@@ -81,6 +104,21 @@ class JobManager:
             # Enhance result with full text if not present (FarsiTranscriber does this but let's be safe)
             if 'full_text' not in result:
                 result['full_text'] = result.get('text', '')
+
+            # Run Diarization if requested
+            if do_diarization:
+                try:
+                    print(f"Starting diarization for job {job_id}")
+                    # Update progress (fake it a bit, diarization takes time)
+                    jobs[job_id]['progress'] = 80
+                    
+                    diarization_segments = diarization.run_diarization(file_path)
+                    result = diarization.merge_transcription_with_diarization(result, diarization_segments)
+                    result['has_diarization'] = True
+                except Exception as e:
+                    print(f"Diarization failed: {e}")
+                    # Don't fail the whole job, just log it
+                    result['diarization_error'] = str(e)
 
             jobs[job_id]['result'] = result
             jobs[job_id]['status'] = 'completed'
@@ -99,14 +137,26 @@ class JobManager:
 
 # Global Transcriber Instance (Lazy Loaded)
 _transcriber_instance = None
+_current_model_size = None
 _transcriber_lock = threading.Lock()
 
-def get_transcriber():
-    global _transcriber_instance
+def get_transcriber(model_size="medium"):
+    global _transcriber_instance, _current_model_size
     with _transcriber_lock:
-        if _transcriber_instance is None:
-            # Use medium model as default
-            _transcriber_instance = FarsiTranscriber(model_name="medium")
+        # If no instance, or if requested model size is different from current
+        if _transcriber_instance is None or _current_model_size != model_size:
+            # If we are switching models, we might want to explicitly delete the old one to free memory
+            # although Python GC should handle it eventually when we overwrite the variable.
+            if _transcriber_instance is not None:
+                print(f"Unloading model: {_current_model_size}")
+                del _transcriber_instance
+                import gc
+                gc.collect()
+            
+            print(f"Loading model: {model_size}")
+            _transcriber_instance = FarsiTranscriber(model_name=model_size)
+            _current_model_size = model_size
+            
     return _transcriber_instance
 
 def allowed_file(filename):
@@ -150,8 +200,10 @@ def create_job():
     file.save(filepath)
 
     language = request.form.get('language', 'fa')
+    model_size = request.form.get('model', 'medium')
+    do_diarization = request.form.get('diarization', 'false').lower() == 'true'
 
-    job_id = JobManager.start_job(filepath, language)
+    job_id = JobManager.start_job(filepath, language, model_size, do_diarization)
 
     return jsonify({
         'status': 'success',

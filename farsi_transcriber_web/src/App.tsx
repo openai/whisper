@@ -34,6 +34,7 @@ interface TranscriptionSegment {
   start: string;
   end: string;
   text: string;
+  speaker?: string;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -45,6 +46,9 @@ export default function App() {
   const [windowSize, setWindowSize] = useState({ width: 1100, height: 700 });
   const [searchQuery, setSearchQuery] = useState('');
   const [exportFormat, setExportFormat] = useState('txt');
+  const [modelSize, setModelSize] = useState('medium');
+  const [isDiarizationEnabled, setIsDiarizationEnabled] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Theme colors
@@ -92,6 +96,36 @@ export default function App() {
     toast.info('File removed from queue');
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const newFiles: FileItem[] = Array.from(e.dataTransfer.files).map(file => ({
+        id: Date.now().toString() + Math.random().toString(),
+        name: file.name,
+        status: 'pending',
+        file: file
+      }));
+
+      setFileQueue(prev => [...prev, ...newFiles]);
+      if (!selectedFileId && newFiles.length > 0) {
+        setSelectedFileId(newFiles[0].id);
+      }
+      toast.success(`${newFiles.length} file(s) added to queue`);
+    }
+  };
+
   const pollJobStatus = async (uiId: string, jobId: string) => {
     const pollInterval = setInterval(async () => {
       try {
@@ -99,47 +133,47 @@ export default function App() {
         const data = await response.json();
 
         if (response.status === 404) {
-             clearInterval(pollInterval);
-             setFileQueue(prev => prev.map(f => f.id === uiId ? { ...f, status: 'error' } : f));
-             toast.error('Job not found');
-             return;
+          clearInterval(pollInterval);
+          setFileQueue(prev => prev.map(f => f.id === uiId ? { ...f, status: 'error' } : f));
+          toast.error('Job not found');
+          return;
         }
 
         if (data.status === 'completed') {
-            clearInterval(pollInterval);
-            // Fetch result
-            const resultResponse = await fetch(`${API_BASE_URL}/jobs/${jobId}/result`);
-            const resultData = await resultResponse.json();
+          clearInterval(pollInterval);
+          // Fetch result
+          const resultResponse = await fetch(`${API_BASE_URL}/jobs/${jobId}/result`);
+          const resultData = await resultResponse.json();
 
-            setFileQueue(prev => prev.map(f => {
-                if (f.id === uiId) {
-                    return {
-                        ...f,
-                        status: 'completed',
-                        progress: 100,
-                        transcription: resultData.segments,
-                        fullText: resultData.full_text || resultData.text
-                    };
-                }
-                return f;
-            }));
-            toast.success('Transcription completed!');
+          setFileQueue(prev => prev.map(f => {
+            if (f.id === uiId) {
+              return {
+                ...f,
+                status: 'completed',
+                progress: 100,
+                transcription: resultData.segments,
+                fullText: resultData.full_text || resultData.text
+              };
+            }
+            return f;
+          }));
+          toast.success('Transcription completed!');
         } else if (data.status === 'error') {
-            clearInterval(pollInterval);
-            setFileQueue(prev => prev.map(f => f.id === uiId ? { ...f, status: 'error' } : f));
-            toast.error(`Transcription failed: ${data.error}`);
+          clearInterval(pollInterval);
+          setFileQueue(prev => prev.map(f => f.id === uiId ? { ...f, status: 'error' } : f));
+          toast.error(`Transcription failed: ${data.error}`);
         } else {
-            // Processing or pending
-            setFileQueue(prev => prev.map(f => {
-                if (f.id === uiId) {
-                    return {
-                        ...f,
-                        status: data.status,
-                        progress: data.progress || (data.status === 'processing' ? 50 : 0) // Fake progress if API doesn't provide
-                    };
-                }
-                return f;
-            }));
+          // Processing or pending
+          setFileQueue(prev => prev.map(f => {
+            if (f.id === uiId) {
+              return {
+                ...f,
+                status: data.status,
+                progress: data.progress || (data.status === 'processing' ? 50 : 0) // Fake progress if API doesn't provide
+              };
+            }
+            return f;
+          }));
         }
 
       } catch (error) {
@@ -161,6 +195,8 @@ export default function App() {
     const formData = new FormData();
     formData.append('file', fileItem.file);
     formData.append('language', 'fa');
+    formData.append('model', modelSize);
+    formData.append('diarization', isDiarizationEnabled.toString());
 
     try {
       const response = await fetch(`${API_BASE_URL}/jobs`, {
@@ -200,25 +236,25 @@ export default function App() {
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/export/${selectedFile.jobId}?format=${exportFormat}`);
-        if (!response.ok) throw new Error('Export failed');
+      const response = await fetch(`${API_BASE_URL}/export/${selectedFile.jobId}?format=${exportFormat}`);
+      if (!response.ok) throw new Error('Export failed');
 
-        const data = await response.json();
+      const data = await response.json();
 
-        // Create a blob and download
-        const blob = new Blob([data.content], { type: data.mime_type });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${selectedFile.name.split('.')[0]}.${exportFormat}`; // Simple rename
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+      // Create a blob and download
+      const blob = new Blob([data.content], { type: data.mime_type });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${selectedFile.name.split('.')[0]}.${exportFormat}`; // Simple rename
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
-        toast.success(`Exported as ${exportFormat.toUpperCase()}`);
+      toast.success(`Exported as ${exportFormat.toUpperCase()}`);
     } catch (error) {
-        toast.error('Failed to export file');
+      toast.error('Failed to export file');
     }
   };
 
@@ -235,8 +271,8 @@ export default function App() {
   // Filter transcription based on search
   const filteredTranscription = searchQuery
     ? currentTranscription.filter(seg =>
-        seg.text.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      seg.text.toLowerCase().includes(searchQuery.toLowerCase())
+    )
     : currentTranscription;
 
   // Function to highlight search text
@@ -302,8 +338,17 @@ export default function App() {
         <div className="flex h-full">
           {/* Left Sidebar - File Queue */}
           <div
-            className="w-64 border-r flex flex-col overflow-hidden"
-            style={{ borderColor: theme.border, backgroundColor: theme.sidebarBg }}
+            className={`w-64 border-r flex flex-col overflow-hidden transition-colors`}
+            style={{
+              borderColor: theme.border,
+              backgroundColor: isDragging ? (isDark ? '#2a2a2a' : '#f0f9ff') : theme.sidebarBg,
+              borderStyle: isDragging ? 'dashed' : 'solid',
+              borderWidth: isDragging ? '2px' : '0 1px 0 0',
+              borderColor: isDragging ? '#3b82f6' : theme.border
+            }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
           >
             <div className="p-4 border-b" style={{ borderColor: theme.border }}>
               <h3 className="mb-3 font-semibold" style={{ color: theme.text }}>
@@ -426,6 +471,41 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Model Selection */}
+              <div className="mb-4 flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <label style={{ color: theme.text }} className="text-sm font-medium">Model Size:</label>
+                  <Select
+                    value={modelSize}
+                    onChange={(e) => setModelSize(e.target.value)}
+                    style={{ width: '150px' }}
+                  >
+                    <option value="tiny">Tiny (Fastest)</option>
+                    <option value="base">Base</option>
+                    <option value="small">Small</option>
+                    <option value="medium">Medium (Balanced)</option>
+                    <option value="large">Large (Best Accuracy)</option>
+                  </Select>
+                </div>
+                <p className="text-xs" style={{ color: theme.textSecondary }}>
+                  Larger models are more accurate but take longer to process.
+                </p>
+              </div>
+
+              {/* Diarization Toggle */}
+              <div className="mb-4 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="diarization"
+                  checked={isDiarizationEnabled}
+                  onChange={(e) => setIsDiarizationEnabled(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="diarization" style={{ color: theme.text }} className="text-sm font-medium cursor-pointer">
+                  Enable Speaker Diarization (Identify Speakers)
+                </label>
+              </div>
+
               {/* Search & Export Controls */}
               {selectedFile?.transcription && (
                 <div className="mb-4 flex gap-2">
@@ -446,8 +526,8 @@ export default function App() {
                       }}
                     />
                   </div>
-                  <Select 
-                    value={exportFormat} 
+                  <Select
+                    value={exportFormat}
                     onChange={(e) => setExportFormat(e.target.value as 'txt' | 'docx' | 'pdf' | 'srt')}
                   >
                     <option value="txt">TXT</option>
@@ -504,7 +584,7 @@ export default function App() {
                               className="text-xs font-mono"
                               style={{ color: theme.textSecondary }}
                             >
-                              [{segment.start} - {segment.end}]
+                              [{segment.start} - {segment.end}] {segment.speaker ? `• ${segment.speaker}` : ''}
                             </span>
                             <button
                               onClick={() => handleCopySegment(segment.text)}
@@ -543,7 +623,7 @@ export default function App() {
             </div>
           </div>
         </div>
-      </Resizable>
-    </div>
+      </Resizable >
+    </div >
   );
 }
