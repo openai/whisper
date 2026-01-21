@@ -1,0 +1,21 @@
+# Whisper 파인튜닝을 위한 필수 패키지
+
+# 핵심 라이브러리
+transformers>=4.30.0
+datasets>=2.0.0
+accelerate>=0.20.0
+evaluate>=0.4.0
+
+# 오디오 처리
+librosa
+soundfile
+
+# 평가 메트릭
+jiwer  # WER 계산용
+
+# 학습 가속
+torch>=2.0.0
+torchaudio
+
+# 모니터링
+tensorboard
