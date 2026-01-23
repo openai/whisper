@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>소방 인트라넷 - 119 긴급전화 음성인식 시스템</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 배경 동영상 -->
+    <div class="video-background">
+        <video autoplay muted loop playsinline id="bgVideo">
+            <source src="background.mp4" type="video/mp4">
+            <!-- 동영상이 없을 경우 배경 이미지로 대체 -->
+        </video>
+        <div class="video-overlay"></div>
+    </div>
+
+    <!-- 메인 컨텐츠 -->
+    <div class="content">
+        <header>
+            <nav>
+                <div class="logo">
+                    <h1>🚒 소방청 119</h1>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="#home">홈</a></li>
+                    <li><a href="#about">소개</a></li>
+                    <li><a href="#features">기능</a></li>
+                    <li><a href="#contact">문의</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <main>
+            <section class="hero" id="home">
+                <div class="hero-content">
+                    <h2 class="hero-title">119 긴급전화 음성인식 시스템</h2>
+                    <p class="hero-subtitle">Whisper AI 기반 실시간 음성 인식으로 신속한 긴급 대응</p>
+                    <div class="hero-buttons">
+                        <button class="btn btn-primary">시스템 시작</button>
+                        <button class="btn btn-secondary">자세히 보기</button>
+                    </div>
+                </div>
+            </section>
+
+            <section class="features" id="features">
+                <div class="features-container">
+                    <div class="feature-card">
+                        <div class="feature-icon">🎤</div>
+                        <h3>실시간 음성인식</h3>
+                        <p>Whisper AI를 활용한 정확한 한국어 음성 인식</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <h3>신속한 대응</h3>
+                        <p>긴급 상황 자동 분류 및 즉각적인 출동 지원</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <h3>데이터 분석</h3>
+                        <p>119 신고 데이터 분석 및 통계 관리</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔒</div>
+                        <h3>보안 시스템</h3>
+                        <p>암호화된 통신 및 안전한 데이터 관리</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="about" id="about">
+                <div class="about-content">
+                    <h2>시스템 소개</h2>
+                    <p>
+                        본 시스템은 OpenAI Whisper 음성인식 모델을 119 긴급전화 데이터로
+                        파인튜닝하여 개발된 전문 음성인식 솔루션입니다.
+                    </p>
+                    <p>
+                        긴급 상황에서의 정확한 음성 인식과 신속한 대응을 위해
+                        최적화된 시스템으로, 소방관들의 업무를 효율적으로 지원합니다.
+                    </p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <div class="footer-content">
+                <p>&copy; 2026 소방청. All rights reserved.</p>
+                <p>Powered by OpenAI Whisper</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 동영상 제어 버튼 -->
+    <div class="video-controls">
+        <button id="videoToggle" class="control-btn" title="동영상 재생/일시정지">
+            <span id="playIcon">⏸</span>
+        </button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
