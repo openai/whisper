@@ -94,7 +94,9 @@ class MultiHeadAttention(nn.Module):
         x: Tensor,
         xa: Optional[Tensor] = None,
         mask: Optional[Tensor] = None,
+        mask_2: Optional[Tensor] = None,
         kv_cache: Optional[dict] = None,
+        encoder_attention: bool = False,
     ):
         q = self.query(x)
 
@@ -108,11 +110,11 @@ class MultiHeadAttention(nn.Module):
             k = kv_cache[self.key]
             v = kv_cache[self.value]
 
-        wv, qk = self.qkv_attention(q, k, v, mask)
+        wv, qk = self.qkv_attention(q, k, v, mask, mask_2, encoder_attention)
         return self.out(wv), qk
 
     def qkv_attention(
-        self, q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None
+        self, q: Tensor, k: Tensor, v: Tensor, mask: Optional[Tensor] = None, mask_2: Optional[Tensor] = None, encoder_attention: bool = False
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         n_batch, n_ctx, n_state = q.shape
         scale = (n_state // self.n_head) ** -0.25
@@ -120,21 +122,31 @@ class MultiHeadAttention(nn.Module):
         k = k.view(*k.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
         v = v.view(*v.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
 
-        if SDPA_AVAILABLE and MultiHeadAttention.use_sdpa:
-            a = scaled_dot_product_attention(
-                q, k, v, is_causal=mask is not None and n_ctx > 1
-            )
-            out = a.permute(0, 2, 1, 3).flatten(start_dim=2)
-            qk = None
-        else:
-            qk = (q * scale) @ (k * scale).transpose(-1, -2)
-            if mask is not None:
-                qk = qk + mask[:n_ctx, :n_ctx]
-            qk = qk.float()
+        # if SDPA_AVAILABLE and MultiHeadAttention.use_sdpa:
+        #     a = scaled_dot_product_attention(
+        #         q, k, v, attn_mask=mask
+        #     )
+        #     if torch.isnan(a).any():
+        #         print("contains nan")
+        #     out = a.permute(0, 2, 1, 3).flatten(start_dim=2)
+        #     qk = None
+        # else:
 
-            w = F.softmax(qk, dim=-1).to(q.dtype)
-            out = (w @ v).permute(0, 2, 1, 3).flatten(start_dim=2)
-            qk = qk.detach()
+        qk = (q * scale) @ (k * scale).transpose(-1, -2)
+        if mask is not None and not encoder_attention:
+            qk = qk + mask
+        elif mask_2 is not None:
+            qk = qk + mask_2
+        qk = qk.float()
+
+        w = F.softmax(qk, dim=-1).to(q.dtype)
+
+        # no need to work about pre softmax mask for encoder attention
+        if mask is not None and encoder_attention:
+            w = w * mask
+
+        out = (w @ v).permute(0, 2, 1, 3).flatten(start_dim=2)
+        qk = qk.detach()
 
         return out, qk
 
@@ -162,11 +174,14 @@ class ResidualAttentionBlock(nn.Module):
         x: Tensor,
         xa: Optional[Tensor] = None,
         mask: Optional[Tensor] = None,
+        mask_2: Optional[Tensor] = None,
+        cross_attention_mask: Optional[Tensor] = None,
         kv_cache: Optional[dict] = None,
+        encoder_attention: bool = False,
     ):
-        x = x + self.attn(self.attn_ln(x), mask=mask, kv_cache=kv_cache)[0]
+        x = x + self.attn(self.attn_ln(x), mask=mask, mask_2=mask_2, kv_cache=kv_cache, encoder_attention=encoder_attention)[0]
         if self.cross_attn:
-            x = x + self.cross_attn(self.cross_attn_ln(x), xa, kv_cache=kv_cache)[0]
+            x = x + self.cross_attn(self.cross_attn_ln(x), xa, mask=cross_attention_mask, kv_cache=kv_cache)[0]
         x = x + self.mlp(self.mlp_ln(x))
         return x
 
@@ -185,7 +200,7 @@ class AudioEncoder(nn.Module):
         )
         self.ln_post = LayerNorm(n_state)
 
-    def forward(self, x: Tensor):
+    def forward(self, x: Tensor, attention_mask_1: Optional[Tensor] = None, attention_mask_2: Optional[Tensor] = None):
         """
         x : torch.Tensor, shape = (batch_size, n_mels, n_ctx)
             the mel spectrogram of the audio
@@ -194,11 +209,11 @@ class AudioEncoder(nn.Module):
         x = F.gelu(self.conv2(x))
         x = x.permute(0, 2, 1)
 
-        assert x.shape[1:] == self.positional_embedding.shape, "incorrect audio shape"
-        x = (x + self.positional_embedding).to(x.dtype)
+        # assert x.shape[1:] == self.positional_embedding.shape, "incorrect audio shape"
+        x = (x + self.positional_embedding[:x.shape[-2], :]).to(x.dtype)
 
         for block in self.blocks:
-            x = block(x)
+            x = block(x, mask=attention_mask_1, mask_2=attention_mask_2, encoder_attention=True)
 
         x = self.ln_post(x)
         return x
@@ -221,10 +236,7 @@ class TextDecoder(nn.Module):
         )
         self.ln = LayerNorm(n_state)
 
-        mask = torch.empty(n_ctx, n_ctx).fill_(-np.inf).triu_(1)
-        self.register_buffer("mask", mask, persistent=False)
-
-    def forward(self, x: Tensor, xa: Tensor, kv_cache: Optional[dict] = None):
+    def forward(self, x: Tensor, xa: Tensor, kv_cache: Optional[dict] = None, cross_attention_mask: Optional[Tensor] = None):
         """
         x : torch.LongTensor, shape = (batch_size, <= n_ctx)
             the text tokens
@@ -238,8 +250,11 @@ class TextDecoder(nn.Module):
         )
         x = x.to(xa.dtype)
 
+        temp = torch.ones(x.shape[-2], x.shape[-2], dtype=torch.bool).tril(diagonal=0)
+        text_mask = temp.float().masked_fill_(~temp, float('-inf')).masked_fill_(temp, 0.0).to(x.device)
+
         for block in self.blocks:
-            x = block(x, xa, mask=self.mask, kv_cache=kv_cache)
+            x = block(x, xa, mask=text_mask, kv_cache=kv_cache, cross_attention_mask=cross_attention_mask)
 
         x = self.ln(x)
         logits = (
