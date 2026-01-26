@@ -16,13 +16,15 @@ The Whisper models are trained for speech recognition and translation tasks, cap
 | small  |   244 M    |         ✓          |         ✓          |
 | medium |   769 M    |         ✓          |         ✓          |
 | large  |   1550 M   |                    |         ✓          |
+| turbo  |   798 M    |                    |         ✓          |
 
 In December 2022, we [released an improved large model named `large-v2`](https://github.com/openai/whisper/discussions/661), and `large-v3` in November 2023.
+Additionally, we've added a `turbo` model in September 2024 which is optimized for inference speed.
 
 
 ### Release date
 
-September 2022 (original series), December 2022 (`large-v2`), and November 2023 (`large-v3`)
+September 2022 (original series), December 2022 (`large-v2`), November 2023 (`large-v3`), September 2024 (`large-v3-turbo`)
 
 ### Model type
 

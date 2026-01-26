@@ -122,7 +122,7 @@ def log_mel_spectrogram(
         The path to audio or either a NumPy array or Tensor containing the audio waveform in 16 kHz
 
     n_mels: int
-        The number of Mel-frequency filters, only 80 is supported
+        The number of Mel-frequency filters, only 80 and 128 are supported
 
     padding: int
         Number of zero samples to pad to the right
@@ -132,7 +132,7 @@ def log_mel_spectrogram(
 
     Returns
     -------
-    torch.Tensor, shape = (80, n_frames)
+    torch.Tensor, shape = (n_mels, n_frames)
         A Tensor that contains the Mel spectrogram
     """
     if not torch.is_tensor(audio):
