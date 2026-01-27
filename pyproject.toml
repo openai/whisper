@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 requires = [ "setuptools>=61.2" ]
 
 [project]
-name = "openai-whisper"
-description = "Robust Speech Recognition via Large-Scale Weak Supervision"
+name = "whisper-attention-mask"
+description = "Whisper fork with attention mask support for audio encoder and cross-attention"
 readme.content-type = "text/markdown"
 readme.file = "README.md"
 license = { text = "MIT" }
@@ -31,15 +31,15 @@ dependencies = [
   "triton>=2; (platform_machine=='x86_64' and sys_platform=='linux') or sys_platform=='linux2'",
 ]
 optional-dependencies.dev = [ "black", "flake8", "isort", "pytest", "scipy" ]
-urls = { Homepage = "https://github.com/openai/whisper" }
-scripts.whisper = "whisper.transcribe:cli"
+urls = { Homepage = "https://github.com/cdonahue-wispr/whisper_attention_mask" }
+scripts.whisper-am = "whisper_am.transcribe:cli"
 
 [tool.setuptools]
-py-modules = [ "whisper" ]
+py-modules = [ "whisper_am" ]
 include-package-data = true
 
 [tool.setuptools.dynamic]
-version = { attr = "whisper.version.__version__" }
+version = { attr = "whisper_am.version.__version__" }
 
 [tool.setuptools.packages.find]
 exclude = [ "tests*" ]

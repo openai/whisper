@@ -3,14 +3,14 @@ import os
 import pytest
 import torch
 
-import whisper
-from whisper.tokenizer import get_tokenizer
+import whisper_am
+from whisper_am.tokenizer import get_tokenizer
 
 
-@pytest.mark.parametrize("model_name", whisper.available_models())
+@pytest.mark.parametrize("model_name", whisper_am.available_models())
 def test_transcribe(model_name: str):
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = whisper.load_model(model_name).to(device)
+    model = whisper_am.load_model(model_name).to(device)
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
 
     language = "en" if model_name.endswith(".en") else None
