@@ -38,7 +38,13 @@ class ModelDimensions:
 
 class LayerNorm(nn.LayerNorm):
     def forward(self, x: Tensor) -> Tensor:
-        return super().forward(x.float()).type(x.dtype)
+        return F.layer_norm(
+            x.float(),
+            self.normalized_shape,
+            self.weight.float() if self.weight is not None else None,
+            self.bias.float() if self.bias is not None else None,
+            self.eps,
+        ).type(x.dtype)
 
 
 class Linear(nn.Linear):
