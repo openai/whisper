@@ -280,7 +280,14 @@ class GreedyDecoder(TokenDecoder):
         if self.temperature == 0:
             next_tokens = logits.argmax(dim=-1)
         else:
-            next_tokens = Categorical(logits=logits / self.temperature).sample()
+            # Cast to float32 for numerical stability; half-precision inputs (e.g. fp16
+            # on MPS / Apple Silicon or CUDA) can overflow during the softmax inside
+            # Categorical, producing NaN logits and a sampling error.  Any NaN values
+            # that may already be present in the logits (e.g. from fp16 model outputs)
+            # are replaced with a large negative value so those token positions are
+            # effectively suppressed rather than crashing the sampler.
+            logits_f32 = torch.nan_to_num(logits.float(), nan=-10000.0)
+            next_tokens = Categorical(logits=logits_f32 / self.temperature).sample()
 
         logprobs = F.log_softmax(logits.float(), dim=-1)
         current_logprobs = logprobs[torch.arange(logprobs.shape[0]), next_tokens]
