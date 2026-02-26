@@ -147,7 +147,8 @@ def load_model(
     with (
         io.BytesIO(checkpoint_file) if in_memory else open(checkpoint_file, "rb")
     ) as fp:
-        checkpoint = torch.load(fp, map_location=device)
+        kwargs = {"weights_only": True} if torch.__version__ >= "1.13" else {}
+        checkpoint = torch.load(fp, map_location=device, **kwargs)
     del checkpoint_file
 
     dims = ModelDimensions(**checkpoint["dims"])
