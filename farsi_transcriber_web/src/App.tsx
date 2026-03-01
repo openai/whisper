@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   FileAudio,
   Upload,
@@ -35,6 +35,10 @@ interface TranscriptionSegment {
   end: string;
   text: string;
   speaker?: string;
+}
+
+interface HighlightedSegment extends TranscriptionSegment {
+  highlightedHtml: string;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -268,24 +272,41 @@ export default function App() {
   const selectedFile = fileQueue.find(f => f.id === selectedFileId);
   const currentTranscription = selectedFile?.transcription || [];
 
-  // Filter transcription based on search
-  const filteredTranscription = searchQuery
-    ? currentTranscription.filter(seg =>
+  // Memoize search regex for performance
+  const searchRegex = useMemo(() => {
+    if (!searchQuery) return null;
+    try {
+      // Escape special regex characters to prevent crashes
+      const escapedQuery = searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp(`(${escapedQuery})`, 'gi');
+    } catch (e) {
+      return null;
+    }
+  }, [searchQuery]);
+
+  // Filter transcription segments based on search query
+  const filteredSegments = useMemo(() => {
+    if (!searchQuery) return currentTranscription;
+    return currentTranscription.filter(seg =>
       seg.text.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    : currentTranscription;
+    );
+  }, [currentTranscription, searchQuery]);
 
-  // Function to highlight search text
-  const highlightText = (text: string, query: string) => {
-    if (!query) return text;
+  // Apply highlighting to filtered segments
+  const filteredTranscription = useMemo((): (TranscriptionSegment | HighlightedSegment)[] => {
+    if (!searchQuery || !searchRegex) {
+      return filteredSegments;
+    }
 
-    const parts = text.split(new RegExp(`(${query})`, 'gi'));
-    return parts.map((part) =>
-      part.toLowerCase() === query.toLowerCase()
-        ? `<mark style="background-color: ${isDark ? '#4CAF50' : '#FFEB3B'}; color: ${isDark ? '#000' : '#000'}; padding: 2px 4px; border-radius: 2px;">${part}</mark>`
-        : part
-    ).join('');
-  };
+    return filteredSegments.map(seg => ({
+      ...seg,
+      highlightedHtml: seg.text.split(searchRegex).map((part) =>
+        part.toLowerCase() === searchQuery.toLowerCase()
+          ? `<mark style="background-color: ${isDark ? '#4CAF50' : '#FFEB3B'}; color: ${isDark ? '#000' : '#000'}; padding: 2px 4px; border-radius: 2px;">${part}</mark>`
+          : part
+      ).join('')
+    }));
+  }, [filteredSegments, searchQuery, searchRegex, isDark]);
 
   const getStatusIcon = (status: FileItem['status']) => {
     switch (status) {
@@ -598,7 +619,7 @@ export default function App() {
                             className="text-sm leading-relaxed"
                             style={{ color: theme.text }}
                             dir="rtl"
-                            dangerouslySetInnerHTML={{ __html: highlightText(segment.text, searchQuery) }}
+                            dangerouslySetInnerHTML={{ __html: 'highlightedHtml' in segment ? segment.highlightedHtml : segment.text }}
                           />
                         </div>
                       ))}
