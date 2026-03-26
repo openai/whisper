@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - uses: actions-ecosystem/action-regex-match@v2
+    - uses: actions-ecosystem/action-regex-match@9e6c4fb3d5e898f505be7a1fb6e7b0a278f6665b # v2
       id: regex-match
       with:
         text: ${{ github.event.head_commit.message }}
@@ -24,7 +24,7 @@ jobs:
         pip install setuptools wheel twine build
     - name: Release
       if: ${{ steps.regex-match.outputs.match != '' }}
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2
       with:
         tag_name: v${{ steps.regex-match.outputs.group1 }}
     - name: Build and publish
