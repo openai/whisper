@@ -524,13 +524,23 @@ def cli():
             f"model should be one of {available_models()} or path to a model checkpoint"
         )
 
+    def valid_output_dir(path):
+        try:
+            os.makedirs(path, exist_ok=True)
+        except Exception as e:
+            raise argparse.ArgumentTypeError(f"Cannot create output directory {path}: {e}")
+        
+        if not os.access(path, os.W_OK | os.X_OK):
+            raise argparse.ArgumentTypeError(f"Lack write/execute permission for output directory: {path}")
+        return path
+
     # fmt: off
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("audio", nargs="+", type=str, help="audio file(s) to transcribe")
     parser.add_argument("--model", default="turbo", type=valid_model_name, help="name of the Whisper model to use")
     parser.add_argument("--model_dir", type=str, default=None, help="the path to save model files; uses ~/.cache/whisper by default")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu", help="device to use for PyTorch inference")
-    parser.add_argument("--output_dir", "-o", type=str, default=".", help="directory to save the outputs")
+    parser.add_argument("--output_dir", "-o", type=valid_output_dir, default=".", help="directory to save the outputs")
     parser.add_argument("--output_format", "-f", type=str, default="all", choices=["txt", "vtt", "srt", "tsv", "json", "all"], help="format of the output file; if not specified, all available formats will be produced")
     parser.add_argument("--verbose", type=str2bool, default=True, help="whether to print out the progress and debug messages")
 
@@ -572,7 +582,6 @@ def cli():
     output_dir: str = args.pop("output_dir")
     output_format: str = args.pop("output_format")
     device: str = args.pop("device")
-    os.makedirs(output_dir, exist_ok=True)
 
     if model_name.endswith(".en") and args["language"] not in {"en", "English"}:
         if args["language"] is not None:
@@ -592,9 +601,10 @@ def cli():
 
     from . import load_model
 
+    writer = get_writer(output_format, output_dir)
+
     model = load_model(model_name, device=device, download_root=model_dir)
 
-    writer = get_writer(output_format, output_dir)
     word_options = [
         "highlight_words",
         "max_line_count",
