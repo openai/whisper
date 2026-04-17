@@ -281,7 +281,7 @@ def transcribe(
             time_offset = float(seek * HOP_LENGTH / SAMPLE_RATE)
             window_end_time = float((seek + N_FRAMES) * HOP_LENGTH / SAMPLE_RATE)
             segment_size = min(N_FRAMES, content_frames - seek, seek_clip_end - seek)
-            mel_segment = mel[:, seek : seek + segment_size]
+            mel_segment = mel[:, seek:seek + segment_size]
             segment_duration = segment_size * HOP_LENGTH / SAMPLE_RATE
             mel_segment = pad_or_trim(mel_segment, N_FRAMES).to(model.device).to(dtype)
 
@@ -444,7 +444,7 @@ def transcribe(
                             continue
                         if is_segment_anomaly(segment):
                             next_segment = next_words_segment(
-                                current_segments[si + 1 :]
+                                current_segments[si + 1:]
                             )
                             if next_segment is not None:
                                 hal_next_start = next_segment["words"][0]["start"]
@@ -508,7 +508,7 @@ def transcribe(
             pbar.update(min(content_frames, seek) - previous_seek)
 
     return dict(
-        text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
+        text=tokenizer.decode(all_tokens[len(initial_prompt_tokens):]),
         segments=all_segments,
         language=language,
     )

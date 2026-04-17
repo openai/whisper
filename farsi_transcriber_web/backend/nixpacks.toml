@@ -1,0 +1,11 @@
+# Nixpacks configuration for Railway deployment
+# Ensures ffmpeg is available for Whisper audio processing
+
+[phases.setup]
+nixPkgs = ["ffmpeg"]
+
+[phases.install]
+cmds = ["pip install -r requirements.txt"]
+
+[start]
+cmd = "gunicorn --workers 2 --worker-class sync --timeout 120 --bind 0.0.0.0:$PORT app:app"

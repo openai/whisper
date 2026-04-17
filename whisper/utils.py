@@ -153,7 +153,7 @@ class SubtitlesWriter(ResultWriter):
                     if max_words_per_line > len(segment["words"]) - chunk_index:
                         words_count = remaining_words
                     for i, original_timing in enumerate(
-                        segment["words"][chunk_index : chunk_index + words_count]
+                        segment["words"][chunk_index:chunk_index + words_count]
                     ):
                         timing = original_timing.copy()
                         long_pause = (

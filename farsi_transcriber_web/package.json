@@ -1,0 +1,32 @@
+{
+  "name": "farsi-transcriber-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
+    "lucide-react": "^0.263.1",
+    "re-resizable": "^6.9.9",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sonner": "^1.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.8.0",
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^4.0.0",
+    "terser": "^5.44.1",
+    "typescript": "^5.2.2",
+    "vite": "^5.0.0"
+  }
+}

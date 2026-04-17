@@ -1,0 +1,12 @@
+Flask==2.3.3
+Flask-CORS==4.0.0
+python-dotenv==1.0.0
+openai-whisper>=20230314
+pyannote.audio
+torchaudio
+torch>=1.10.1
+numpy>=1.21.0
+python-multipart==0.0.6
+gunicorn==21.2.0
+
+

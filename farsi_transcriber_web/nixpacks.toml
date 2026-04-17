@@ -1,0 +1,11 @@
+# Nixpacks configuration for Railway deployment (Frontend)
+# Configures Node.js build and preview server
+
+[phases.install]
+cmds = ["npm install"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run preview"
