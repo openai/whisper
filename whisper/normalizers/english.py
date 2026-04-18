@@ -456,7 +456,8 @@ class EnglishSpellingNormalizer:
 
     def __init__(self):
         mapping_path = os.path.join(os.path.dirname(__file__), "english.json")
-        self.mapping = json.load(open(mapping_path))
+        with open(mapping_path) as f:
+            self.mapping = json.load(f)
 
     def __call__(self, s: str):
         return " ".join(self.mapping.get(word, word) for word in s.split())

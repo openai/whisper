@@ -86,10 +86,11 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 output.write(buffer)
                 loop.update(len(buffer))
 
-    model_bytes = open(download_target, "rb").read()
+    with open(download_target, "rb") as f:
+        model_bytes = f.read()
     if hashlib.sha256(model_bytes).hexdigest() != expected_sha256:
         raise RuntimeError(
-            "Model has been downloaded but the SHA256 checksum does not not match. Please retry loading the model."
+            "Model has been downloaded but the SHA256 checksum does not match. Please retry loading the model."
         )
 
     return model_bytes if in_memory else download_target
@@ -137,7 +138,11 @@ def load_model(
         checkpoint_file = _download(_MODELS[name], download_root, in_memory)
         alignment_heads = _ALIGNMENT_HEADS[name]
     elif os.path.isfile(name):
-        checkpoint_file = open(name, "rb").read() if in_memory else name
+        if in_memory:
+            with open(name, "rb") as f:
+                checkpoint_file = f.read()
+        else:
+            checkpoint_file = name
         alignment_heads = None
     else:
         raise RuntimeError(
