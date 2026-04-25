@@ -5,7 +5,7 @@ import sys
 import zlib
 from typing import Callable, List, Optional, TextIO
 
-system_encoding = sys.getdefaultencoding()
+system_encoding = sys.stdout.encoding
 
 if system_encoding != "utf-8":
 
