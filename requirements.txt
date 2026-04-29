@@ -1,5 +1,6 @@
 numba
 numpy
+requests
 torch
 tqdm
 more-itertools

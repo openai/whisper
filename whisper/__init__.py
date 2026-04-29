@@ -1,10 +1,10 @@
 import hashlib
 import io
 import os
-import urllib
 import warnings
 from typing import List, Optional, Union
 
+import requests
 import torch
 from tqdm import tqdm
 
@@ -54,6 +54,9 @@ _ALIGNMENT_HEADS = {
 def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
     os.makedirs(root, exist_ok=True)
 
+    if not url.lower().startswith("https://"):
+        raise ValueError(f"Only HTTPS URLs are supported for model downloads, got: {url!r}")
+
     expected_sha256 = url.split("/")[-2]
     download_target = os.path.join(root, os.path.basename(url))
 
@@ -70,21 +73,19 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
             )
 
-    with urllib.request.urlopen(url) as source, open(download_target, "wb") as output:
-        with tqdm(
-            total=int(source.info().get("Content-Length")),
-            ncols=80,
-            unit="iB",
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as loop:
-            while True:
-                buffer = source.read(8192)
-                if not buffer:
-                    break
-
-                output.write(buffer)
-                loop.update(len(buffer))
+    with requests.get(url, stream=True, timeout=300) as source:
+        source.raise_for_status()
+        with open(download_target, "wb") as output:
+            with tqdm(
+                total=int(source.headers.get("Content-Length", 0)),
+                ncols=80,
+                unit="iB",
+                unit_scale=True,
+                unit_divisor=1024,
+            ) as loop:
+                for buffer in source.iter_content(chunk_size=8192):
+                    output.write(buffer)
+                    loop.update(len(buffer))
 
     model_bytes = open(download_target, "rb").read()
     if hashlib.sha256(model_bytes).hexdigest() != expected_sha256:
@@ -147,8 +148,7 @@ def load_model(
     with (
         io.BytesIO(checkpoint_file) if in_memory else open(checkpoint_file, "rb")
     ) as fp:
-        kwargs = {"weights_only": True} if torch.__version__ >= "1.13" else {}
-        checkpoint = torch.load(fp, map_location=device, **kwargs)
+        checkpoint = torch.load(fp, map_location=device, weights_only=True)  # nosemgrep: trailofbits.python.pickles-in-pytorch.pickles-in-pytorch
     del checkpoint_file
 
     dims = ModelDimensions(**checkpoint["dims"])
