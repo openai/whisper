@@ -86,6 +86,12 @@ class ResultWriter:
     extension: str
 
     def __init__(self, output_dir: str):
+        if not os.path.exists(output_dir):
+            raise FileNotFoundError(f"Output directory does not exist: {output_dir}")
+        if not os.path.isdir(output_dir):
+            raise NotADirectoryError(f"Output path is not a directory: {output_dir}")
+        if not os.access(output_dir, os.W_OK | os.X_OK):
+            raise PermissionError(f"Lack write/execute permission for output directory: {output_dir}")
         self.output_dir = output_dir
 
     def __call__(
