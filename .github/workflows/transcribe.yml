@@ -1,0 +1,69 @@
+name: Transcribe Audio
+
+on:
+  workflow_dispatch:
+    inputs:
+      audio_url:
+        description: "Direct URL to the audio file (mp3, wav, flac, m4a, etc.)"
+        required: true
+      model:
+        description: "Whisper model size"
+        required: false
+        default: "small"
+        type: choice
+        options:
+          - tiny
+          - base
+          - small
+          - medium
+          - large
+      language:
+        description: "Language code (e.g. en, es, fr) — leave blank for auto-detect"
+        required: false
+        default: ""
+      output_format:
+        description: "Output format"
+        required: false
+        default: "txt"
+        type: choice
+        options:
+          - txt
+          - srt
+          - vtt
+          - tsv
+          - json
+          - all
+
+jobs:
+  transcribe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install ffmpeg
+        run: sudo apt-get install -y ffmpeg
+
+      - name: Install Whisper
+        run: pip install openai-whisper
+
+      - name: Download audio file
+        run: |
+          FILENAME=$(basename "${{ github.event.inputs.audio_url }}" | sed 's/[?#].*//')
+          curl -L -o "/tmp/${FILENAME}" "${{ github.event.inputs.audio_url }}"
+          echo "AUDIO_FILE=/tmp/${FILENAME}" >> $GITHUB_ENV
+
+      - name: Transcribe
+        run: |
+          LANG_FLAG=""
+          if [ -n "${{ github.event.inputs.language }}" ]; then
+            LANG_FLAG="--language ${{ github.event.inputs.language }}"
+          fi
+          whisper "$AUDIO_FILE" \
+            --model ${{ github.event.inputs.model }} \
+            --output_format ${{ github.event.inputs.output_format }} \
+            --output_dir /tmp/transcripts \
+            $LANG_FLAG
+
+      - name: Upload transcript
+        uses: actions/upload-artifact@v4
+        with:
+          name: transcript
+          path: /tmp/transcripts/
