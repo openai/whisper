@@ -2,7 +2,7 @@ import argparse
 import os
 import traceback
 import warnings
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -52,6 +52,7 @@ def transcribe(
     append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
     clip_timestamps: Union[str, List[float]] = "0",
     hallucination_silence_threshold: Optional[float] = None,
+    progress_callback: Optional[Callable[[int, int], None]] = None,
     **decode_options,
 ):
     """
@@ -118,6 +119,11 @@ def transcribe(
     hallucination_silence_threshold: Optional[float]
         When word_timestamps is True, skip silent periods longer than this threshold (in seconds)
         when a possible hallucination is detected
+
+    progress_callback: Callable[[int, int], None]
+        Optional callback invoked after each decoded window with
+        (current_frame, total_frames). Useful for tracking progress in
+        non-interactive environments without parsing tqdm output.
 
     Returns
     -------
@@ -506,6 +512,8 @@ def transcribe(
 
             # update progress bar
             pbar.update(min(content_frames, seek) - previous_seek)
+            if progress_callback is not None:
+                progress_callback(min(content_frames, seek), content_frames)
 
     return dict(
         text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
