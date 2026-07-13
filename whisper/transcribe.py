@@ -2,7 +2,7 @@ import argparse
 import os
 import traceback
 import warnings
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Callable, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -40,6 +40,7 @@ def transcribe(
     audio: Union[str, np.ndarray, torch.Tensor],
     *,
     verbose: Optional[bool] = None,
+    progress_callback: Optional[Callable[[float], None]] = None,
     temperature: Union[float, Tuple[float, ...]] = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
     compression_ratio_threshold: Optional[float] = 2.4,
     logprob_threshold: Optional[float] = -1.0,
@@ -68,6 +69,10 @@ def transcribe(
     verbose: bool
         Whether to display the text being decoded to the console. If True, displays all the details,
         If False, displays minimal details. If None, does not display anything
+
+    progress_callback: Optional[Callable[[float], None]]
+        Optional callback invoked with the overall transcription progress as a float from 0 to 1
+        after each decoded segment.
 
     temperature: Union[float, Tuple[float, ...]]
         Temperature for sampling. It can be a tuple of temperatures, which will be successively used
@@ -264,6 +269,7 @@ def transcribe(
     with tqdm.tqdm(
         total=content_frames, unit="frames", disable=verbose is not False
     ) as pbar:
+        last_progress = 0.0
         last_speech_timestamp = 0.0
         # NOTE: This loop is obscurely flattened to make the diff readable.
         # A later commit should turn this into a simpler nested loop.
@@ -506,6 +512,14 @@ def transcribe(
 
             # update progress bar
             pbar.update(min(content_frames, seek) - previous_seek)
+            if progress_callback is not None:
+                progress = (
+                    min(content_frames, seek) / content_frames
+                    if content_frames > 0
+                    else 1.0
+                )
+                last_progress = max(last_progress, progress)
+                progress_callback(last_progress)
 
     return dict(
         text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),

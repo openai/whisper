@@ -122,6 +122,16 @@ result = model.transcribe("audio.mp3")
 print(result["text"])
 ```
 
+To receive transcription progress in an application, pass a callback that accepts a float from `0` to `1`:
+
+```python
+def on_progress(progress: float):
+    print(f"Transcription: {progress:.0%}")
+
+
+result = model.transcribe("audio.mp3", progress_callback=on_progress)
+```
+
 Internally, the `transcribe()` method reads the entire file and processes the audio with a sliding 30-second window, performing autoregressive sequence-to-sequence predictions on each window.
 
 Below is an example usage of `whisper.detect_language()` and `whisper.decode()` which provide lower-level access to the model.

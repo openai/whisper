@@ -12,11 +12,19 @@ def test_transcribe(model_name: str):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = whisper.load_model(model_name).to(device)
     audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
+    progress = []
 
     language = "en" if model_name.endswith(".en") else None
     result = model.transcribe(
-        audio_path, language=language, temperature=0.0, word_timestamps=True
+        audio_path,
+        language=language,
+        temperature=0.0,
+        word_timestamps=True,
+        progress_callback=progress.append,
     )
+    assert progress
+    assert progress == sorted(progress)
+    assert progress[-1] == pytest.approx(1.0)
     assert result["language"] == "en"
     assert result["text"] == "".join([s["text"] for s in result["segments"]])
 
