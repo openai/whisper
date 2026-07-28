@@ -293,6 +293,16 @@ class WriteJSON(ResultWriter):
         json.dump(result, file)
 
 
+class WriteJSONL(ResultWriter):
+    extension: str = "jsonl"
+
+    def write_result(
+        self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs
+    ):
+        for segment in result["segments"]:
+            print(json.dumps(segment), file=file, flush=True)
+
+
 def get_writer(
     output_format: str, output_dir: str
 ) -> Callable[[dict, TextIO, dict], None]:
@@ -302,6 +312,7 @@ def get_writer(
         "srt": WriteSRT,
         "tsv": WriteTSV,
         "json": WriteJSON,
+        "jsonl": WriteJSONL,
     }
 
     if output_format == "all":
