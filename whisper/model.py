@@ -121,6 +121,13 @@ class MultiHeadAttention(nn.Module):
         v = v.view(*v.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
 
         if SDPA_AVAILABLE and MultiHeadAttention.use_sdpa:
+            if k.shape[0] == 1 and q.shape[0] != 1:
+                # Cross-attention K/V have batch 1 and broadcast against the
+                # beam-expanded query; the fused SDPA kernels reject the batch
+                # mismatch and fall back to math, so expand K/V to a stride-0
+                # view (no copy) to keep them on the fast path.
+                k = k.expand(q.shape[0], *k.shape[1:])
+                v = v.expand(q.shape[0], *v.shape[1:])
             a = scaled_dot_product_attention(
                 q, k, v, is_causal=mask is not None and n_ctx > 1
             )
