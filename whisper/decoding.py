@@ -618,11 +618,11 @@ class DecodingTask:
         if isinstance(suppress_tokens, str):
             suppress_tokens = [int(t) for t in suppress_tokens.split(",")]
 
-        if -1 in suppress_tokens:
+        if suppress_tokens is None or len(suppress_tokens) == 0:
+            suppress_tokens = []  # interpret empty string as an empty list
+        elif isinstance(suppress_tokens, list) and -1 in suppress_tokens:
             suppress_tokens = [t for t in suppress_tokens if t >= 0]
             suppress_tokens.extend(self.tokenizer.non_speech_tokens)
-        elif suppress_tokens is None or len(suppress_tokens) == 0:
-            suppress_tokens = []  # interpret empty string as an empty list
         else:
             assert isinstance(suppress_tokens, list), "suppress_tokens must be a list"
 
@@ -657,7 +657,7 @@ class DecodingTask:
         if audio_features.dtype != (
             torch.float16 if self.options.fp16 else torch.float32
         ):
-            return TypeError(
+            raise TypeError(
                 f"audio_features has an incorrect dtype: {audio_features.dtype}"
             )
 
