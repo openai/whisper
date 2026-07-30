@@ -115,4 +115,4 @@ We downloaded the Common Voice Corpus 9 from [the official website](https://comm
 
 ### CoVOST 2
 
-We collected the `X into English` data collected using [the official repository](https://github.com/facebookresearch/covost).
+We collected the `X into English` data using [the official repository](https://github.com/facebookresearch/covost).
