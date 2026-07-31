@@ -69,6 +69,10 @@ def test_number_normalizer(std):
 
     assert std("three and a half million") == "3500000"
     assert std("forty eight and a half dollars") == "$48.5"
+    assert std("half a million") == "500000"
+    assert std("a half million") == "500000"
+    assert std("half a million dollars") == "$500000"
+    assert std("half a thousand") == "500"
     assert std("b747") == "b 747"
     assert std("10 th") == "10th"
     assert std("10th") == "10th"
@@ -89,6 +93,10 @@ def test_text_normalizer():
     assert std("10km") == "10 km"
     assert std("10mm") == "10 mm"
     assert std("RC232") == "rc 232"
+    assert std("5 %") == "5%"
+    assert std("over 50 %") == "over 50%"
+    assert std("$ 5") == "$5"
+    assert std("a $ 5 discount") == "a $5 discount"
 
     assert (
         std("Mr. Park visited Assoc. Prof. Kim Jr.")
