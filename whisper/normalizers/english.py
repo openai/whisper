@@ -405,6 +405,14 @@ class EnglishNumberNormalizer:
 
         s = " ".join(results)
 
+        # replace "half a million" (and similar) with "0.5 million"
+        multipliers = "|".join(sorted(self.multipliers, key=len, reverse=True))
+        s = re.sub(
+            rf"\b(?:a\s+half\s+|half\s+(?:a\s+)?)({multipliers})\b",
+            r"0.5 \1",
+            s,
+        )
+
         # put a space at number/letter boundary
         s = re.sub(r"([a-z])([0-9])", r"\1 \2", s)
         s = re.sub(r"([0-9])([a-z])", r"\1 \2", s)
@@ -540,6 +548,10 @@ class EnglishTextNormalizer:
 
         s = self.standardize_numbers(s)
         s = self.standardize_spellings(s)
+
+        # attach currency symbols and percent to adjacent numbers
+        s = re.sub(r"([$¢€£])\s+([0-9])", r"\1\2", s)
+        s = re.sub(r"([0-9])\s+%", r"\1%", s)
 
         # now remove prefix/suffix symbols that are not preceded/followed by numbers
         s = re.sub(r"[.$¢€£]([^0-9])", r" \1", s)
