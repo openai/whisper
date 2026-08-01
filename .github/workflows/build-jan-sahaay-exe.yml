@@ -1,0 +1,49 @@
+name: Build Jan Sahaay AI Windows EXE
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "jan-sahaay-ai/**"
+      - ".github/workflows/build-jan-sahaay-exe.yml"
+  workflow_dispatch:
+
+jobs:
+  build-exe:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install PyInstaller
+        run: pip install pyinstaller
+
+      - name: Regenerate scheme database
+        working-directory: jan-sahaay-ai
+        run: python generator/generate_schemes.py
+
+      - name: Build JanSahaayAI.exe
+        working-directory: jan-sahaay-ai
+        run: >
+          pyinstaller --onefile --noconsole --name JanSahaayAI
+          --add-data "app;app"
+          launcher.py
+
+      - name: Smoke test bundle exists
+        working-directory: jan-sahaay-ai
+        shell: pwsh
+        run: |
+          if (!(Test-Path dist/JanSahaayAI.exe)) { throw "exe not produced" }
+          Get-Item dist/JanSahaayAI.exe | Format-List Name, Length
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: JanSahaayAI-windows-exe
+          path: jan-sahaay-ai/dist/JanSahaayAI.exe
+          if-no-files-found: error
