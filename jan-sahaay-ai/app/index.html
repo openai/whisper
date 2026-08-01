@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jan Sahaay AI — India's first voice-first app for welfare schemes</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="aurora" aria-hidden="true">
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+  <div class="grid-overlay"></div>
+</div>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">
+      <svg viewBox="0 0 48 48" width="40" height="40">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#ff9933"/>
+            <stop offset="0.5" stop-color="#00e5ff"/>
+            <stop offset="1" stop-color="#39d98a"/>
+          </linearGradient>
+        </defs>
+        <circle cx="24" cy="24" r="21" fill="none" stroke="url(#lg)" stroke-width="2.5"/>
+        <path d="M24 12 a12 12 0 0 1 0 24 a12 12 0 0 1 0 -24" fill="none" stroke="url(#lg)" stroke-width="1.2" opacity="0.6"/>
+        <rect x="21" y="15" width="6" height="12" rx="3" fill="url(#lg)"/>
+        <path d="M16 25 a8 8 0 0 0 16 0" fill="none" stroke="url(#lg)" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="24" y1="33" x2="24" y2="37" stroke="url(#lg)" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="brand-text">
+      <h1>Jan Sahaay <span class="ai-chip">AI</span></h1>
+      <p class="tagline" data-i18n="tagline">India's first voice-first app for welfare schemes</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <div class="lang-switch" role="group" aria-label="Language">
+      <button id="btn-en" class="lang-btn active" onclick="setLang('en')">English</button>
+      <button id="btn-hi" class="lang-btn" onclick="setLang('hi')">हिन्दी</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ============ HERO ============ -->
+  <section class="hero">
+    <h2 class="hero-title">
+      <span data-i18n="heroA">Speak.</span>
+      <span class="grad" data-i18n="heroB">Discover.</span>
+      <span data-i18n="heroC">Claim your rights.</span>
+    </h2>
+    <p class="hero-sub" data-i18n="heroSub">
+      Tell us about yourself — by voice or by form — and instantly discover every
+      government scheme you are eligible for, across India.
+    </p>
+    <div class="stats">
+      <div class="stat"><div class="stat-num" id="stat-schemes">1000+</div><div class="stat-label" data-i18n="stSchemes">Schemes</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><div class="stat-num">36</div><div class="stat-label" data-i18n="stStates">States &amp; UTs</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><div class="stat-num">12</div><div class="stat-label" data-i18n="stLangs">Voice languages</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><div class="stat-num">100%</div><div class="stat-label" data-i18n="stFree">Free forever</div></div>
+    </div>
+  </section>
+
+  <!-- ============ VOICE PANEL ============ -->
+  <section class="glass voice-panel" id="voice-panel">
+    <div class="panel-head">
+      <h3><span class="dot dot-cyan"></span><span data-i18n="voiceTitle">Voice Assistant</span></h3>
+      <select id="voice-lang" class="voice-lang" title="Speech language"></select>
+    </div>
+    <div class="voice-body">
+      <button id="mic-btn" class="mic-btn" onclick="toggleMic()" aria-label="Start voice input">
+        <span class="mic-ring"></span>
+        <span class="mic-ring r2"></span>
+        <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="2.5" width="6" height="12" rx="3"/>
+          <path d="M5 11a7 7 0 0 0 14 0"/>
+          <line x1="12" y1="18" x2="12" y2="21.5"/>
+        </svg>
+      </button>
+      <div class="voice-info">
+        <p id="voice-status" class="voice-status" data-i18n="voiceIdle">
+          Tap the mic and speak — e.g. “I am a 35 year old woman farmer from Jharkhand, income 2 lakh”
+        </p>
+        <div id="transcript" class="transcript" hidden></div>
+        <div id="parsed-chips" class="parsed-chips"></div>
+        <p id="voice-unsupported" class="voice-warn" hidden data-i18n="voiceUnsupported">
+          Voice input needs Google Chrome or Microsoft Edge (and an internet connection).
+          You can still use the form below.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PROFILE FORM ============ -->
+  <section class="glass form-panel">
+    <div class="panel-head">
+      <h3><span class="dot dot-saffron"></span><span data-i18n="formTitle">Your Profile</span></h3>
+      <button class="ghost-btn" onclick="resetForm()" data-i18n="reset">Reset</button>
+    </div>
+    <div class="form-grid">
+      <div class="field">
+        <label data-i18n="fAge">Age</label>
+        <input type="number" id="f-age" min="1" max="110" placeholder="e.g. 35">
+      </div>
+      <div class="field">
+        <label data-i18n="fGender">Gender</label>
+        <select id="f-gender">
+          <option value="" data-i18n="oSelect">— Select —</option>
+          <option value="F" data-i18n="oFemale">Female</option>
+          <option value="M" data-i18n="oMale">Male</option>
+          <option value="O" data-i18n="oOther">Other / Transgender</option>
+        </select>
+      </div>
+      <div class="field">
+        <label data-i18n="fState">State / UT</label>
+        <select id="f-state"><option value="" data-i18n="oSelect">— Select —</option></select>
+      </div>
+      <div class="field">
+        <label data-i18n="fArea">Area</label>
+        <select id="f-res">
+          <option value="" data-i18n="oSelect">— Select —</option>
+          <option value="R" data-i18n="oRural">Rural (village)</option>
+          <option value="U" data-i18n="oUrban">Urban (town/city)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label data-i18n="fCat">Social category</label>
+        <select id="f-cat">
+          <option value="" data-i18n="oSelect">— Select —</option>
+          <option value="gen" data-i18n="oGen">General</option>
+          <option value="obc" data-i18n="oObc">OBC</option>
+          <option value="sc" data-i18n="oSc">SC</option>
+          <option value="st" data-i18n="oSt">ST</option>
+          <option value="ews" data-i18n="oEws">EWS</option>
+          <option value="minority" data-i18n="oMin">Minority</option>
+        </select>
+      </div>
+      <div class="field">
+        <label data-i18n="fOcc">Occupation</label>
+        <select id="f-occ">
+          <option value="" data-i18n="oSelect">— Select —</option>
+          <option value="student" data-i18n="oStudent">Student</option>
+          <option value="farmer" data-i18n="oFarmer">Farmer</option>
+          <option value="worker" data-i18n="oWorker">Daily-wage / construction worker</option>
+          <option value="salaried" data-i18n="oSalaried">Salaried employee</option>
+          <option value="self_employed" data-i18n="oSelf">Business / self-employed</option>
+          <option value="street_vendor" data-i18n="oVendor">Street vendor</option>
+          <option value="artisan" data-i18n="oArtisan">Artisan / craftsperson</option>
+          <option value="fisher" data-i18n="oFisher">Fisherman / fisherwoman</option>
+          <option value="homemaker" data-i18n="oHome">Homemaker</option>
+          <option value="unemployed" data-i18n="oUnemp">Unemployed</option>
+          <option value="retired" data-i18n="oRetired">Retired</option>
+        </select>
+      </div>
+      <div class="field field-wide">
+        <label data-i18n="fIncome">Annual family income (₹)</label>
+        <input type="number" id="f-income" min="0" step="10000" placeholder="e.g. 200000">
+        <div class="income-presets">
+          <button onclick="setIncome(100000)">₹1 <span data-i18n="lakh">lakh</span></button>
+          <button onclick="setIncome(250000)">₹2.5 <span data-i18n="lakh">lakh</span></button>
+          <button onclick="setIncome(500000)">₹5 <span data-i18n="lakh">lakh</span></button>
+          <button onclick="setIncome(800000)">₹8 <span data-i18n="lakh">lakh</span></button>
+        </div>
+      </div>
+      <div class="field field-wide checks">
+        <label class="check"><input type="checkbox" id="f-bpl"><span data-i18n="fBpl">BPL / Antyodaya ration card</span></label>
+        <label class="check"><input type="checkbox" id="f-dis"><span data-i18n="fDis">Person with disability</span></label>
+        <label class="check"><input type="checkbox" id="f-wid"><span data-i18n="fWid">Widow</span></label>
+        <label class="check"><input type="checkbox" id="f-preg"><span data-i18n="fPreg">Pregnant / new mother</span></label>
+      </div>
+    </div>
+    <button class="cta" onclick="findSchemes()">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.5" y2="16.5"/></svg>
+      <span data-i18n="cta">Find My Schemes</span>
+    </button>
+  </section>
+
+  <!-- ============ RESULTS ============ -->
+  <section id="results-section" class="results-section" hidden>
+    <div class="results-head">
+      <h3 id="results-count"></h3>
+      <div id="tag-filters" class="tag-filters"></div>
+    </div>
+    <div id="results" class="results-grid"></div>
+    <p class="disclaimer" data-i18n="disclaimer">
+      Scheme details are indicative and may change. Always verify eligibility and apply
+      through official portals — myscheme.gov.in or your state government website.
+    </p>
+  </section>
+</main>
+
+<footer class="footer">
+  <p><strong>Jan Sahaay AI</strong> · <span data-i18n="footer">Empowering every Indian with knowledge of their entitlements</span> · 🇮🇳</p>
+</footer>
+
+<script src="schemes-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
