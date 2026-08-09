@@ -1,0 +1,11 @@
+# Frontend Nixpacks configuration
+# Node.js React app with Vite
+
+[phases.install]
+cmds = ["npm install"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run preview"

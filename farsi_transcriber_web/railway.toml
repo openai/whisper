@@ -1,0 +1,13 @@
+# Railway configuration file
+# https://docs.railway.app/reference/nixpacks
+
+[build]
+builder = "nixpacks"
+
+[[services]]
+name = "backend"
+startCommand = "cd backend && gunicorn --workers 2 --worker-class sync --timeout 120 --bind 0.0.0.0:5000 app:app"
+
+[[services]]
+name = "frontend"
+startCommand = "npm run build && npm run preview"

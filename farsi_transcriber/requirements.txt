@@ -1,0 +1,7 @@
+PyQt6==6.6.1
+PyQt6-Qt6==6.6.1
+PyQt6-sip==13.6.0
+torch>=1.10.1
+numpy
+openai-whisper
+tqdm
