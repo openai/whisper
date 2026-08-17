@@ -158,3 +158,15 @@ Please use the [🙌 Show and tell](https://github.com/openai/whisper/discussion
 ## License
 
 Whisper's code and model weights are released under the MIT License. See [LICENSE](https://github.com/openai/whisper/blob/main/LICENSE) for further details.
+
+
+## Contributing
+
+We welcome contributions of all kinds! Please read [CONTRIBUTING.md](CONTRIBUTING.md)
+for guidelines on how to report bugs, suggest features, and submit pull requests.
+
+By participating in this project, you agree to follow our
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+---
+*Documentation contributed by [Mukller](https://github.com/Mukller)*
