@@ -148,7 +148,7 @@ def log_mel_spectrogram(
     stft = torch.stft(audio, N_FFT, HOP_LENGTH, window=window, return_complex=True)
     magnitudes = stft[..., :-1].abs() ** 2
 
-    filters = mel_filters(audio.device, n_mels)
+    filters = mel_filters(audio.device, n_mels).to(dtype=magnitudes.dtype)
     mel_spec = filters @ magnitudes
 
     log_spec = torch.clamp(mel_spec, min=1e-10).log10()
