@@ -154,6 +154,15 @@ print(result.text)
 
 Please use the [🙌 Show and tell](https://github.com/openai/whisper/discussions/categories/show-and-tell) category in Discussions for sharing more example usages of Whisper and third-party extensions such as web demos, integrations with other tools, ports for different platforms, etc.
 
+## New Usage Examples and Enhancements
+
+We've added new ways to use and improve Whisper:
+
+*   Real-time Transcription : A Python script to transcribe audio directly from your microphone in real-time.
+    See `examples/real_time_transcription.py` for details.
+*   Accent Post-processing Demo : A Jupyter notebook showcasing how to use spell-checking for post-processing transcriptions,
+    potentially improving accuracy for accented speech.
+    Explore `examples/accent_postprocessing.ipynb`.
 
 ## License
 
