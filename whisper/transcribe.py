@@ -31,6 +31,14 @@ from .utils import (
     str2bool,
 )
 
+# Enhanced hallucination detection
+try:
+    from .enhancements.hallucination_detector import HallucinationDetector, filter_hallucinations
+    from .enhancements.confidence_scorer import ConfidenceScorer, filter_by_confidence
+    ENHANCED_DETECTION_AVAILABLE = True
+except ImportError:
+    ENHANCED_DETECTION_AVAILABLE = False
+
 if TYPE_CHECKING:
     from .model import Whisper
 
@@ -52,6 +60,11 @@ def transcribe(
     append_punctuations: str = "\"'.。,，!！?？:：”)]}、",
     clip_timestamps: Union[str, List[float]] = "0",
     hallucination_silence_threshold: Optional[float] = None,
+    # Enhanced hallucination detection parameters
+    enhanced_hallucination_detection: bool = False,
+    hallucination_detection_language: Optional[str] = None,
+    strict_hallucination_filtering: bool = False,
+    confidence_threshold: Optional[float] = None,
     **decode_options,
 ):
     """
@@ -118,6 +131,22 @@ def transcribe(
     hallucination_silence_threshold: Optional[float]
         When word_timestamps is True, skip silent periods longer than this threshold (in seconds)
         when a possible hallucination is detected
+
+    enhanced_hallucination_detection: bool
+        Enable advanced hallucination detection using pattern recognition, repetition analysis,
+        and statistical methods. Requires the enhancements module.
+
+    hallucination_detection_language: Optional[str]
+        Language code for language-specific hallucination patterns. If None, uses the detected
+        or specified transcription language.
+
+    strict_hallucination_filtering: bool
+        Apply strict filtering to reject segments with any hallucination indicators.
+        When False, only obvious hallucinations are filtered.
+
+    confidence_threshold: Optional[float]
+        Minimum confidence score (0.0-1.0) for accepting transcribed segments.
+        If None, uses adaptive thresholding based on overall quality.
 
     Returns
     -------
@@ -507,9 +536,60 @@ def transcribe(
             # update progress bar
             pbar.update(min(content_frames, seek) - previous_seek)
 
+    # Apply enhanced hallucination detection if enabled
+    final_segments = all_segments
+    final_text = tokenizer.decode(all_tokens[len(initial_prompt_tokens) :])
+
+    if enhanced_hallucination_detection and ENHANCED_DETECTION_AVAILABLE:
+        detection_language = hallucination_detection_language or language or "en"
+
+        # Apply hallucination filtering
+        if final_segments:
+            filtered_segments = filter_hallucinations(
+                final_segments,
+                language=detection_language,
+                strict_mode=strict_hallucination_filtering
+            )
+
+            # Apply confidence-based filtering if threshold is provided
+            if confidence_threshold is not None:
+                filtered_segments = filter_by_confidence(
+                    filtered_segments,
+                    min_confidence=confidence_threshold,
+                    language=detection_language
+                )
+
+            # Update segments and regenerate text from filtered segments
+            final_segments = filtered_segments
+            if filtered_segments:
+                # Reconstruct text from filtered segments
+                filtered_tokens = []
+                for segment in filtered_segments:
+                    if "tokens" in segment and segment["tokens"]:
+                        filtered_tokens.extend(segment["tokens"])
+                    else:
+                        # Fallback: tokenize the segment text
+                        segment_tokens = tokenizer.encode(segment.get("text", ""))
+                        filtered_tokens.extend(segment_tokens)
+
+                if filtered_tokens:
+                    final_text = tokenizer.decode(filtered_tokens)
+                else:
+                    final_text = ""  # All segments were filtered out
+            else:
+                final_text = ""  # No segments passed filtering
+
+    elif enhanced_hallucination_detection and not ENHANCED_DETECTION_AVAILABLE:
+        import warnings
+        warnings.warn(
+            "Enhanced hallucination detection was requested but the enhancements module is not available. "
+            "Falling back to standard Whisper behavior.",
+            RuntimeWarning
+        )
+
     return dict(
-        text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
-        segments=all_segments,
+        text=final_text,
+        segments=final_segments,
         language=language,
     )
 
@@ -564,6 +644,12 @@ def cli():
     parser.add_argument("--threads", type=optional_int, default=0, help="number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS")
     parser.add_argument("--clip_timestamps", type=str, default="0", help="comma-separated list start,end,start,end,... timestamps (in seconds) of clips to process, where the last end timestamp defaults to the end of the file")
     parser.add_argument("--hallucination_silence_threshold", type=optional_float, help="(requires --word_timestamps True) skip silent periods longer than this threshold (in seconds) when a possible hallucination is detected")
+
+    # Enhanced hallucination detection arguments
+    parser.add_argument("--enhanced_hallucination_detection", type=str2bool, default=False, help="enable advanced hallucination detection using pattern recognition and statistical analysis")
+    parser.add_argument("--hallucination_detection_language", type=str, default=None, help="language code for hallucination pattern detection (defaults to transcription language)")
+    parser.add_argument("--strict_hallucination_filtering", type=str2bool, default=False, help="apply strict filtering to reject any segments with hallucination indicators")
+    parser.add_argument("--confidence_threshold", type=optional_float, default=None, help="minimum confidence score (0.0-1.0) for accepting transcribed segments")
     # fmt: on
 
     args = parser.parse_args().__dict__
