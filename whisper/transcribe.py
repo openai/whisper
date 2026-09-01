@@ -612,6 +612,8 @@ def cli():
     writer_args = {arg: args.pop(arg) for arg in word_options}
     for audio_path in args.pop("audio"):
         try:
+            if os.path.getsize(audio_path) > 2 * 1024 * 1024 * 1024:
+                raise ValueError("Audio file exceeds maximum allowed size of 2 GB")
             result = transcribe(model, audio_path, temperature=temperature, **args)
             writer(result, audio_path, **writer_args)
         except Exception as e:
