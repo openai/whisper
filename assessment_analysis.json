@@ -1,0 +1,153 @@
+{
+  "Q1": {
+    "question": "What is the purpose of determining and documenting requirements for a cabinet installation?",
+    "transcribed_answer": "To complete it accurately and efficiently, including detailed specification for the cabinets and all components.",
+    "written_summary": "To have a better understanding of the project for all persons involved and plan in advance for any difficulties and refer to documents as a guide for future projects.",
+    "assessment": {
+      "word_count": 15,
+      "has_substantial_content": true,
+      "keyword_relevance": 0.2857142857142857,
+      "transcription_summary_match": 0.15151515151515152
+    },
+    "transcription_details": {
+      "text": "To complete it accurately and efficiently, including detailed specification for the cabinets and all components.",
+      "language": "en",
+      "segments": [
+        {
+          "id": 0,
+          "seek": 0,
+          "start": 0.0,
+          "end": 8.0,
+          "text": " To complete it accurately and efficiently, including detailed specification for the cabinets and all components.",
+          "tokens": [
+            50364,
+            1407,
+            3566,
+            309,
+            20095,
+            293,
+            19621,
+            11,
+            3009,
+            9942,
+            31256,
+            337,
+            264,
+            37427,
+            293,
+            439,
+            6677,
+            13,
+            50764
+          ],
+          "temperature": 0.0,
+          "avg_logprob": -0.3367410898208618,
+          "compression_ratio": 1.1914893617021276,
+          "no_speech_prob": 0.07899459451436996
+        }
+      ]
+    }
+  },
+  "Q2": {
+    "error": "File not found: 77914809189__571E73A4-D2E8-4B00-934C-5B2E54DE47A4.MOV"
+  },
+  "Q3": {
+    "question": "What information is found in the appliance manuals?",
+    "transcribed_answer": "It's including product identifications, safety warnings and precautions step by step operating instructions, installation and assembly instructions. My tenants got lined, troubleshooting tips, technical specifications and warranty information.",
+    "written_summary": "Fitting instructions and requirements",
+    "assessment": {
+      "word_count": 28,
+      "has_substantial_content": true,
+      "keyword_relevance": 0.25,
+      "transcription_summary_match": 0.03571428571428571
+    },
+    "transcription_details": {
+      "text": "It's including product identifications, safety warnings and precautions step by step operating instructions, installation and assembly instructions. My tenants got lined, troubleshooting tips, technical specifications and warranty information.",
+      "language": "en",
+      "segments": [
+        {
+          "id": 0,
+          "seek": 0,
+          "start": 0.0,
+          "end": 7.0,
+          "text": " It's including product identifications, safety warnings and precautions",
+          "tokens": [
+            50364,
+            467,
+            311,
+            3009,
+            1674,
+            2473,
+            7833,
+            11,
+            4514,
+            30009,
+            293,
+            34684,
+            50714
+          ],
+          "temperature": 0.0,
+          "avg_logprob": -0.3135071884502064,
+          "compression_ratio": 1.5576923076923077,
+          "no_speech_prob": 0.02320166677236557
+        },
+        {
+          "id": 1,
+          "seek": 0,
+          "start": 7.0,
+          "end": 13.0,
+          "text": " step by step operating instructions, installation and assembly instructions.",
+          "tokens": [
+            50714,
+            1823,
+            538,
+            1823,
+            7447,
+            9415,
+            11,
+            13260,
+            293,
+            12103,
+            9415,
+            13,
+            51014
+          ],
+          "temperature": 0.0,
+          "avg_logprob": -0.3135071884502064,
+          "compression_ratio": 1.5576923076923077,
+          "no_speech_prob": 0.02320166677236557
+        },
+        {
+          "id": 2,
+          "seek": 0,
+          "start": 13.0,
+          "end": 21.0,
+          "text": " My tenants got lined, troubleshooting tips, technical specifications and warranty information.",
+          "tokens": [
+            51014,
+            1222,
+            31216,
+            658,
+            17189,
+            11,
+            15379,
+            47011,
+            6082,
+            11,
+            6191,
+            29448,
+            293,
+            26852,
+            1589,
+            13,
+            51414
+          ],
+          "temperature": 0.0,
+          "avg_logprob": -0.3135071884502064,
+          "compression_ratio": 1.5576923076923077,
+          "no_speech_prob": 0.02320166677236557
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "hotkey": "f1",
+  "always_on_top": false,
+  "minimize_to_tray": true,
+  "whisper_model": "base",
+  "window_geometry": "566x508+-609+28",
+  "auto_copy_clipboard": true,
+  "test_key": "test_value"
+}

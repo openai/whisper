@@ -1,0 +1,10 @@
+Transcription - 2025-09-16 10:18:09
+============================================================
+RAW TRANSCRIPTION:
+============================================================
+ Download the Move.mov files and use Whisper to convert speech to text for each movie file. Compare the text to the question and respond whether the student's answer is a good answer.
+
+============================================================
+PROCESSED PROMPT:
+============================================================
+Download the Move.mov files and use Whisper to convert speech to text for each movie file. Compare the text to the question and respond whether the student's answer is a good answer.

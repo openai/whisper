@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pip:*)",
+      "Bash(where python)",
+      "Bash(python:*)",
+      "Read(//c/Users/Dan Zambello/.claude/agents/**)",
+      "Read(//c/Users/Dan Zambello/.claude/**)",
+      "mcp__browsermcp__browser_snapshot",
+      "mcp__browsermcp__browser_click"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
