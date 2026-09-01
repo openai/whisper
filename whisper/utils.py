@@ -27,11 +27,18 @@ def exact_div(x, y):
 
 
 def str2bool(string):
-    str2val = {"True": True, "False": False}
-    if string in str2val:
-        return str2val[string]
-    else:
-        raise ValueError(f"Expected one of {set(str2val.keys())}, got {string}")
+    str2val = {
+        "true": True,
+        "false": False,
+        "1": True,
+        "0": False,
+        "yes": True,
+        "no": False,
+    }
+    value = str2val.get(string.lower())
+    if value is None:
+        raise ValueError(f"Expected a boolean value, got {string}")
+    return value
 
 
 def optional_int(string):
