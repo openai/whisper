@@ -70,14 +70,14 @@ def format_timestamp(
 
 def get_start(segments: List[dict]) -> Optional[float]:
     return next(
-        (w["start"] for s in segments for w in s["words"]),
+        (w["start"] for s in segments for w in s.get("words", [])),
         segments[0]["start"] if segments else None,
     )
 
 
 def get_end(segments: List[dict]) -> Optional[float]:
     return next(
-        (w["end"] for s in reversed(segments) for w in reversed(s["words"])),
+        (w["end"] for s in reversed(segments) for w in reversed(s.get("words", []))),
         segments[-1]["end"] if segments else None,
     )
 
