@@ -9,3 +9,6 @@ thumbs.db
 .DS_Store
 .idea
 
+.venv/
+
+samples/
