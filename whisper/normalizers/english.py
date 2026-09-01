@@ -61,11 +61,12 @@ class EnglishNumberNormalizer:
             "second": (2, "nd"),
             "third": (3, "rd"),
             "fifth": (5, "th"),
+            "ninth": (9, "th"),
             "twelfth": (12, "th"),
             **{
                 name + ("h" if name.endswith("t") else "th"): (value, "th")
                 for name, value in self.ones.items()
-                if value > 3 and value != 5 and value != 12
+                if value > 3 and value != 5 and value != 9 and value != 12
             },
         }
         self.ones_suffixed = {**self.ones_plural, **self.ones_ordinal}

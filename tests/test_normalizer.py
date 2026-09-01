@@ -32,6 +32,9 @@ def test_number_normalizer(std):
     assert std("nineteen fifties") == "1950s"
     assert std("thirty first") == "31st"
     assert std("thirty three thousand and three hundred and thirty third") == "33333rd"
+    assert std("ninth") == "9th"
+    assert std("twenty ninth") == "29th"
+    assert std("one hundred and ninth") == "109th"
 
     assert std("three billion") == "3000000000"
     assert std("millions") == "1000000s"
