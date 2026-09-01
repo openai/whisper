@@ -260,9 +260,17 @@ def transcribe(
             "no_speech_prob": result.no_speech_prob,
         }
 
-    # show the progress bar when verbose is False (if True, transcribed text will be printed)
+    # ✅ Show the progress bar only if progress_bar is True AND verbose is not enabled
+    show_progress = decode_options.pop("progress_bar", True)
+    if show_progress and (verbose is None or verbose is False):
+        print("🔄 Starting transcription with progress bar...")
     with tqdm.tqdm(
-        total=content_frames, unit="frames", disable=verbose is not False
+        total=content_frames,
+        unit="frames",
+        disable=not show_progress or verbose is not False,
+        dynamic_ncols=True,
+        leave=True,
+        mininterval=0.1
     ) as pbar:
         last_speech_timestamp = 0.0
         # NOTE: This loop is obscurely flattened to make the diff readable.
@@ -564,6 +572,7 @@ def cli():
     parser.add_argument("--threads", type=optional_int, default=0, help="number of threads used by torch for CPU inference; supercedes MKL_NUM_THREADS/OMP_NUM_THREADS")
     parser.add_argument("--clip_timestamps", type=str, default="0", help="comma-separated list start,end,start,end,... timestamps (in seconds) of clips to process, where the last end timestamp defaults to the end of the file")
     parser.add_argument("--hallucination_silence_threshold", type=optional_float, help="(requires --word_timestamps True) skip silent periods longer than this threshold (in seconds) when a possible hallucination is detected")
+    parser.add_argument("--progress_bar", type=str2bool, default=True,help="Whether to show a progress bar during transcription")
     # fmt: on
 
     args = parser.parse_args().__dict__
@@ -612,7 +621,7 @@ def cli():
     writer_args = {arg: args.pop(arg) for arg in word_options}
     for audio_path in args.pop("audio"):
         try:
-            result = transcribe(model, audio_path, temperature=temperature, **args)
+            result = transcribe(model, audio_path,temperature=temperature,progress_bar=args.pop("progress_bar"),**args)
             writer(result, audio_path, **writer_args)
         except Exception as e:
             traceback.print_exc()
