@@ -70,6 +70,15 @@ jobs:
           - python-version: '3.13'
             pytorch-version: 2.5.1
             numpy-requirement: "'numpy'"
+          - python-version: '3.12'
+            pytorch-version: 2.6.0
+            numpy-requirement: "'numpy'"
+          - python-version: '3.13'
+            pytorch-version: 2.9.1
+            numpy-requirement: "'numpy'"
+          - python-version: '3.13'
+            pytorch-version: 2.13.0
+            numpy-requirement: "'numpy'"
     steps:
       - uses: conda-incubator/setup-miniconda@fc2d68f6413eb2d87b895e92f8584b5b94a10167 # v3
       - run: conda install -n test ffmpeg python=${{ matrix.python-version }}
