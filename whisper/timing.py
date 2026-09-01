@@ -148,7 +148,7 @@ def dtw(x: torch.Tensor) -> np.ndarray:
                 "falling back to a slower DTW implementation..."
             )
 
-    return dtw_cpu(x.double().cpu().numpy())
+    return dtw_cpu(x.cpu().double().numpy())
 
 
 @dataclass
