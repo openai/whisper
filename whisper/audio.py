@@ -56,6 +56,10 @@ def load_audio(file: str, sr: int = SAMPLE_RATE):
     # fmt: on
     try:
         out = run(cmd, capture_output=True, check=True).stdout
+    except FileNotFoundError:
+        raise RuntimeError(
+            "ffmpeg was not found. Please install it from https://ffmpeg.org"
+        )
     except CalledProcessError as e:
         raise RuntimeError(f"Failed to load audio: {e.stderr.decode()}") from e
 
