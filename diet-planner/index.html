@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Diet Planner</title>
+<style>
+  :root {
+    --bg: #f6f8f7;
+    --card: #ffffff;
+    --ink: #1e2a26;
+    --muted: #5c6b65;
+    --accent: #0f7a5c;
+    --accent-soft: #e2f2ec;
+    --warn-bg: #fff4e0;
+    --warn-ink: #8a5a00;
+    --danger-bg: #fdeaea;
+    --danger-ink: #a02020;
+    --line: #dde5e1;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    line-height: 1.45;
+  }
+  header {
+    background: var(--accent);
+    color: #fff;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  header h1 { margin: 0; font-size: 1.35rem; }
+  header .sub { font-size: .8rem; opacity: .9; }
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: .8rem;
+    font-weight: 600;
+    background: #dff3ff;
+    color: #085a80;
+  }
+  .badge.offline { background: #ffe6c7; color: #8a4b00; }
+  main { max-width: 1080px; margin: 0 auto; padding: 20px 16px 60px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px 16px;
+  }
+  label { display: block; font-size: .82rem; font-weight: 600; color: var(--muted); margin-bottom: 4px; }
+  input, select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: .95rem;
+    background: #fff;
+    color: var(--ink);
+  }
+  input:focus, select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .row-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 16px; }
+  button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: .95rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.primary { background: var(--accent); color: #fff; }
+  button.primary:disabled { background: #9bb8ae; cursor: wait; }
+  button.secondary { background: var(--accent-soft); color: var(--accent); }
+  .toggle { display: flex; align-items: center; gap: 6px; font-size: .88rem; color: var(--muted); }
+  .toggle input { width: auto; }
+  #status { font-size: .88rem; color: var(--muted); min-height: 1.2em; margin-top: 10px; }
+  .notice { padding: 10px 14px; border-radius: 8px; font-size: .9rem; margin: 10px 0; }
+  .notice.warn { background: var(--warn-bg); color: var(--warn-ink); }
+  .notice.danger { background: var(--danger-bg); color: var(--danger-ink); }
+  .notice.info { background: var(--accent-soft); color: var(--accent); }
+  .summary-stats { display: flex; gap: 24px; flex-wrap: wrap; font-size: .95rem; }
+  .summary-stats b { font-size: 1.25rem; display: block; color: var(--accent); }
+  table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+  .table-wrap { overflow-x: auto; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { background: var(--accent-soft); color: var(--accent); }
+  td .meal-name { font-weight: 600; }
+  td .macros { color: var(--muted); font-size: .8rem; }
+  tr.day-total td { background: #f0f6f3; font-weight: 600; }
+  .grocery-cols { columns: 3 220px; column-gap: 28px; padding-left: 18px; margin: 8px 0; }
+  .grocery-cols li { break-inside: avoid; margin-bottom: 3px; font-size: .9rem; }
+  footer.disclaimer {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #263b34;
+    color: #cfe4dc;
+    text-align: center;
+    font-size: .8rem;
+    padding: 6px 10px;
+  }
+  h2 { font-size: 1.1rem; margin: 0 0 12px; }
+  @media print {
+    header, form#planner-form, .row-actions, #status, footer.disclaimer, .no-print { display: none !important; }
+    body { background: #fff; }
+    .card { border: none; padding: 0; margin-bottom: 14px; }
+    .print-only { display: block !important; }
+  }
+  .print-only { display: none; font-size: .8rem; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>AI Diet Planner</h1>
+    <div class="sub">7-day personalised meal plans &mdash; school project</div>
+  </div>
+  <span id="mode-badge" class="badge">AI mode</span>
+</header>
+
+<main>
+  <div class="card">
+    <h2>Your details</h2>
+    <form id="planner-form">
+      <div class="grid">
+        <div><label for="age">Age (years)</label><input id="age" type="number" min="10" max="100" value="16" required></div>
+        <div><label for="sex">Sex</label>
+          <select id="sex"><option value="male">Male</option><option value="female">Female</option></select></div>
+        <div><label for="height">Height (cm)</label><input id="height" type="number" min="100" max="230" value="170" required></div>
+        <div><label for="weight">Weight (kg)</label><input id="weight" type="number" min="25" max="250" value="60" required></div>
+        <div><label for="activity">Activity level</label>
+          <select id="activity">
+            <option value="1.2">Sedentary (little exercise)</option>
+            <option value="1.375">Light (1&ndash;3 days/week)</option>
+            <option value="1.55" selected>Moderate (3&ndash;5 days/week)</option>
+            <option value="1.725">Very active (6&ndash;7 days/week)</option>
+            <option value="1.9">Extra active (physical job)</option>
+          </select></div>
+        <div><label for="goal">Goal</label>
+          <select id="goal">
+            <option value="lose">Lose weight (&minus;500 kcal)</option>
+            <option value="maintain" selected>Maintain weight</option>
+            <option value="gain">Gain weight (+400 kcal)</option>
+          </select></div>
+        <div><label for="diet">Diet type</label>
+          <select id="diet">
+            <option value="nonveg">Non-vegetarian</option>
+            <option value="veg" selected>Vegetarian</option>
+            <option value="vegan">Vegan</option>
+          </select></div>
+        <div><label for="allergies">Allergies (comma-separated)</label><input id="allergies" type="text" placeholder="e.g. nuts, dairy"></div>
+        <div><label for="cuisine">Preferred cuisine</label>
+          <select id="cuisine">
+            <option value="any" selected>No preference</option>
+            <option value="indian">Indian</option>
+            <option value="western">Western</option>
+            <option value="mediterranean">Mediterranean</option>
+            <option value="east-asian">East Asian</option>
+            <option value="mexican">Mexican</option>
+          </select></div>
+      </div>
+      <div class="row-actions">
+        <button type="submit" class="primary" id="generate-btn">Generate 7-day plan</button>
+        <button type="button" class="secondary" id="print-btn" hidden>Print / Save as PDF</button>
+        <label class="toggle"><input type="checkbox" id="offline-toggle"> Force offline mode (demo)</label>
+      </div>
+      <div id="status" role="status"></div>
+    </form>
+  </div>
+
+  <div id="notices"></div>
+  <div id="results" hidden>
+    <div class="card">
+      <h2>Plan summary</h2>
+      <div class="summary-stats" id="summary-stats"></div>
+      <p class="print-only">AI Diet Planner &mdash; educational school project, not medical advice.</p>
+    </div>
+    <div class="card table-wrap" id="plan-table-card"></div>
+    <div class="card">
+      <h2>Consolidated grocery list</h2>
+      <ul class="grocery-cols" id="grocery-list"></ul>
+    </div>
+  </div>
+</main>
+
+<footer class="disclaimer">Educational project &mdash; not medical advice.</footer>
+
+<script>
+"use strict";
+
+/* ======================================================================
+   CONFIGURATION — paste your Gemini API key between the quotes below.
+   Get a free key at https://aistudio.google.com/apikey
+   ====================================================================== */
+const API_KEY = "PASTE_YOUR_KEY_HERE";
+
+/* Default model (free tier). Model names change often; if this one is
+   retired, the app automatically asks the API for its current model list
+   and picks an available "flash" model (see discoverModel below). */
+const MODEL = "gemini-2.5-flash";
+
+const API_BASE = "https://generativelanguage.googleapis.com/v1beta";
+const REQUEST_TIMEOUT_MS = 15000;   // 15-second timeout on every API call
+const MIN_CALORIES = 1200;          // safety floor for the daily target
+
+/* ======================================================================
+   OFFLINE MEAL DATABASE — 32 items with calories and macros (grams).
+   diet: "vegan" ⊂ "veg" ⊂ everything; cat: breakfast/lunch/dinner/snack.
+   ====================================================================== */
+const MEALS = [
+  // --- Breakfasts ---
+  { cat:"breakfast", name:"Masala oats with vegetables", diet:"vegan", cuisine:"indian", kcal:320, p:10, c:55, f:7,  allergens:[], ingredients:["rolled oats","mixed vegetables","onion","spices"] },
+  { cat:"breakfast", name:"Greek yogurt parfait with berries & granola", diet:"veg", cuisine:"western", kcal:380, p:20, c:50, f:11, allergens:["dairy","gluten","nuts"], ingredients:["greek yogurt","berries","granola","honey"] },
+  { cat:"breakfast", name:"Scrambled eggs on whole-wheat toast", diet:"nonveg", cuisine:"western", kcal:400, p:22, c:30, f:20, allergens:["egg","gluten"], ingredients:["eggs","whole-wheat bread","butter","black pepper"] },
+  { cat:"breakfast", name:"Tofu scramble with spinach", diet:"vegan", cuisine:"western", kcal:300, p:20, c:12, f:18, allergens:["soy"], ingredients:["firm tofu","spinach","turmeric","olive oil"] },
+  { cat:"breakfast", name:"Vegetable poha", diet:"vegan", cuisine:"indian", kcal:340, p:8, c:60, f:8, allergens:[], ingredients:["flattened rice (poha)","peas","peanut-free tempering","curry leaves","onion"] },
+  { cat:"breakfast", name:"Banana peanut-butter smoothie", diet:"vegan", cuisine:"western", kcal:350, p:12, c:45, f:14, allergens:["nuts","soy"], ingredients:["banana","peanut butter","soy milk","oats"] },
+  { cat:"breakfast", name:"Idli with sambar", diet:"vegan", cuisine:"indian", kcal:330, p:11, c:62, f:4, allergens:[], ingredients:["idli batter (rice & urad dal)","toor dal","sambar vegetables","tamarind"] },
+  { cat:"breakfast", name:"Chicken sausage & egg wrap", diet:"nonveg", cuisine:"western", kcal:450, p:30, c:28, f:22, allergens:["egg","gluten"], ingredients:["chicken sausage","eggs","tortilla wrap","bell pepper"] },
+
+  // --- Lunches ---
+  { cat:"lunch", name:"Grilled chicken & quinoa salad bowl", diet:"nonveg", cuisine:"mediterranean", kcal:520, p:40, c:40, f:20, allergens:[], ingredients:["chicken breast","quinoa","cucumber","tomato","olive oil","lemon"] },
+  { cat:"lunch", name:"Rajma chawal (kidney bean curry with rice)", diet:"vegan", cuisine:"indian", kcal:560, p:18, c:95, f:10, allergens:[], ingredients:["kidney beans","rice","tomato","onion","garam masala"] },
+  { cat:"lunch", name:"Paneer tikka wrap", diet:"veg", cuisine:"indian", kcal:550, p:25, c:55, f:25, allergens:["dairy","gluten"], ingredients:["paneer","whole-wheat roti","yogurt marinade","capsicum","mint chutney"] },
+  { cat:"lunch", name:"Tuna sandwich with side salad", diet:"nonveg", cuisine:"western", kcal:480, p:32, c:45, f:18, allergens:["fish","gluten","egg"], ingredients:["canned tuna","whole-grain bread","light mayonnaise","lettuce","tomato"] },
+  { cat:"lunch", name:"Chickpea buddha bowl with tahini", diet:"vegan", cuisine:"mediterranean", kcal:520, p:18, c:65, f:20, allergens:["sesame"], ingredients:["chickpeas","brown rice","roasted vegetables","tahini","lemon"] },
+  { cat:"lunch", name:"Vegetable fried rice with tofu", diet:"vegan", cuisine:"east-asian", kcal:540, p:20, c:75, f:16, allergens:["soy"], ingredients:["rice","firm tofu","mixed vegetables","soy sauce","spring onion"] },
+  { cat:"lunch", name:"Chicken burrito bowl", diet:"nonveg", cuisine:"mexican", kcal:580, p:38, c:60, f:20, allergens:["dairy"], ingredients:["chicken thigh","rice","black beans","corn","salsa","cheese"] },
+  { cat:"lunch", name:"Dal tadka with roti and salad", diet:"vegan", cuisine:"indian", kcal:500, p:20, c:75, f:12, allergens:["gluten"], ingredients:["yellow lentils (toor dal)","whole-wheat roti","cumin","garlic","salad vegetables"] },
+
+  // --- Dinners ---
+  { cat:"dinner", name:"Baked salmon, brown rice & broccoli", diet:"nonveg", cuisine:"western", kcal:550, p:35, c:45, f:22, allergens:["fish"], ingredients:["salmon fillet","brown rice","broccoli","olive oil","lemon"] },
+  { cat:"dinner", name:"Palak paneer with roti", diet:"veg", cuisine:"indian", kcal:520, p:24, c:40, f:28, allergens:["dairy","gluten"], ingredients:["paneer","spinach","whole-wheat roti","cream","ginger"] },
+  { cat:"dinner", name:"Vegetable stir-fry noodles", diet:"vegan", cuisine:"east-asian", kcal:480, p:14, c:70, f:15, allergens:["gluten","soy"], ingredients:["noodles","mixed vegetables","soy sauce","sesame oil","garlic"] },
+  { cat:"dinner", name:"Chicken curry with rice", diet:"nonveg", cuisine:"indian", kcal:590, p:35, c:60, f:20, allergens:[], ingredients:["chicken","rice","onion","tomato","curry spices"] },
+  { cat:"dinner", name:"Lentil soup with whole-grain bread", diet:"vegan", cuisine:"mediterranean", kcal:430, p:20, c:65, f:8, allergens:["gluten"], ingredients:["red lentils","carrot","celery","whole-grain bread","olive oil"] },
+  { cat:"dinner", name:"Grilled fish tacos", diet:"nonveg", cuisine:"mexican", kcal:500, p:30, c:48, f:20, allergens:["fish","dairy"], ingredients:["white fish","corn tortillas","cabbage slaw","lime crema","coriander"] },
+  { cat:"dinner", name:"Stuffed bell peppers with quinoa & black beans", diet:"vegan", cuisine:"mexican", kcal:450, p:16, c:65, f:12, allergens:[], ingredients:["bell peppers","quinoa","black beans","tomato","cumin"] },
+  { cat:"dinner", name:"Chicken meatballs with whole-wheat pasta", diet:"nonveg", cuisine:"western", kcal:580, p:35, c:60, f:20, allergens:["gluten","egg"], ingredients:["chicken mince","whole-wheat pasta","tomato sauce","basil","egg (binder)"] },
+
+  // --- Snacks ---
+  { cat:"snack", name:"Roasted chana (chickpeas)", diet:"vegan", cuisine:"indian", kcal:150, p:8, c:22, f:4, allergens:[], ingredients:["roasted chickpeas","chaat masala"] },
+  { cat:"snack", name:"Apple with peanut butter", diet:"vegan", cuisine:"western", kcal:200, p:5, c:25, f:10, allergens:["nuts"], ingredients:["apple","peanut butter"] },
+  { cat:"snack", name:"Greek yogurt with honey", diet:"veg", cuisine:"western", kcal:160, p:15, c:18, f:3, allergens:["dairy"], ingredients:["greek yogurt","honey"] },
+  { cat:"snack", name:"Trail mix", diet:"vegan", cuisine:"western", kcal:220, p:6, c:18, f:14, allergens:["nuts"], ingredients:["almonds","raisins","pumpkin seeds","dark chocolate chips"] },
+  { cat:"snack", name:"Hummus with carrot sticks", diet:"vegan", cuisine:"mediterranean", kcal:180, p:6, c:18, f:10, allergens:["sesame"], ingredients:["hummus","carrots"] },
+  { cat:"snack", name:"Two boiled eggs", diet:"nonveg", cuisine:"western", kcal:155, p:13, c:1, f:11, allergens:["egg"], ingredients:["eggs"] },
+  { cat:"snack", name:"Fruit chaat", diet:"vegan", cuisine:"indian", kcal:140, p:2, c:34, f:1, allergens:[], ingredients:["seasonal fruit","chaat masala","lemon"] },
+  { cat:"snack", name:"Cheese & whole-grain crackers", diet:"veg", cuisine:"western", kcal:210, p:9, c:20, f:11, allergens:["dairy","gluten"], ingredients:["cheese","whole-grain crackers"] },
+];
+
+/* ====================================================================
+   CALORIE TARGET — Mifflin-St Jeor equation + activity + goal, clamped
+   ==================================================================== */
+function calorieTarget(inputs) {
+  const { age, sex, heightCm, weightKg, activity, goal } = inputs;
+  const bmr = sex === "male"
+    ? 10 * weightKg + 6.25 * heightCm - 5 * age + 5
+    : 10 * weightKg + 6.25 * heightCm - 5 * age - 161;
+  const tdee = bmr * activity;
+  const goalAdjust = { lose: -500, maintain: 0, gain: +400 }[goal];
+  const raw = Math.round(tdee + goalAdjust);
+  return { bmr: Math.round(bmr), tdee: Math.round(tdee), raw, target: Math.max(raw, MIN_CALORIES), clamped: raw < MIN_CALORIES };
+}
+
+/* ====================================================================
+   OFFLINE PLANNER — rule-based fallback, no network needed
+   ==================================================================== */
+const DAY_NAMES = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const MEAL_SPLIT = { breakfast: 0.25, lunch: 0.30, dinner: 0.30, snack: 0.15 };
+
+function eligibleMeals(cat, inputs) {
+  const allergies = inputs.allergies.map(a => a.trim().toLowerCase()).filter(Boolean);
+  let items = MEALS.filter(m => m.cat === cat);
+  // Diet filter: vegan sees vegan only; veg sees veg+vegan; nonveg sees all.
+  if (inputs.diet === "vegan") items = items.filter(m => m.diet === "vegan");
+  if (inputs.diet === "veg")   items = items.filter(m => m.diet === "vegan" || m.diet === "veg");
+  // Allergy filter: drop items whose allergen tags, name or ingredients mention the allergy.
+  if (allergies.length) {
+    items = items.filter(m => !allergies.some(a =>
+      m.allergens.some(t => t.includes(a) || a.includes(t)) ||
+      m.name.toLowerCase().includes(a) ||
+      m.ingredients.some(i => i.toLowerCase().includes(a))
+    ));
+  }
+  // Preferred cuisine first, everything else after (so we never run out of options).
+  if (inputs.cuisine !== "any") {
+    items = items.filter(m => m.cuisine === inputs.cuisine)
+      .concat(items.filter(m => m.cuisine !== inputs.cuisine));
+  }
+  return items;
+}
+
+function offlinePlan(inputs, target) {
+  const cats = ["breakfast", "lunch", "dinner", "snack"];
+  const pools = {};
+  for (const cat of cats) {
+    pools[cat] = eligibleMeals(cat, inputs);
+    if (pools[cat].length === 0) {
+      throw new Error("No " + cat + " options match your diet type and allergies. Try removing an allergy filter.");
+    }
+  }
+  const days = [];
+  for (let d = 0; d < 7; d++) {
+    const meals = {};
+    cats.forEach((cat, ci) => {
+      const pool = pools[cat];
+      const item = pool[(d + ci) % pool.length];        // rotate so each day differs
+      const budget = target * MEAL_SPLIT[cat];
+      const scale = Math.min(1.85, Math.max(0.65, budget / item.kcal)); // adjust portion size to hit the budget
+      meals[cat] = {
+        name: item.name + (Math.abs(scale - 1) > 0.12 ? (scale > 1 ? " (large portion)" : " (small portion)") : ""),
+        kcal: Math.round(item.kcal * scale),
+        p: Math.round(item.p * scale),
+        c: Math.round(item.c * scale),
+        f: Math.round(item.f * scale),
+        ingredients: item.ingredients,
+      };
+    });
+    days.push({ day: DAY_NAMES[d], meals });
+  }
+  // Consolidated grocery list: every ingredient used, with how many meals need it.
+  const counts = new Map();
+  for (const day of days)
+    for (const m of Object.values(day.meals))
+      for (const ing of m.ingredients)
+        counts.set(ing, (counts.get(ing) || 0) + 1);
+  const grocery = [...counts.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([ing, n]) => ing + (n > 1 ? " (used in " + n + " meals)" : ""));
+  return { days, grocery, source: "offline" };
+}
+
+/* ====================================================================
+   GEMINI API — plain fetch() with timeout, 429 retry, model discovery
+   ==================================================================== */
+function fetchWithTimeout(url, options) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  return fetch(url, { ...options, signal: controller.signal })
+    .finally(() => clearTimeout(timer));
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* If the configured MODEL was retired (HTTP 404), ask the API which models
+   exist right now and pick a current free-tier "flash" model. */
+async function discoverModel() {
+  const resp = await fetchWithTimeout(API_BASE + "/models?pageSize=100", {
+    headers: { "x-goog-api-key": API_KEY }
+  });
+  if (!resp.ok) throw new Error("Model discovery failed (HTTP " + resp.status + ")");
+  const data = await resp.json();
+  const usable = (data.models || []).filter(m =>
+    (m.supportedGenerationMethods || []).includes("generateContent") &&
+    /flash/i.test(m.name) &&
+    !/thinking|image|audio|tts|live|exp/i.test(m.name)
+  );
+  const pick = usable.find(m => /flash-lite/i.test(m.name)) || usable[0];
+  if (!pick) throw new Error("No usable flash model found via discovery");
+  return pick.name.replace(/^models\//, "");
+}
+
+async function geminiGenerate(prompt) {
+  let model = MODEL;
+  let triedDiscovery = false;
+  let retried429 = false;
+  for (;;) {
+    const resp = await fetchWithTimeout(API_BASE + "/models/" + model + ":generateContent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": API_KEY },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json", temperature: 0.7 }
+      })
+    });
+    if (resp.status === 429 && !retried429) {          // rate-limited: wait 3 s, retry once
+      retried429 = true;
+      setStatus("Rate limited by the API — retrying in 3 seconds…");
+      await sleep(3000);
+      continue;
+    }
+    if (resp.status === 404 && !triedDiscovery) {      // model retired: discover a current one
+      triedDiscovery = true;
+      setStatus("Model '" + model + "' not found — asking the API for current models…");
+      model = await discoverModel();
+      setStatus("Using discovered model: " + model);
+      continue;
+    }
+    if (!resp.ok) {
+      const body = await resp.text();
+      throw new Error("HTTP " + resp.status + ": " + body.slice(0, 200));
+    }
+    const data = await resp.json();
+    const text = data.candidates?.[0]?.content?.parts?.map(p => p.text).join("") ?? "";
+    if (!text) throw new Error("Empty response from the model");
+    return text;
+  }
+}
+
+function buildPrompt(inputs, target) {
+  return [
+    "You are a nutrition planning assistant. Create a 7-day meal plan as pure JSON (no markdown).",
+    "Person: age " + inputs.age + ", sex " + inputs.sex + ", height " + inputs.heightCm + " cm, weight " + inputs.weightKg + " kg.",
+    "Daily calorie target: about " + target + " kcal (each day should total within ±5% of this).",
+    "Diet type: " + ({ veg: "vegetarian (no meat, fish or eggs)", vegan: "vegan (no animal products)", nonveg: "non-vegetarian" }[inputs.diet]) + ".",
+    inputs.allergies.length ? "STRICTLY EXCLUDE these allergens/foods: " + inputs.allergies.join(", ") + "." : "",
+    inputs.cuisine !== "any" ? "Preferred cuisine: mostly " + inputs.cuisine + " dishes." : "",
+    "Return EXACTLY this JSON shape:",
+    '{"days":[{"day":"Monday","meals":{"breakfast":{"name":"...","kcal":0,"p":0,"c":0,"f":0},',
+    '"lunch":{...},"dinner":{...},"snack":{...}}}, ... 7 days ...],',
+    '"grocery":["item 1","item 2", ...]}',
+    "p, c, f are grams of protein, carbs and fat. grocery is a consolidated shopping list for the whole week.",
+  ].filter(Boolean).join("\n");
+}
+
+/* Parse and sanity-check the model's JSON so a malformed reply can never
+   render a broken page — any problem here falls back to offline mode. */
+function parseAiPlan(text) {
+  const plan = JSON.parse(text);
+  if (!Array.isArray(plan.days) || plan.days.length !== 7) throw new Error("AI reply did not contain 7 days");
+  const days = plan.days.map((d, i) => {
+    const meals = {};
+    for (const cat of ["breakfast", "lunch", "dinner", "snack"]) {
+      const m = d.meals?.[cat];
+      if (!m || typeof m.name !== "string") throw new Error("AI reply missing " + cat + " on day " + (i + 1));
+      meals[cat] = { name: m.name, kcal: Math.round(+m.kcal || 0), p: Math.round(+m.p || 0), c: Math.round(+m.c || 0), f: Math.round(+m.f || 0) };
+    }
+    return { day: d.day || DAY_NAMES[i], meals };
+  });
+  const grocery = Array.isArray(plan.grocery) ? plan.grocery.map(String) : [];
+  return { days, grocery, source: "ai" };
+}
+
+/* ====================================================================
+   UI
+   ==================================================================== */
+const $ = id => document.getElementById(id);
+const setStatus = msg => { $("status").textContent = msg; };
+
+function setModeBadge(offline, reason) {
+  const badge = $("mode-badge");
+  badge.textContent = offline ? "Offline mode" : "AI mode";
+  badge.classList.toggle("offline", offline);
+  badge.title = reason || "";
+}
+
+function readInputs() {
+  return {
+    age: +$("age").value,
+    sex: $("sex").value,
+    heightCm: +$("height").value,
+    weightKg: +$("weight").value,
+    activity: +$("activity").value,
+    goal: $("goal").value,
+    diet: $("diet").value,
+    allergies: $("allergies").value.split(",").map(s => s.trim()).filter(Boolean),
+    cuisine: $("cuisine").value,
+  };
+}
+
+function addNotice(kind, html) {
+  const div = document.createElement("div");
+  div.className = "notice " + kind;
+  div.innerHTML = html;
+  $("notices").appendChild(div);
+}
+
+function dayTotals(meals) {
+  return Object.values(meals).reduce(
+    (t, m) => ({ kcal: t.kcal + m.kcal, p: t.p + m.p, c: t.c + m.c, f: t.f + m.f }),
+    { kcal: 0, p: 0, c: 0, f: 0 });
+}
+
+function renderPlan(plan, calc, inputs) {
+  $("results").hidden = false;
+  $("print-btn").hidden = false;
+
+  const avg = Math.round(plan.days.reduce((s, d) => s + dayTotals(d.meals).kcal, 0) / 7);
+  $("summary-stats").innerHTML =
+    "<div><b>" + calc.target + "</b> kcal/day target</div>" +
+    "<div><b>" + avg + "</b> kcal/day in plan (avg)</div>" +
+    "<div><b>" + calc.bmr + "</b> kcal BMR (Mifflin-St Jeor)</div>" +
+    "<div><b>" + calc.tdee + "</b> kcal maintenance (TDEE)</div>" +
+    "<div><b>" + (plan.source === "ai" ? "Gemini AI" : "Rule-based") + "</b> plan source</div>";
+
+  let html = "<h2>7-day meal plan</h2><table><thead><tr><th>Day</th><th>Breakfast</th><th>Lunch</th><th>Dinner</th><th>Snack</th><th>Day total</th></tr></thead><tbody>";
+  for (const d of plan.days) {
+    const t = dayTotals(d.meals);
+    html += "<tr><td><b>" + esc(d.day) + "</b></td>";
+    for (const cat of ["breakfast", "lunch", "dinner", "snack"]) {
+      const m = d.meals[cat];
+      html += "<td><div class='meal-name'>" + esc(m.name) + "</div><div class='macros'>" +
+              m.kcal + " kcal · P " + m.p + "g · C " + m.c + "g · F " + m.f + "g</div></td>";
+    }
+    html += "<td><b>" + t.kcal + " kcal</b><div class='macros'>P " + t.p + "g · C " + t.c + "g · F " + t.f + "g</div></td></tr>";
+  }
+  html += "</tbody></table>";
+  $("plan-table-card").innerHTML = html;
+
+  $("grocery-list").innerHTML = plan.grocery.map(g => "<li>" + esc(g) + "</li>").join("");
+  $("results").scrollIntoView({ behavior: "smooth" });
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+/* ====================================================================
+   MAIN FLOW — try AI, fall back to offline automatically
+   ==================================================================== */
+async function generatePlan(ev) {
+  ev.preventDefault();
+  $("notices").innerHTML = "";
+  $("generate-btn").disabled = true;
+
+  const inputs = readInputs();
+  const calc = calorieTarget(inputs);
+  if (calc.clamped) {
+    addNotice("warn", "⚠️ The calculated target (" + calc.raw + " kcal) is below the safe minimum, so it was raised to <b>" +
+      MIN_CALORIES + " kcal/day</b>. Very low-calorie diets need professional supervision.");
+  }
+
+  const keyMissing = !API_KEY || API_KEY === "PASTE_YOUR_KEY_HERE";
+  const forceOffline = $("offline-toggle").checked;
+  let plan = null;
+
+  if (!forceOffline && !keyMissing) {
+    try {
+      setStatus("Asking Gemini for your plan… (up to ~20 s)");
+      const text = await geminiGenerate(buildPrompt(inputs, calc.target));
+      plan = parseAiPlan(text);
+      setModeBadge(false);
+      setStatus("Plan generated by Gemini AI.");
+    } catch (err) {
+      console.warn("AI generation failed, falling back to offline:", err);
+      addNotice("info", "AI service unavailable (" + esc(err.name === "AbortError" ? "timed out after 15 s" : err.message) +
+        ") — switched to the built-in offline planner.");
+    }
+  } else if (keyMissing && !forceOffline) {
+    addNotice("info", "No API key configured — using the built-in offline planner. Paste a key at the top of index.html to enable AI mode.");
+  }
+
+  if (!plan) {
+    try {
+      setModeBadge(true, forceOffline ? "Forced by toggle" : "Automatic fallback");
+      plan = offlinePlan(inputs, calc.target);
+      setStatus(forceOffline ? "Offline mode (forced): rule-based plan generated." : "Offline rule-based plan generated.");
+    } catch (err) {
+      addNotice("danger", esc(err.message));
+      setStatus("Could not generate a plan.");
+      $("generate-btn").disabled = false;
+      return;
+    }
+  }
+
+  renderPlan(plan, calc, inputs);
+  $("generate-btn").disabled = false;
+}
+
+$("planner-form").addEventListener("submit", generatePlan);
+$("print-btn").addEventListener("click", () => window.print());
+$("offline-toggle").addEventListener("change", e => setModeBadge(e.target.checked || !API_KEY || API_KEY === "PASTE_YOUR_KEY_HERE"));
+
+// Show the right badge on load (offline if no key pasted yet).
+setModeBadge(!API_KEY || API_KEY === "PASTE_YOUR_KEY_HERE");
+</script>
+</body>
+</html>

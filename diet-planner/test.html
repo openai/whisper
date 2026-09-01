@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Gemini file:// connectivity test</title>
+<style>
+  body { font-family: system-ui, Arial, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
+  pre { background: #f4f4f4; padding: 14px; border-radius: 8px; white-space: pre-wrap; word-break: break-word; }
+  .ok { color: #0a7a3d; } .fail { color: #b00020; }
+</style>
+</head>
+<body>
+<h1>Gemini API — file:// test</h1>
+<p>Double-click this file (opens as <code>file://…/test.html</code>) and check the result below.
+   Paste your API key into the constant in the source for a full end-to-end test; even without a
+   key, an <b>HTTP 400 "API key not valid"</b> result proves the browser can reach the API from
+   <code>file://</code> with no CORS problem.</p>
+<h2 id="verdict">Running…</h2>
+<pre id="out">Calling the API…</pre>
+<script>
+"use strict";
+const API_KEY = "PASTE_YOUR_KEY_HERE";
+const MODEL = "gemini-2.5-flash";
+const URL_ = "https://generativelanguage.googleapis.com/v1beta/models/" + MODEL + ":generateContent";
+
+async function run() {
+  const out = document.getElementById("out");
+  const verdict = document.getElementById("verdict");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  try {
+    const resp = await fetch(URL_, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": API_KEY },
+      body: JSON.stringify({ contents: [{ parts: [{ text: "Reply with exactly: hello from Gemini" }] }] }),
+      signal: controller.signal
+    });
+    const text = await resp.text();
+    // Reaching this line at all means CORS passed: a CORS block throws a
+    // TypeError before any status or body is readable.
+    if (resp.ok) {
+      verdict.textContent = "✅ SUCCESS — API call worked from file://";
+      verdict.className = "ok";
+    } else {
+      verdict.textContent = "✅ CORS OK (HTTP " + resp.status + " reached the API and the response is readable). " +
+        (resp.status === 400 ? "Paste a valid API key for a full test." : "");
+      verdict.className = "ok";
+    }
+    out.textContent = "HTTP " + resp.status + "\n\n" + text.slice(0, 1500);
+  } catch (e) {
+    verdict.textContent = e.name === "AbortError"
+      ? "❌ TIMED OUT after 15 s — network blocked or no internet."
+      : "❌ FETCH FAILED — " + e.name + ": " + e.message + " (CORS or network block)";
+    verdict.className = "fail";
+    out.textContent = "No response could be read.";
+  } finally {
+    clearTimeout(timer);
+  }
+}
+run();
+</script>
+</body>
+</html>
