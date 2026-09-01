@@ -1,0 +1,92 @@
+name: Transcribe Audio
+
+on:
+  workflow_dispatch:
+    inputs:
+      gdrive_folder_id:
+        description: "Google Drive folder ID (from the URL after /folders/)"
+        required: false
+        default: ""
+      audio_url:
+        description: "Direct URL to a single audio file (ignored if folder ID is set)"
+        required: false
+        default: ""
+      model:
+        description: "Whisper model size"
+        required: false
+        default: "small"
+        type: choice
+        options:
+          - tiny
+          - base
+          - small
+          - medium
+          - large
+      language:
+        description: "Language code (e.g. en, es, fr) — leave blank for auto-detect"
+        required: false
+        default: ""
+      output_format:
+        description: "Output format"
+        required: false
+        default: "txt"
+        type: choice
+        options:
+          - txt
+          - srt
+          - vtt
+          - tsv
+          - json
+          - all
+
+jobs:
+  transcribe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg || \
+          (wget -q https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz && \
+           tar -xf ffmpeg-release-amd64-static.tar.xz && \
+           sudo mv ffmpeg-*-amd64-static/ffmpeg /usr/local/bin/ && \
+           sudo mv ffmpeg-*-amd64-static/ffprobe /usr/local/bin/)
+
+      - name: Install Whisper and gdown
+        run: pip install openai-whisper gdown
+
+      - name: Download audio files
+        run: |
+          mkdir -p /tmp/audio
+          FOLDER_ID="${{ github.event.inputs.gdrive_folder_id }}"
+          if [ -n "$FOLDER_ID" ]; then
+            gdown --folder "https://drive.google.com/drive/folders/${FOLDER_ID}" -O /tmp/audio --remaining-ok
+          else
+            URL="${{ github.event.inputs.audio_url }}"
+            FILENAME=$(basename "$URL" | sed 's/[?#].*//')
+            curl -L -o "/tmp/audio/${FILENAME}" "$URL"
+          fi
+          echo "Files downloaded:"
+          ls /tmp/audio/
+
+      - name: Transcribe all files
+        run: |
+          mkdir -p /tmp/transcripts
+          LANG_FLAG=""
+          if [ -n "${{ github.event.inputs.language }}" ]; then
+            LANG_FLAG="--language ${{ github.event.inputs.language }}"
+          fi
+          for f in /tmp/audio/*; do
+            echo "Transcribing: $f"
+            whisper "$f" \
+              --model ${{ github.event.inputs.model }} \
+              --output_format ${{ github.event.inputs.output_format }} \
+              --output_dir /tmp/transcripts \
+              $LANG_FLAG
+          done
+
+      - name: Upload transcripts
+        uses: actions/upload-artifact@v4
+        with:
+          name: transcripts
+          path: /tmp/transcripts/
