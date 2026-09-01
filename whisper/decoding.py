@@ -657,7 +657,7 @@ class DecodingTask:
         if audio_features.dtype != (
             torch.float16 if self.options.fp16 else torch.float32
         ):
-            return TypeError(
+            raise TypeError(
                 f"audio_features has an incorrect dtype: {audio_features.dtype}"
             )
 
