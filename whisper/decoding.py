@@ -559,7 +559,7 @@ class DecodingTask:
         if not options.without_timestamps:
             precision = CHUNK_LENGTH / model.dims.n_audio_ctx  # usually 0.02 seconds
             max_initial_timestamp_index = None
-            if options.max_initial_timestamp:
+            if options.max_initial_timestamp is not None:
                 max_initial_timestamp_index = round(
                     self.options.max_initial_timestamp / precision
                 )
