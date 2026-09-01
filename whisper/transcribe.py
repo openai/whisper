@@ -132,7 +132,7 @@ def transcribe(
             warnings.warn("FP16 is not supported on CPU; using FP32 instead")
             dtype = torch.float32
 
-    if dtype == torch.float32:
+    if dtype == torch.float32 or dtype == torch.bfloat16:
         decode_options["fp16"] = False
 
     # Pad 30-seconds of silence to the input audio, for slicing
