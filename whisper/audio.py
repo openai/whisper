@@ -140,6 +140,9 @@ def log_mel_spectrogram(
             audio = load_audio(audio)
         audio = torch.from_numpy(audio)
 
+    if len(audio) < N_SAMPLES:  # Check if audio length is less than expected
+        raise ValueError("Input audio length is shorter than the expected length.")
+
     if device is not None:
         audio = audio.to(device)
     if padding > 0:
