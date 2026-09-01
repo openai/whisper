@@ -40,6 +40,7 @@ def transcribe(
     audio: Union[str, np.ndarray, torch.Tensor],
     *,
     verbose: Optional[bool] = None,
+        progress_callback: Optional[callable] = None,
     temperature: Union[float, Tuple[float, ...]] = (0.0, 0.2, 0.4, 0.6, 0.8, 1.0),
     compression_ratio_threshold: Optional[float] = 2.4,
     logprob_threshold: Optional[float] = -1.0,
@@ -138,6 +139,7 @@ def transcribe(
     # Pad 30-seconds of silence to the input audio, for slicing
     mel = log_mel_spectrogram(audio, model.dims.n_mels, padding=N_SAMPLES)
     content_frames = mel.shape[-1] - N_FRAMES
+    curr_frames = 0
     content_duration = float(content_frames * HOP_LENGTH / SAMPLE_RATE)
 
     if decode_options.get("language", None) is None:
@@ -262,7 +264,7 @@ def transcribe(
 
     # show the progress bar when verbose is False (if True, transcribed text will be printed)
     with tqdm.tqdm(
-        total=content_frames, unit="frames", disable=verbose is not False
+            total=content_frames, unit="frame", disable=verbose is not False
     ) as pbar:
         last_speech_timestamp = 0.0
         # NOTE: This loop is obscurely flattened to make the diff readable.
@@ -505,7 +507,11 @@ def transcribe(
                 prompt_reset_since = len(all_tokens)
 
             # update progress bar
-            pbar.update(min(content_frames, seek) - previous_seek)
+            frames_processed = min(content_frames, seek) - previous_seek
+            if progress_callback is not None:
+                curr_frames = frames_processed + curr_frames
+                progress_callback(curr_frames / content_frames * 100)
+            pbar.update(frames_processed)
 
     return dict(
         text=tokenizer.decode(all_tokens[len(initial_prompt_tokens) :]),
