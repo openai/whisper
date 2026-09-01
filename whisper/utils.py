@@ -50,7 +50,9 @@ def compression_ratio(text) -> float:
 def format_timestamp(
     seconds: float, always_include_hours: bool = False, decimal_marker: str = "."
 ):
-    assert seconds >= 0, "non-negative timestamp expected"
+    sign = "-" if seconds < 0 else ""
+    seconds = abs(seconds)
+
     milliseconds = round(seconds * 1000.0)
 
     hours = milliseconds // 3_600_000
@@ -64,7 +66,7 @@ def format_timestamp(
 
     hours_marker = f"{hours:02d}:" if always_include_hours or hours > 0 else ""
     return (
-        f"{hours_marker}{minutes:02d}:{seconds:02d}{decimal_marker}{milliseconds:03d}"
+        f"{sign}{hours_marker}{minutes:02d}:{seconds:02d}{decimal_marker}{milliseconds:03d}"
     )
 
 
