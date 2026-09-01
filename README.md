@@ -154,6 +154,49 @@ print(result.text)
 
 Please use the [🙌 Show and tell](https://github.com/openai/whisper/discussions/categories/show-and-tell) category in Discussions for sharing more example usages of Whisper and third-party extensions such as web demos, integrations with other tools, ports for different platforms, etc.
 
+## New Usage Examples and Enhancements
+
+We've added new ways to use and improve Whisper:
+
+### Real-time Transcription
+
+A feature-rich Python script to transcribe audio directly from your microphone in real-time.
+
+**Features:**
+- Voice Activity Detection (VAD) - only transcribes when speech is detected
+- Multi-language support with auto-detection
+- Audio device selection
+- Live audio level visualization  
+- Word-level timestamps
+- Speaker change detection hints (experimental)
+- Transcript saving with timestamps
+
+**Quick Start:**
+```bash
+# Basic usage
+python examples/real_time_transcription.py
+
+# With word timestamps and speaker detection
+python examples/real_time_transcription.py --word-timestamps --detect-speakers
+
+# Save transcript to file
+python examples/real_time_transcription.py --output transcript.txt --timestamps
+
+# List available microphones
+python examples/real_time_transcription.py --list-devices
+
+# Use a specific model and language
+python examples/real_time_transcription.py --model small --language es
+```
+
+See `examples/real_time_transcription.py` for full documentation.
+
+### Accent Post-processing Demo
+
+A Jupyter notebook showcasing how to use spell-checking for post-processing transcriptions,
+potentially improving accuracy for accented speech.
+
+Explore `examples/accent_postprocessing.ipynb`.
 
 ## License
 
