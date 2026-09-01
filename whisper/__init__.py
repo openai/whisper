@@ -4,8 +4,11 @@ import os
 import urllib
 import warnings
 from typing import List, Optional, Union
+from importlib.util import find_spec
 
 import torch
+if find_spec("intel_extension_for_pytorch") is not None:
+    import intel_extension_for_pytorch
 from tqdm import tqdm
 
 from .audio import load_audio, log_mel_spectrogram, pad_or_trim
@@ -128,7 +131,13 @@ def load_model(
     """
 
     if device is None:
-        device = "cuda" if torch.cuda.is_available() else "cpu"
+        if torch.cuda.is_available():
+            device = "cuda"
+        elif find_spec('torch.xpu') is not None and torch.xpu.is_available():
+            device = "xpu"
+        else:
+            device = "cpu"
+
     if download_root is None:
         default = os.path.join(os.path.expanduser("~"), ".cache")
         download_root = os.path.join(os.getenv("XDG_CACHE_HOME", default), "whisper")
