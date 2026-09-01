@@ -125,6 +125,7 @@ TO_LANGUAGE_CODE = {
     "sinhalese": "si",
     "castilian": "es",
     "mandarin": "zh",
+    "jv": "jw",  # ISO 639-1 code for Javanese; model token stays <|jw|>
 }
 
 
