@@ -105,7 +105,7 @@ LANGUAGES = {
     "ln": "lingala",
     "ha": "hausa",
     "ba": "bashkir",
-    "jw": "javanese",
+    "jv": "javanese",
     "su": "sundanese",
     "yue": "cantonese",
 }
