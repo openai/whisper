@@ -486,7 +486,8 @@ def transcribe(
                 if segment["start"] == segment["end"] or segment["text"].strip() == "":
                     segment["text"] = ""
                     segment["tokens"] = []
-                    segment["words"] = []
+                    if "words" in segment:
+                        segment["words"] = []
 
             all_segments.extend(
                 [
