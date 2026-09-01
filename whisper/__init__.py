@@ -60,11 +60,20 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
     if os.path.exists(download_target) and not os.path.isfile(download_target):
         raise RuntimeError(f"{download_target} exists and is not a regular file")
 
+    def compute_sha256(file_path: str) -> str:
+        sha256 = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(8192), b""):
+                sha256.update(chunk)
+        return sha256.hexdigest()
+
     if os.path.isfile(download_target):
-        with open(download_target, "rb") as f:
-            model_bytes = f.read()
-        if hashlib.sha256(model_bytes).hexdigest() == expected_sha256:
-            return model_bytes if in_memory else download_target
+        if compute_sha256(download_target) == expected_sha256:
+            if in_memory:
+                with open(download_target, "rb") as f:
+                    return f.read()
+            else:
+                return download_target
         else:
             warnings.warn(
                 f"{download_target} exists, but the SHA256 checksum does not match; re-downloading the file"
@@ -86,13 +95,16 @@ def _download(url: str, root: str, in_memory: bool) -> Union[bytes, str]:
                 output.write(buffer)
                 loop.update(len(buffer))
 
-    model_bytes = open(download_target, "rb").read()
-    if hashlib.sha256(model_bytes).hexdigest() != expected_sha256:
+    if compute_sha256(download_target) != expected_sha256:
         raise RuntimeError(
             "Model has been downloaded but the SHA256 checksum does not not match. Please retry loading the model."
         )
 
-    return model_bytes if in_memory else download_target
+    if in_memory:
+        with open(download_target, "rb") as f:
+            return f.read()
+    else:
+        return download_target
 
 
 def available_models() -> List[str]:
