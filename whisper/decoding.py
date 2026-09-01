@@ -201,7 +201,8 @@ class MaximumLikelihoodRanker(SequenceRanker):
             result = []
             for logprob, length in zip(logprobs, lengths):
                 if self.length_penalty is None:
-                    penalty = length
+                    # A blank output has no text tokens, but its score includes EOT.
+                    penalty = max(length, 1)
                 else:
                     # from the Google NMT paper
                     penalty = ((5 + length) / 6) ** self.length_penalty
