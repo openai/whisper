@@ -1,7 +1,5 @@
 import os
-import sys
 from functools import lru_cache
-from pathlib import Path
 from subprocess import CalledProcessError, run
 from typing import Optional, Union
 
@@ -104,16 +102,7 @@ def mel_filters(device, n_mels: int) -> torch.Tensor:
     """
     assert n_mels in {80, 128}, f"Unsupported n_mels: {n_mels}"
 
-    # 使用 pathlib 处理路径，支持开发环境和打包环境
-    if getattr(sys, 'frozen', False):
-        # 打包后的 exe 环境
-        exe_dir = Path(sys.executable).parent
-        filters_path = exe_dir / "whisper" / "assets" / "mel_filters.npz"
-    else:
-        # 开发环境
-        filters_path = Path(__file__).parent / "assets" / "mel_filters.npz"
-    
-    print(f"filters_path: {filters_path}")
+    filters_path = os.path.join(os.path.dirname(__file__), "assets", "mel_filters.npz")
     with np.load(filters_path, allow_pickle=False) as f:
         return torch.from_numpy(f[f"mel_{n_mels}"]).to(device)
 

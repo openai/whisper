@@ -1,8 +1,10 @@
 import base64
 import os
 import string
+import sys
 from dataclasses import dataclass, field
 from functools import cached_property, lru_cache
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import tiktoken
@@ -329,7 +331,16 @@ class Tokenizer:
 
 @lru_cache(maxsize=None)
 def get_encoding(name: str = "gpt2", num_languages: int = 99):
-    vocab_path = os.path.join(os.path.dirname(__file__), "assets", f"{name}.tiktoken")
+    # 使用 pathlib 处理路径，支持开发环境和打包环境
+    if getattr(sys, 'frozen', False):
+        # 打包后的 exe 环境
+        exe_dir = Path(sys.executable).parent
+        vocab_path = exe_dir / "whisper" / "assets" / f"{name}.tiktoken"
+    else:
+        # 开发环境
+        vocab_path = Path(__file__).parent / "assets" / f"{name}.tiktoken"
+    
+    print(f"vocab_path: {vocab_path}")
     ranks = {
         base64.b64decode(token): int(rank)
         for token, rank in (line.split() for line in open(vocab_path) if line)
