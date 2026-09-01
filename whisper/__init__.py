@@ -4,6 +4,7 @@ import os
 import urllib
 import warnings
 from typing import List, Optional, Union
+from packaging import version
 
 import torch
 from tqdm import tqdm
@@ -147,7 +148,7 @@ def load_model(
     with (
         io.BytesIO(checkpoint_file) if in_memory else open(checkpoint_file, "rb")
     ) as fp:
-        kwargs = {"weights_only": True} if torch.__version__ >= "1.13" else {}
+        kwargs = {"weights_only": True} if version.parse(torch.__version__ ) >= version.parse("1.13") else {}
         checkpoint = torch.load(fp, map_location=device, **kwargs)
     del checkpoint_file
 
