@@ -615,16 +615,22 @@ class DecodingTask:
     def _get_suppress_tokens(self) -> Tuple[int]:
         suppress_tokens = self.options.suppress_tokens
 
-        if isinstance(suppress_tokens, str):
-            suppress_tokens = [int(t) for t in suppress_tokens.split(",")]
+        if suppress_tokens is None:
+            suppress_tokens = []
+        elif isinstance(suppress_tokens, str):
+            # interpret the empty string as an empty list; any other string is
+            # still parsed strictly, so a malformed value such as "1,,2" raises
+            suppress_tokens = (
+                [int(t) for t in suppress_tokens.split(",")] if suppress_tokens else []
+            )
+        else:
+            # accept any iterable of ints; copying also makes sure the
+            # extend() calls below never modify the caller's list
+            suppress_tokens = list(suppress_tokens)
 
         if -1 in suppress_tokens:
             suppress_tokens = [t for t in suppress_tokens if t >= 0]
             suppress_tokens.extend(self.tokenizer.non_speech_tokens)
-        elif suppress_tokens is None or len(suppress_tokens) == 0:
-            suppress_tokens = []  # interpret empty string as an empty list
-        else:
-            assert isinstance(suppress_tokens, list), "suppress_tokens must be a list"
 
         suppress_tokens.extend(
             [
