@@ -239,7 +239,9 @@ def transcribe(
     if initial_prompt is not None:
         initial_prompt_tokens = tokenizer.encode(" " + initial_prompt.strip())
         all_tokens.extend(initial_prompt_tokens)
-        remaining_prompt_length -= len(initial_prompt_tokens)
+        remaining_prompt_length = max(
+            0, remaining_prompt_length - len(initial_prompt_tokens)
+        )
     else:
         initial_prompt_tokens = []
 
@@ -287,7 +289,14 @@ def transcribe(
 
             if carry_initial_prompt:
                 nignored = max(len(initial_prompt_tokens), prompt_reset_since)
-                remaining_prompt = all_tokens[nignored:][-remaining_prompt_length:]
+                # `initial_prompt` may already fill the decoder's prompt budget,
+                # leaving no room to carry previous text. `tokens[-0:]` returns the
+                # whole list rather than an empty one, so slice explicitly.
+                remaining_prompt = (
+                    all_tokens[nignored:][-remaining_prompt_length:]
+                    if remaining_prompt_length > 0
+                    else []
+                )
                 decode_options["prompt"] = initial_prompt_tokens + remaining_prompt
             else:
                 decode_options["prompt"] = all_tokens[prompt_reset_since:]
