@@ -145,15 +145,26 @@ class PyTorchInference(Inference):
     def __init__(self, model: "Whisper", initial_token_length: int):
         self.model: "Whisper" = model
         self.initial_token_length = initial_token_length
-        self.kv_cache = {}
         self.hooks = []
+        self._use_legacy_cache = not self._supports_request_local_cache()
+        if self._use_legacy_cache:
+            self.kv_cache = {}
+        else:
+            from .model import _RequestLocalKVCache
+
+            self.kv_cache = _RequestLocalKVCache()
 
         key_modules = [block.attn.key for block in self.model.decoder.blocks]
         value_modules = [block.attn.value for block in self.model.decoder.blocks]
         self.kv_modules = key_modules + value_modules
 
+    def _supports_request_local_cache(self) -> bool:
+        from .model import _uses_request_local_cache
+
+        return _uses_request_local_cache(self.model)
+
     def logits(self, tokens: Tensor, audio_features: Tensor) -> Tensor:
-        if not self.kv_cache:
+        if not self.kv_cache and self._use_legacy_cache:
             self.kv_cache, self.hooks = self.model.install_kv_cache_hooks()
 
         if tokens.shape[-1] > self.initial_token_length:
@@ -166,7 +177,10 @@ class PyTorchInference(Inference):
         for hook in self.hooks:
             hook.remove()
 
-        self.kv_cache = {}
+        if self._use_legacy_cache:
+            self.kv_cache = {}
+        else:
+            self.kv_cache = type(self.kv_cache)()
         self.hooks = []
 
     def rearrange_kv_cache(self, source_indices):

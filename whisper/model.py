@@ -36,6 +36,10 @@ class ModelDimensions:
     n_text_layer: int
 
 
+class _RequestLocalKVCache(dict):
+    """Marker for a KV cache owned and updated by one inference request."""
+
+
 class LayerNorm(nn.LayerNorm):
     def forward(self, x: Tensor) -> Tensor:
         return super().forward(x.float()).type(x.dtype)
@@ -99,12 +103,20 @@ class MultiHeadAttention(nn.Module):
         q = self.query(x)
 
         if kv_cache is None or xa is None or self.key not in kv_cache:
-            # hooks, if installed (i.e. kv_cache is not None), will prepend the cached kv tensors;
-            # otherwise, perform key/value projections for self- or cross-attention as usual.
+            # Hooks, when installed, update an external cache. The built-in inference
+            # path instead passes a private cache that this module updates directly.
             k = self.key(x if xa is None else xa)
             v = self.value(x if xa is None else xa)
+
+            if type(kv_cache) is _RequestLocalKVCache:
+                if xa is None and self.key in kv_cache:
+                    k = torch.cat([kv_cache[self.key], k], dim=1).detach()
+                    v = torch.cat([kv_cache[self.value], v], dim=1).detach()
+
+                kv_cache[self.key] = k
+                kv_cache[self.value] = v
         else:
-            # for cross-attention, calculate keys and values once and reuse in subsequent calls.
+            # For cross-attention, calculate keys and values once and reuse them.
             k = kv_cache[self.key]
             v = kv_cache[self.value]
 
@@ -350,3 +362,30 @@ class Whisper(nn.Module):
     detect_language = detect_language_function
     transcribe = transcribe_function
     decode = decode_function
+
+
+_BUILTIN_INSTALL_KV_CACHE_HOOKS = Whisper.install_kv_cache_hooks
+
+
+def _is_builtin_attention_block(block: nn.Module) -> bool:
+    return (
+        type(block) is ResidualAttentionBlock
+        and type(block.attn) is MultiHeadAttention
+        and (block.cross_attn is None or type(block.cross_attn) is MultiHeadAttention)
+    )
+
+
+def _is_builtin_decoder(decoder: nn.Module) -> bool:
+    return type(decoder) is TextDecoder and all(
+        _is_builtin_attention_block(block) for block in decoder.blocks
+    )
+
+
+def _uses_request_local_cache(model: Whisper) -> bool:
+    """Return whether the decoder accepts Whisper's private cache controls."""
+    cache_installer = getattr(model.install_kv_cache_hooks, "__func__", None)
+    return (
+        isinstance(model, Whisper)
+        and cache_installer is _BUILTIN_INSTALL_KV_CACHE_HOOKS
+        and _is_builtin_decoder(model.decoder)
+    )
