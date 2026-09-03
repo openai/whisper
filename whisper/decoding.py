@@ -730,6 +730,11 @@ class DecodingTask:
                 )
             ]
 
+        # A single audio input broadcasts across its groups. Batched inputs need
+        # one audio feature tensor per group to preserve the audio-token pairing.
+        if n_audio > 1 and self.n_group > 1:
+            audio_features = audio_features.repeat_interleave(self.n_group, dim=0)
+
         # repeat text tensors by the group size, for beam search or best-of-n sampling
         tokens = tokens.repeat_interleave(self.n_group, dim=0).to(audio_features.device)
 
