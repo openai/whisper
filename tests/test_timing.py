@@ -1,9 +1,12 @@
+from types import SimpleNamespace
+from unittest.mock import Mock
+
 import numpy as np
 import pytest
 import scipy.ndimage
 import torch
 
-from whisper.timing import dtw_cpu, dtw_cuda, median_filter
+from whisper.timing import dtw_cpu, dtw_cuda, find_alignment, median_filter
 
 sizes = [
     (10, 20),
@@ -17,6 +20,34 @@ shapes = [
     (4, 5, 345),
     (6, 12, 240, 512),
 ]
+
+
+def test_find_alignment_removes_hooks_after_model_failure():
+    handles = [Mock(), Mock()]
+    blocks = [
+        SimpleNamespace(
+            cross_attn=SimpleNamespace(register_forward_hook=Mock(return_value=handle))
+        )
+        for handle in handles
+    ]
+    model = Mock()
+    model.dims = SimpleNamespace(n_text_layer=len(blocks))
+    model.decoder = SimpleNamespace(blocks=blocks)
+    model.device = "cpu"
+    model.side_effect = RuntimeError("decoder failed")
+    tokenizer = SimpleNamespace(sot_sequence=(1,), no_timestamps=2, eot=3)
+
+    with pytest.raises(RuntimeError, match="decoder failed"):
+        find_alignment(
+            model,
+            tokenizer,
+            text_tokens=[4],
+            mel=torch.zeros(80, 2),
+            num_frames=2,
+        )
+
+    for handle in handles:
+        handle.remove.assert_called_once_with()
 
 
 @pytest.mark.parametrize("N, M", sizes)
