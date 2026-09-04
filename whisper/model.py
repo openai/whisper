@@ -2,6 +2,7 @@ import base64
 import gzip
 from contextlib import contextmanager
 from dataclasses import dataclass
+from threading import local
 from typing import Dict, Iterable, Optional, Tuple
 
 import numpy as np
@@ -20,6 +21,9 @@ try:
 except (ImportError, RuntimeError, OSError):
     scaled_dot_product_attention = None
     SDPA_AVAILABLE = False
+
+
+_sdpa_state = local()
 
 
 @dataclass
@@ -70,12 +74,15 @@ def sinusoids(length, channels, max_timescale=10000):
 
 @contextmanager
 def disable_sdpa():
-    prev_state = MultiHeadAttention.use_sdpa
+    previous_depth = getattr(_sdpa_state, "disable_depth", 0)
+    _sdpa_state.disable_depth = previous_depth + 1
     try:
-        MultiHeadAttention.use_sdpa = False
         yield
     finally:
-        MultiHeadAttention.use_sdpa = prev_state
+        if previous_depth == 0:
+            del _sdpa_state.disable_depth
+        else:
+            _sdpa_state.disable_depth = previous_depth
 
 
 class MultiHeadAttention(nn.Module):
@@ -120,7 +127,11 @@ class MultiHeadAttention(nn.Module):
         k = k.view(*k.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
         v = v.view(*v.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
 
-        if SDPA_AVAILABLE and MultiHeadAttention.use_sdpa:
+        if (
+            SDPA_AVAILABLE
+            and MultiHeadAttention.use_sdpa
+            and getattr(_sdpa_state, "disable_depth", 0) == 0
+        ):
             if k.shape[0] == 1 and q.shape[0] != 1:
                 # Cross-attention K/V have batch 1 and broadcast against the
                 # beam-expanded query; the fused SDPA kernels reject the batch
