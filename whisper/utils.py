@@ -156,6 +156,7 @@ class SubtitlesWriter(ResultWriter):
                         segment["words"][chunk_index : chunk_index + words_count]
                     ):
                         timing = original_timing.copy()
+                        timing["word"] = timing["word"].replace("-->", "->")
                         long_pause = (
                             not preserve_segments and timing["start"] - last > 3.0
                         )
