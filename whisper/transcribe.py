@@ -113,7 +113,8 @@ def transcribe(
 
     clip_timestamps: Union[str, List[float]]
         Comma-separated list start,end,start,end,... timestamps (in seconds) of clips to process.
-        The last end timestamp defaults to the end of the file.
+        The last end timestamp defaults to the end of the file. Automatic language detection
+        uses the first non-empty clip.
 
     hallucination_silence_threshold: Optional[float]
         When word_timestamps is True, skip silent periods longer than this threshold (in seconds)
@@ -140,15 +141,33 @@ def transcribe(
     content_frames = mel.shape[-1] - N_FRAMES
     content_duration = float(content_frames * HOP_LENGTH / SAMPLE_RATE)
 
+    if isinstance(clip_timestamps, str):
+        clip_timestamps = [
+            float(ts) for ts in (clip_timestamps.split(",") if clip_timestamps else [])
+        ]
+    seek_points: List[int] = [round(ts * FRAMES_PER_SECOND) for ts in clip_timestamps]
+    if len(seek_points) == 0:
+        seek_points.append(0)
+    if len(seek_points) % 2 == 1:
+        seek_points.append(content_frames)
+    seek_clips: List[Tuple[int, int]] = list(zip(seek_points[::2], seek_points[1::2]))
+
     if decode_options.get("language", None) is None:
         if not model.is_multilingual:
             decode_options["language"] = "en"
         else:
             if verbose:
                 print(
-                    "Detecting language using up to the first 30 seconds. Use `--language` to specify the language"
+                    "Detecting language using up to the first 30 seconds of the first clip. Use `--language` to specify the language"
                 )
-            mel_segment = pad_or_trim(mel, N_FRAMES).to(model.device).to(dtype)
+            language_mel = mel
+            for clip_start, clip_end in seek_clips:
+                if clip_end > clip_start:
+                    # Keep the existing silence padding when the clip reaches EOF.
+                    mel_end = None if clip_end >= content_frames else clip_end
+                    language_mel = mel[:, clip_start:mel_end]
+                    break
+            mel_segment = pad_or_trim(language_mel, N_FRAMES).to(model.device).to(dtype)
             _, probs = model.detect_language(mel_segment)
             decode_options["language"] = max(probs, key=probs.get)
             if verbose is not None:
@@ -164,17 +183,6 @@ def transcribe(
         language=language,
         task=task,
     )
-
-    if isinstance(clip_timestamps, str):
-        clip_timestamps = [
-            float(ts) for ts in (clip_timestamps.split(",") if clip_timestamps else [])
-        ]
-    seek_points: List[int] = [round(ts * FRAMES_PER_SECOND) for ts in clip_timestamps]
-    if len(seek_points) == 0:
-        seek_points.append(0)
-    if len(seek_points) % 2 == 1:
-        seek_points.append(content_frames)
-    seek_clips: List[Tuple[int, int]] = list(zip(seek_points[::2], seek_points[1::2]))
 
     punctuation = "\"'“¿([{-\"'.。,，!！?？:：”)]}、"
 
