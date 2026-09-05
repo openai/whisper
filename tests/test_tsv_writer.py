@@ -17,4 +17,4 @@ def test_tsv_keeps_segment_text_in_one_row(text):
     assert len(rows) == 2
     assert rows[0] == "start\tend\ttext"
     assert rows[1].split("\t")[:2] == ["0", "1250"]
-    assert rows[1].split("\t")[2].split() == ["first", "second"]
+    assert rows[1].split("\t")[2] == "first second"

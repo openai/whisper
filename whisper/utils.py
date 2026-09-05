@@ -285,6 +285,7 @@ class WriteTSV(ResultWriter):
                 segment["text"]
                 .strip()
                 .replace("\t", " ")
+                .replace("\r\n", " ")
                 .replace("\r", " ")
                 .replace("\n", " "),
                 file=file,
