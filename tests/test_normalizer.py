@@ -1,6 +1,6 @@
 import pytest
 
-from whisper.normalizers import EnglishTextNormalizer
+from whisper.normalizers import BasicTextNormalizer, EnglishTextNormalizer
 from whisper.normalizers.english import (
     EnglishNumberNormalizer,
     EnglishSpellingNormalizer,
@@ -102,3 +102,43 @@ def test_text_normalizer():
         std("Mr. Park visited Assoc. Prof. Kim Jr.")
         == "mister park visited associate professor kim junior"
     )
+
+
+def test_basic_normalizer():
+    std = BasicTextNormalizer()
+    assert std("Hello, WORLD!") == "hello world "
+    assert std("Hello [inaudible] (laughs) world") == "hello world"
+    assert std("café") == "café"
+    assert BasicTextNormalizer(remove_diacritics=True)("café") == "cafe"
+
+
+def test_basic_normalizer_preserve_marks():
+    # In Brahmic scripts (and in Thai, Thaana, Arabic/Hebrew with vowel points),
+    # vowel signs and viramas are Unicode "Mark" characters that are part of the
+    # spelling of a word. The default normalizer replaces them with spaces, which
+    # splits every word into fragments; `preserve_marks=True` keeps them.
+    malayalam = "സ്ഥിതിഗതികൾ നേരെയാക്കുന്നതിന്"
+    hindi = "प्राचीन संस्कृतियों और जनजातियों"
+    tamil = "வணக்கம், நான் தமிழ் பேசுகிறேன்"
+    thai = "สวัสดีครับ ผมพูดภาษาไทย"
+
+    std = BasicTextNormalizer()
+    assert std(malayalam) == "സ ഥ ത ഗത കൾ ന ര യ ക ക ന നത ന "
+    assert std(hindi) == "प र च न स स क त य और जनज त य "
+
+    std = BasicTextNormalizer(preserve_marks=True)
+    assert std(malayalam) == malayalam
+    assert std(hindi) == hindi
+    assert std(tamil) == "வணக்கம் நான் தமிழ் பேசுகிறேன்"
+    assert std(thai) == thai
+
+    # symbols and punctuation are still removed, and letters are still lowercased
+    assert std("Hello, WORLD! ¿Qué tal?") == "hello world qué tal "
+    assert std("café") == "café"
+
+    # grapheme clusters stay intact when splitting letters
+    std = BasicTextNormalizer(preserve_marks=True, split_letters=True)
+    assert std("കേരളം") == "കേ ര ളം"
+
+    with pytest.raises(ValueError):
+        BasicTextNormalizer(remove_diacritics=True, preserve_marks=True)
