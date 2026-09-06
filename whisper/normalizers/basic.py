@@ -1,5 +1,6 @@
 import re
 import unicodedata
+from functools import partial
 
 import regex
 
@@ -47,21 +48,42 @@ def remove_symbols_and_diacritics(s: str, keep=""):
     )
 
 
-def remove_symbols(s: str):
+def remove_symbols(s: str, preserve_marks: bool = False):
     """
     Replace any other markers, symbols, punctuations with a space, keeping diacritics
+
+    If `preserve_marks` is True, characters in the Unicode "Mark" categories
+    (Mn, Mc, Me) are kept instead of being replaced with a space. This matters for
+    scripts in which marks are part of the spelling of a word, such as the Brahmic
+    scripts (Devanagari, Bengali, Tamil, Malayalam, ...), Thai, Thaana, or Arabic
+    and Hebrew text with vowel points: replacing those marks with spaces splits
+    every word into fragments.
     """
+    categories = "SP" if preserve_marks else "MSP"
     return "".join(
-        " " if unicodedata.category(c)[0] in "MSP" else c
+        " " if unicodedata.category(c)[0] in categories else c
         for c in unicodedata.normalize("NFKC", s)
     )
 
 
 class BasicTextNormalizer:
-    def __init__(self, remove_diacritics: bool = False, split_letters: bool = False):
-        self.clean = (
-            remove_symbols_and_diacritics if remove_diacritics else remove_symbols
-        )
+    def __init__(
+        self,
+        remove_diacritics: bool = False,
+        split_letters: bool = False,
+        preserve_marks: bool = False,
+    ):
+        if remove_diacritics and preserve_marks:
+            raise ValueError(
+                "`preserve_marks` cannot be combined with `remove_diacritics`"
+            )
+
+        if remove_diacritics:
+            self.clean = remove_symbols_and_diacritics
+        elif preserve_marks:
+            self.clean = partial(remove_symbols, preserve_marks=True)
+        else:
+            self.clean = remove_symbols
         self.split_letters = split_letters
 
     def __call__(self, s: str):
