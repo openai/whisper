@@ -379,6 +379,9 @@ def get_tokenizer(
             else:
                 raise ValueError(f"Unsupported language: {language}")
 
+    if task is not None and task not in {"transcribe", "translate", "lang_id"}:
+        raise ValueError(f"Unsupported task: {task}")
+
     if multilingual:
         encoding_name = "multilingual"
         language = language or "en"
