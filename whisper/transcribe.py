@@ -587,7 +587,7 @@ def cli():
     else:
         temperature = [temperature]
 
-    if (threads := args.pop("threads")) > 0:
+    if (threads := args.pop("threads")) is not None and threads > 0:
         torch.set_num_threads(threads)
 
     from . import load_model
