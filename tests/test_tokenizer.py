@@ -32,3 +32,17 @@ def test_split_on_unicode():
 
     assert words == [" elle", " est", " l", "'", "\ufffd", "é", "rit", "oire"]
     assert word_tokens == [[8404], [871], [287], [6], [246], [526], [3210], [20378]]
+
+
+def test_invalid_task_raises():
+    # any task other than the supported ones must fail loudly instead of
+    # silently behaving like "translate"
+    for bad_task in ["transcrib", "Transcribe", "TRANSLATE", "bogus", ""]:
+        with pytest.raises(ValueError, match="[Uu]nsupported task"):
+            get_tokenizer(multilingual=True, language="en", task=bad_task)
+
+
+def test_valid_tasks_still_work():
+    for task in ["transcribe", "translate", "lang_id", None]:
+        tokenizer = get_tokenizer(multilingual=True, language="en", task=task)
+        assert tokenizer.sot in tokenizer.sot_sequence
