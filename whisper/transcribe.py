@@ -35,6 +35,10 @@ if TYPE_CHECKING:
     from .model import Whisper
 
 
+def _missing_audio_files(paths: List[str]) -> List[str]:
+    return [path for path in paths if not os.path.isfile(path)]
+
+
 def transcribe(
     model: "Whisper",
     audio: Union[str, np.ndarray, torch.Tensor],
@@ -567,6 +571,12 @@ def cli():
     # fmt: on
 
     args = parser.parse_args().__dict__
+    if missing := _missing_audio_files(args["audio"]):
+        parser.error(
+            "the following audio file(s) were not found:\n"
+            + "\n".join(f"  {path}" for path in missing)
+        )
+
     model_name: str = args.pop("model")
     model_dir: str = args.pop("model_dir")
     output_dir: str = args.pop("output_dir")
