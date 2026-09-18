@@ -383,6 +383,12 @@ def get_tokenizer(
         encoding_name = "multilingual"
         language = language or "en"
         task = task or "transcribe"
+
+        if language not in list(LANGUAGES)[:num_languages]:
+            raise ValueError(
+                f"Language {language} is not supported by this model, which only "
+                f"supports the first {num_languages} of the {len(LANGUAGES)} languages"
+            )
     else:
         encoding_name = "gpt2"
         language = None
