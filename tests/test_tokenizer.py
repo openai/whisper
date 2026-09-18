@@ -32,3 +32,20 @@ def test_split_on_unicode():
 
     assert words == [" elle", " est", " l", "'", "\ufffd", "é", "rit", "oire"]
     assert word_tokens == [[8404], [871], [287], [6], [246], [526], [3210], [20378]]
+
+
+def test_language_unsupported_by_model():
+    # "yue" is the 100th entry of LANGUAGES and only exists in large-v3 / turbo,
+    # whose checkpoints report num_languages=100. Every other multilingual
+    # checkpoint reports 99, so asking it for "yue" has to fail with a message
+    # that names the language instead of an IndexError-style ValueError.
+    assert get_tokenizer(True, num_languages=100, language="yue").sot_sequence
+
+    with pytest.raises(ValueError, match="yue"):
+        get_tokenizer(True, num_languages=99, language="yue")
+
+    with pytest.raises(ValueError, match="yue"):
+        get_tokenizer(True, num_languages=99, language="cantonese")
+
+    # languages that every multilingual checkpoint supports are unaffected
+    assert get_tokenizer(True, num_languages=99, language="zh").sot_sequence
