@@ -118,7 +118,7 @@ def log_mel_spectrogram(
 
     Parameters
     ----------
-    audio: Union[str, np.ndarray, torch.Tensor], shape = (*)
+    audio: Union[str, np.ndarray, torch.Tensor], shape = ([batch,] n_samples)
         The path to audio or either a NumPy array or Tensor containing the audio waveform in 16 kHz
 
     n_mels: int
@@ -132,7 +132,7 @@ def log_mel_spectrogram(
 
     Returns
     -------
-    torch.Tensor, shape = (n_mels, n_frames)
+    torch.Tensor, shape = ([batch,] n_mels, n_frames)
         A Tensor that contains the Mel spectrogram
     """
     if not torch.is_tensor(audio):
@@ -152,6 +152,6 @@ def log_mel_spectrogram(
     mel_spec = filters @ magnitudes
 
     log_spec = torch.clamp(mel_spec, min=1e-10).log10()
-    log_spec = torch.maximum(log_spec, log_spec.max() - 8.0)
+    log_spec = torch.maximum(log_spec, log_spec.amax(dim=(-2, -1), keepdim=True) - 8.0)
     log_spec = (log_spec + 4.0) / 4.0
     return log_spec
