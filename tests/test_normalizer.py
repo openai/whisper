@@ -42,13 +42,16 @@ def test_number_normalizer(std):
     assert std("3.14") == "3.14"
     assert std("3 point 2") == "3.2"
     assert std("3 point 14") == "3.14"
+    assert std("3 point 1") == "3.1"
     assert std("fourteen point 4") == "14.4"
+    assert std("one point five") == "1.5"
     assert std("two point two five dollars") == "$2.25"
     assert std("two hundred million dollars") == "$200000000"
     assert std("$20.1 million") == "$20100000"
 
     assert std("ninety percent") == "90%"
     assert std("seventy six per cent") == "76%"
+    assert std("one percent") == "1%"
 
     assert std("double oh seven") == "007"
     assert std("double zero seven") == "007"
@@ -61,17 +64,22 @@ def test_number_normalizer(std):
 
     assert std("minus 500") == "-500"
     assert std("positive twenty thousand") == "+20000"
+    assert std("minus one") == "-1"
 
     assert std("two dollars and seventy cents") == "$2.70"
     assert std("3 cents") == "¢3"
     assert std("$0.36") == "¢36"
     assert std("three euros and sixty five cents") == "€3.65"
+    assert std("one dollar and one cent") == "$1.01"
 
     assert std("three and a half million") == "3500000"
     assert std("forty eight and a half dollars") == "$48.5"
     assert std("b747") == "b 747"
     assert std("10 th") == "10th"
     assert std("10th") == "10th"
+
+    assert std("one") == "one"
+    assert std("ones") == "ones"
 
 
 def test_spelling_normalizer():
