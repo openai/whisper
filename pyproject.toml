@@ -28,6 +28,8 @@ dependencies = [
   "tiktoken",
   "torch",
   "tqdm",
+]
+optional-dependencies.cuda = [
   "triton>=2; (platform_machine=='x86_64' and sys_platform=='linux') or sys_platform=='linux2'",
 ]
 optional-dependencies.dev = [ "black", "flake8", "isort", "pytest", "scipy" ]
