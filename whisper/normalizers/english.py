@@ -391,17 +391,20 @@ class EnglishNumberNormalizer:
 
         segments = re.split(r"\band\s+a\s+half\b", s)
         for i, segment in enumerate(segments):
-            if len(segment.strip()) == 0:
-                continue
+            results.append(segment)
             if i == len(segments) - 1:
-                results.append(segment)
-            else:
-                results.append(segment)
-                last_word = segment.rsplit(maxsplit=2)[-1]
-                if last_word in self.decimals or last_word in self.multipliers:
-                    results.append("point five")
-                else:
-                    results.append("and a half")
+                break
+
+            words = segment.split()
+            last_word = words[-1] if words else ""
+            if (
+                last_word in self.decimals
+                or last_word in self.multipliers
+                or re.fullmatch(r"\d+", last_word)  # e.g. "2 and a half"
+            ):
+                results.append("point five")
+            else:  # not a number; keep the original words rather than dropping them
+                results.append("and a half")
 
         s = " ".join(results)
 

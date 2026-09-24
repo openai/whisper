@@ -74,6 +74,10 @@ def test_number_normalizer(std):
 
     assert std("three and a half million") == "3500000"
     assert std("forty eight and a half dollars") == "$48.5"
+    assert std("2 and a half million") == "2500000"
+    assert std("48 and a half dollars") == "$48.5"
+    assert std("and a half hours later") == "and a half hours later"
+    assert std("one and a half and a half") == "1.5 and a half"
     assert std("b747") == "b 747"
     assert std("10 th") == "10th"
     assert std("10th") == "10th"
