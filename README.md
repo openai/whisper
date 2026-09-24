@@ -21,6 +21,13 @@ We used Python 3.9.9 and [PyTorch](https://pytorch.org/) 1.10.1 to train and tes
 
     pip install -U openai-whisper
 
+`triton` is only used by the optional CUDA kernels for word-level timestamps (`whisper/triton_ops.py`,
+called from `whisper/timing.py`). It is no longer installed by default, because on x86_64 Linux it
+pulled a CUDA toolchain onto CPU-only machines where it can never run; the code already falls back to
+the numba implementations when it is missing. If you run Whisper on a GPU and want the faster kernels:
+
+    pip install -U "openai-whisper[cuda]"
+
 Alternatively, the following command will pull and install the latest commit from this repository, along with its Python dependencies:
 
     pip install git+https://github.com/openai/whisper.git 
