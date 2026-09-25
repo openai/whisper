@@ -63,7 +63,8 @@ def transcribe(
         The Whisper model instance
 
     audio: Union[str, np.ndarray, torch.Tensor]
-        The path to the audio file to open, or the audio waveform
+        The path to the audio file to open, or a one-dimensional audio waveform. Array and tensor
+        inputs must be mono; squeeze singleton dimensions or downmix multi-channel audio first.
 
     verbose: bool
         Whether to display the text being decoded to the console. If True, displays all the details,
@@ -124,6 +125,12 @@ def transcribe(
     A dictionary containing the resulting text ("text") and segment-level details ("segments"), and
     the spoken language ("language"), which is detected when `decode_options["language"]` is None.
     """
+    if (torch.is_tensor(audio) or isinstance(audio, np.ndarray)) and audio.ndim != 1:
+        raise ValueError(
+            f"audio must be a 1-D mono waveform, but got shape {tuple(audio.shape)}; "
+            "squeeze singleton dimensions or downmix multi-channel audio before calling transcribe()"
+        )
+
     dtype = torch.float16 if decode_options.get("fp16", True) else torch.float32
     if model.device == torch.device("cpu"):
         if torch.cuda.is_available():
