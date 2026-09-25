@@ -1,10 +1,62 @@
 import os
+from importlib import import_module
+from types import SimpleNamespace
 
+import numpy as np
 import pytest
 import torch
 
 import whisper
 from whisper.tokenizer import get_tokenizer
+
+transcribe_module = import_module("whisper.transcribe")
+
+
+def model_returning_batched_decode():
+    return SimpleNamespace(
+        device=torch.device("cpu"),
+        dims=SimpleNamespace(n_mels=80, n_audio_ctx=1500, n_text_ctx=448),
+        is_multilingual=False,
+        num_languages=99,
+        decode=lambda *args, **kwargs: [object()],
+    )
+
+
+@pytest.mark.parametrize(
+    "audio",
+    [
+        np.zeros((2, 160), dtype=np.float32),
+        np.zeros((1, 160), dtype=np.float32),
+        torch.zeros(2, 160),
+        torch.zeros(1, 160),
+    ],
+)
+def test_transcribe_rejects_non_mono_waveform(audio):
+    with pytest.raises(
+        ValueError, match=r"1-D mono waveform.*shape \([12], 160\).*[Dd]ownmix"
+    ):
+        whisper.transcribe(model_returning_batched_decode(), audio, fp16=False)
+
+
+@pytest.mark.parametrize(
+    "audio",
+    ["audio.wav", np.zeros(160, dtype=np.float32), torch.zeros(160)],
+)
+def test_transcribe_accepts_supported_audio_input(monkeypatch, audio):
+    class ReachedLogMelSpectrogram(Exception):
+        pass
+
+    def stop_after_shape_validation(*args, **kwargs):
+        raise ReachedLogMelSpectrogram
+
+    monkeypatch.setattr(
+        transcribe_module, "log_mel_spectrogram", stop_after_shape_validation
+    )
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    model = SimpleNamespace(device=torch.device("cpu"), dims=SimpleNamespace(n_mels=80))
+
+    with pytest.raises(ReachedLogMelSpectrogram):
+        whisper.transcribe(model, audio, fp16=False)
 
 
 @pytest.mark.parametrize("model_name", whisper.available_models())
