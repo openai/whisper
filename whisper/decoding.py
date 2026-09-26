@@ -593,10 +593,8 @@ class DecodingTask:
                 if isinstance(prefix, str)
                 else prefix
             )
-            if self.sample_len is not None:
-                max_prefix_len = self.n_ctx // 2 - self.sample_len
-                prefix_tokens = prefix_tokens[-max_prefix_len:]
-            tokens = tokens + prefix_tokens
+            max_prefix_len = self.n_ctx // 2 - len(self.sot_sequence)
+            tokens = tokens + prefix_tokens[-max_prefix_len:]
 
         if prompt := self.options.prompt:
             prompt_tokens = (
