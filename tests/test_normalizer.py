@@ -97,6 +97,8 @@ def test_text_normalizer():
     assert std("10km") == "10 km"
     assert std("10mm") == "10 mm"
     assert std("RC232") == "rc 232"
+    assert std("three o'clock") == "3 oclock"
+    assert std("10 o'clock") == "10 oclock"
 
     assert (
         std("Mr. Park visited Assoc. Prof. Kim Jr.")
