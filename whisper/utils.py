@@ -135,6 +135,8 @@ class SubtitlesWriter(ResultWriter):
         max_line_count = max_line_count or options.get("max_line_count")
         highlight_words = highlight_words or options.get("highlight_words", False)
         max_words_per_line = max_words_per_line or options.get("max_words_per_line")
+        if max_words_per_line is not None and max_words_per_line < 0:
+            raise ValueError("max_words_per_line must be non-negative")
         preserve_segments = max_line_count is None or max_line_width is None
         max_line_width = max_line_width or 1000
         max_words_per_line = max_words_per_line or 1000
