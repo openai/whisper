@@ -483,6 +483,7 @@ class EnglishTextNormalizer:
             r"\bcoulda\b": "could have",
             r"\bshoulda\b": "should have",
             r"\bma'am\b": "madam",
+            r"\bo'clock\b": "oclock",
             # contractions in titles/prefixes
             r"\bmr\b": "mister ",
             r"\bmrs\b": "missus ",
