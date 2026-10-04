@@ -21,6 +21,9 @@ N_SAMPLES_PER_TOKEN = HOP_LENGTH * 2  # the initial convolutions has stride 2
 FRAMES_PER_SECOND = exact_div(SAMPLE_RATE, HOP_LENGTH)  # 10ms per audio frame
 TOKENS_PER_SECOND = exact_div(SAMPLE_RATE, N_SAMPLES_PER_TOKEN)  # 20ms per audio token
 
+# Bound CPU STFT intermediates to one minute, independently of recording length.
+_MEL_CHUNK_FRAMES = 2 * N_FRAMES
+
 
 def load_audio(file: str, sr: int = SAMPLE_RATE):
     """
@@ -107,6 +110,39 @@ def mel_filters(device, n_mels: int) -> torch.Tensor:
         return torch.from_numpy(f[f"mel_{n_mels}"]).to(device)
 
 
+def _log_mel_spectrogram_chunks(audio, window, filters):
+    n_samples = audio.shape[-1]
+    n_frames = n_samples // HOP_LENGTH
+    log_spec = None
+
+    for first in range(0, n_frames, _MEL_CHUNK_FRAMES):
+        last = min(first + _MEL_CHUNK_FRAMES, n_frames)
+        # Match the original centered STFT windows, including their overlap.
+        # Only the recording boundaries should be reflect-padded.
+        start = first * HOP_LENGTH - N_FFT // 2
+        end = (last - 1) * HOP_LENGTH + N_FFT // 2
+        chunk = audio[..., max(0, start) : min(n_samples, end)]
+        if start < 0 or end > n_samples:
+            chunk = F.pad(
+                chunk.reshape(-1, 1, chunk.shape[-1]),
+                (max(0, -start), max(0, end - n_samples)),
+                mode="reflect",
+            ).reshape(*audio.shape[:-1], -1)
+
+        stft = torch.stft(
+            chunk, N_FFT, HOP_LENGTH, window=window, center=False, return_complex=True
+        )
+        mel_spec = filters @ (stft.abs() ** 2)
+        if log_spec is None:
+            # Inherit the projection dtype, including under CPU autocast.
+            log_spec = mel_spec.new_empty(
+                (*audio.shape[:-1], filters.shape[0], n_frames)
+            )
+        log_spec[..., first:last] = torch.clamp(mel_spec, min=1e-10).log10()
+
+    return log_spec
+
+
 def log_mel_spectrogram(
     audio: Union[str, np.ndarray, torch.Tensor],
     n_mels: int = 80,
@@ -145,13 +181,24 @@ def log_mel_spectrogram(
     if padding > 0:
         audio = F.pad(audio, (0, padding))
     window = torch.hann_window(N_FFT).to(audio.device)
-    stft = torch.stft(audio, N_FFT, HOP_LENGTH, window=window, return_complex=True)
-    magnitudes = stft[..., :-1].abs() ** 2
-
     filters = mel_filters(audio.device, n_mels)
-    mel_spec = filters @ magnitudes
 
-    log_spec = torch.clamp(mel_spec, min=1e-10).log10()
+    if (
+        audio.device.type == "cpu"
+        and audio.ndim in (1, 2)
+        and audio.shape[-1] // HOP_LENGTH > _MEL_CHUNK_FRAMES
+        and not (audio.requires_grad and torch.is_grad_enabled())
+    ):
+        log_spec = _log_mel_spectrogram_chunks(audio, window, filters)
+    else:
+        # Keep short inputs, accelerators, and autograd on the original path.
+        # Preallocated chunk writes would create an expensive CopySlices graph.
+        stft = torch.stft(audio, N_FFT, HOP_LENGTH, window=window, return_complex=True)
+        magnitudes = stft[..., :-1].abs() ** 2
+        mel_spec = filters @ magnitudes
+        log_spec = torch.clamp(mel_spec, min=1e-10).log10()
+
+    # Use the entire recording's maximum, not an independent floor per chunk.
     log_spec = torch.maximum(log_spec, log_spec.max() - 8.0)
     log_spec = (log_spec + 4.0) / 4.0
     return log_spec
