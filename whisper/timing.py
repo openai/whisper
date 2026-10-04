@@ -2,7 +2,7 @@ import itertools
 import subprocess
 import warnings
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 import numba
 import numpy as np
@@ -169,7 +169,12 @@ def find_alignment(
     *,
     medfilt_width: int = 7,
     qk_scale: float = 1.0,
+    audio_features: Optional[torch.Tensor] = None,
 ) -> List[WordTiming]:
+    """Align text, optionally reusing the encoder output for this mel window.
+
+    audio_features must be unbatched, with shape (n_audio_ctx, n_audio_state).
+    """
     if len(text_tokens) == 0:
         return []
 
@@ -194,7 +199,10 @@ def find_alignment(
     from .model import disable_sdpa
 
     with torch.no_grad(), disable_sdpa():
-        logits = model(mel.unsqueeze(0), tokens.unsqueeze(0))[0]
+        if audio_features is None:
+            logits = model(mel.unsqueeze(0), tokens.unsqueeze(0))[0]
+        else:
+            logits = model.logits(tokens.unsqueeze(0), audio_features.unsqueeze(0))[0]
         sampled_logits = logits[len(tokenizer.sot_sequence) :, : tokenizer.eot]
         token_probs = sampled_logits.softmax(dim=-1)
         text_token_probs = token_probs[np.arange(len(text_tokens)), text_tokens]

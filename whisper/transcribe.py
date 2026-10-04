@@ -408,6 +408,7 @@ def transcribe(
                     prepend_punctuations=prepend_punctuations,
                     append_punctuations=append_punctuations,
                     last_speech_timestamp=last_speech_timestamp,
+                    audio_features=result.audio_features,
                 )
 
                 if not single_timestamp_ending:
