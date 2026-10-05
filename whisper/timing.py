@@ -208,7 +208,9 @@ def find_alignment(
     weights = weights[:, :, : num_frames // 2]
     weights = (weights * qk_scale).softmax(dim=-1)
     std, mean = torch.std_mean(weights, dim=-2, keepdim=True, unbiased=False)
-    weights = (weights - mean) / std
+    # Constant attention carries no relative alignment evidence. Avoid 0 / 0
+    # without changing the normalization of non-constant heads.
+    weights = (weights - mean) / torch.where(std == 0, 1, std)
     weights = median_filter(weights, medfilt_width)
 
     matrix = weights.mean(axis=0)
