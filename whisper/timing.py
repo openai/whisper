@@ -92,9 +92,9 @@ def dtw_cpu(x: np.ndarray):
             c1 = cost[i - 1, j]
             c2 = cost[i, j - 1]
 
-            if c0 < c1 and c0 < c2:
+            if c0 <= c1 and c0 <= c2:
                 c, t = c0, 0
-            elif c1 < c0 and c1 < c2:
+            elif c1 <= c0 and c1 <= c2:
                 c, t = c1, 1
             else:
                 c, t = c2, 2
