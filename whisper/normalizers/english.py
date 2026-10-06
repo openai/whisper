@@ -426,13 +426,13 @@ class EnglishNumberNormalizer:
 
         def extract_cents(m: Match):
             try:
-                return f"¢{int(m.group(1))}"
+                return f"¢{int(m.group(1).ljust(2, '0'))}"
             except ValueError:
                 return m.string
 
         # apply currency postprocessing; "$2 and ¢7" -> "$2.07"
         s = re.sub(r"([€£$])([0-9]+) (?:and )?¢([0-9]{1,2})\b", combine_cents, s)
-        s = re.sub(r"[€£$]0.([0-9]{1,2})\b", extract_cents, s)
+        s = re.sub(r"[€£$]0\.([0-9]{1,2})\b", extract_cents, s)
 
         # write "one(s)" instead of "1(s)", just for the readability;
         # only when it stands alone, since `\b` would also match inside
