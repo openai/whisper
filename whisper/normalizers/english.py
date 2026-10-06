@@ -331,7 +331,8 @@ class EnglishNumberNormalizer:
             elif current in self.following_prefixers:
                 # apply prefix (dollars, cents, etc.) only after a number
                 if value is not None:
-                    prefix = self.following_prefixers[current]
+                    sign = prefix if prefix in ("-", "+") else ""
+                    prefix = sign + self.following_prefixers[current]
                     yield output(value)
                 else:
                     yield output(current)
