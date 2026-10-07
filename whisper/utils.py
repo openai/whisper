@@ -2,6 +2,7 @@ import json
 import os
 import re
 import sys
+import unicodedata
 import zlib
 from typing import Callable, List, Optional, TextIO
 
@@ -82,6 +83,15 @@ def get_end(segments: List[dict]) -> Optional[float]:
     )
 
 
+def _display_width(text: str) -> int:
+    """Columns *text* occupies in a terminal or subtitle renderer.
+
+    ``len()`` counts code points, but a CJK character is rendered two columns
+    wide, so a line limited to N "characters" came out twice as wide for Chinese.
+    """
+    return sum(2 if unicodedata.east_asian_width(ch) in "WF" else 1 for ch in text)
+
+
 class ResultWriter:
     extension: str
 
@@ -159,7 +169,9 @@ class SubtitlesWriter(ResultWriter):
                         long_pause = (
                             not preserve_segments and timing["start"] - last > 3.0
                         )
-                        has_room = line_len + len(timing["word"]) <= max_line_width
+                        has_room = (
+                            line_len + _display_width(timing["word"]) <= max_line_width
+                        )
                         seg_break = i == 0 and len(subtitle) > 0 and preserve_segments
                         if (
                             line_len > 0
@@ -168,7 +180,7 @@ class SubtitlesWriter(ResultWriter):
                             and not seg_break
                         ):
                             # line continuation
-                            line_len += len(timing["word"])
+                            line_len += _display_width(timing["word"])
                         else:
                             # new line
                             timing["word"] = timing["word"].strip()
@@ -186,7 +198,7 @@ class SubtitlesWriter(ResultWriter):
                                 # line break
                                 line_count += 1
                                 timing["word"] = "\n" + timing["word"]
-                            line_len = len(timing["word"].strip())
+                            line_len = _display_width(timing["word"].strip())
                         subtitle.append(timing)
                         last = timing["start"]
                     chunk_index += max_words_per_line
