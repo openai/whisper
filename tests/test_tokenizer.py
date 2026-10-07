@@ -32,3 +32,27 @@ def test_split_on_unicode():
 
     assert words == [" elle", " est", " l", "'", "\ufffd", "é", "rit", "oire"]
     assert word_tokens == [[8404], [871], [287], [6], [246], [526], [3210], [20378]]
+
+
+def test_cjk_quotation_marks_are_not_suppressed():
+    """「」『』 are ordinary CJK punctuation, not speaker tags.
+
+    They are in the default `--suppress_tokens=-1` set, so every CLI run silently
+    dropped the quotation marks from Chinese and Japanese output.
+    """
+    tokenizer = get_tokenizer(multilingual=True, language="zh", task="transcribe")
+    non_speech = set(tokenizer.non_speech_tokens)
+
+    for char in "「」『』":
+        tokens = tokenizer.encoding.encode(char)
+        assert not any(token in non_speech for token in tokens), char
+
+
+def test_non_speech_symbols_are_still_suppressed():
+    """Control: the suppression set keeps doing its actual job."""
+    tokenizer = get_tokenizer(multilingual=True, language="zh", task="transcribe")
+    non_speech = set(tokenizer.non_speech_tokens)
+
+    for char in "♪#()*":
+        tokens = tokenizer.encoding.encode(char)
+        assert any(token in non_speech for token in tokens), char
