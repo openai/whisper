@@ -138,6 +138,8 @@ def log_mel_spectrogram(
     if not torch.is_tensor(audio):
         if isinstance(audio, str):
             audio = load_audio(audio)
+        if any(stride < 0 for stride in audio.strides):
+            audio = audio.copy()
         audio = torch.from_numpy(audio)
 
     if device is not None:
