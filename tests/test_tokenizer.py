@@ -3,10 +3,16 @@ import pytest
 from whisper.tokenizer import get_tokenizer
 
 
-@pytest.mark.parametrize("multilingual", [True, False])
-def test_tokenizer(multilingual):
-    tokenizer = get_tokenizer(multilingual=False)
-    assert tokenizer.sot in tokenizer.sot_sequence
+@pytest.mark.parametrize(
+    "multilingual, expected_prefix",
+    [
+        (True, "<|startoftranscript|><|en|><|transcribe|>"),
+        (False, "<|startoftranscript|>"),
+    ],
+)
+def test_tokenizer(multilingual, expected_prefix):
+    tokenizer = get_tokenizer(multilingual=multilingual)
+    assert tokenizer.decode(tokenizer.sot_sequence) == expected_prefix
     assert len(tokenizer.all_language_codes) == len(tokenizer.all_language_tokens)
     assert all(c < tokenizer.timestamp_begin for c in tokenizer.all_language_tokens)
 
