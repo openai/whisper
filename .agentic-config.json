@@ -1,0 +1,134 @@
+{
+  "metadata": {
+    "project_name": "whisper",
+    "description": "A Python project with Python (setuptools)",
+    "generated_by": "Braxis",
+    "generated_at": "2026-10-08T23:35:05.676267",
+    "schema_version": "1.0"
+  },
+  "project": {
+    "languages": [
+      "python"
+    ],
+    "primary_language": "python",
+    "build_system": "Python (setuptools)",
+    "architecture": "single-package",
+    "is_monorepo": false,
+    "monorepo_type": null,
+    "subsystems": []
+  },
+  "ai_readiness": {
+    "overall_score": 68,
+    "tier": "AI-Native",
+    "dimensions": {
+      "architecture": {
+        "score": 10,
+        "reason": "Code organization and modularity"
+      },
+      "testing": {
+        "score": 15,
+        "reason": "7 test files found"
+      },
+      "dependencies": {
+        "score": 12,
+        "reason": "Dependency management and version pinning"
+      },
+      "conventions": {
+        "score": 4,
+        "reason": "Consistency in naming and patterns"
+      },
+      "entry_points": {
+        "score": 4,
+        "reason": "0 critical files identified"
+      },
+      "security": {
+        "score": 5,
+        "reason": "Input validation and error handling"
+      },
+      "build": {
+        "score": 10,
+        "reason": "Build system clarity and configuration"
+      },
+      "documentation": {
+        "score": 8,
+        "reason": "README and code documentation"
+      }
+    }
+  },
+  "development": {
+    "setup_command": "pip install -e . && uv sync --all-groups",
+    "test_command": "pytest",
+    "lint_command": "ruff check .",
+    "format_command": "ruff format .",
+    "dev_server_command": null,
+    "prerequisites": {
+      "language_version": "3.9+",
+      "package_manager": "pip or uv",
+      "key_tools": [
+        "pytest",
+        "ruff",
+        "mypy"
+      ]
+    }
+  },
+  "architecture": {
+    "pattern": "single-package project",
+    "main_entry": "Standard layout",
+    "key_modules": [],
+    "layers": [
+      "CLI interface (if applicable)",
+      "Business logic",
+      "Utilities and helpers"
+    ]
+  },
+  "mcp_servers": [],
+  "core_principles": [
+    "Modularity - Code organized by functionality",
+    "Testability - Comprehensive test coverage",
+    "Clarity - Code easy for AI agents to understand",
+    "Consistency - Uniform patterns throughout"
+  ],
+  "contribution_criteria": {
+    "what_we_want": [
+      "Bug fixes with test coverage",
+      "Code quality improvements",
+      "Test coverage increases",
+      "Documentation improvements",
+      "Performance optimizations"
+    ],
+    "what_we_dont_want": [
+      "New dependencies without justification",
+      "Code that reduces test coverage",
+      "Inconsistent naming or style",
+      "Dead code or commented code"
+    ]
+  },
+  "contribution_boundaries": {
+    "project_scale": "micro",
+    "suggestion": "This micro-project is early-stage. Accept most contributions."
+  },
+  "commands": {
+    "setup": {
+      "command": "pip install -e . && uv sync --all-groups",
+      "description": "Install dependencies and set up development environment"
+    },
+    "test": {
+      "command": "pytest",
+      "description": "Run all tests"
+    },
+    "lint": {
+      "command": "ruff check .",
+      "description": "Check code style and quality"
+    },
+    "format": {
+      "command": "ruff format .",
+      "description": "Format code to project standards"
+    }
+  },
+  "testing": {
+    "framework": "pytest",
+    "total_tests": 7,
+    "pass_rate": 100,
+    "run_command": "pytest"
+  }
+}
