@@ -154,7 +154,8 @@ def test_nonfinite_loss_is_skipped(manifest, tmp_path, monkeypatch):
 def test_resume_matches_uninterrupted_run(manifest, tmp_path, mode, lr, filename, key):
     common = ["--finetune", mode, "--lr", lr, "--max_steps", "4", "--precision", "fp32", "--device", "cpu", "--skip_baseline"]  # fmt: skip
     run_training(manifest, tmp_path / "full", *common)
-    run_training(manifest, tmp_path / "part", *common, "--save_every", "2")
+    run_training(manifest, tmp_path / "part", *common, "--save_every", "1", "--keep_checkpoints", "2")  # fmt: skip
+    assert sorted(os.listdir(tmp_path / "part" / "checkpoints")) == ["step_3.pt", "step_4.pt"]  # fmt: skip
     os.remove(tmp_path / "part" / "checkpoints" / "step_4.pt")
     run_training(manifest, tmp_path / "part", *common, "--resume", "latest")
 

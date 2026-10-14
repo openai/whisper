@@ -478,16 +478,22 @@ def save_model(model: Whisper, path: str) -> None:
     torch.save({"dims": asdict(model.dims), "model_state_dict": state_dict}, path)
 
 
-def latest_checkpoint(output_dir: str) -> Optional[str]:
+def list_checkpoints(output_dir: str) -> List[str]:
+    """Paths of the resumable checkpoints in output_dir, oldest first"""
     directory = os.path.join(output_dir, "checkpoints")
     if not os.path.isdir(directory):
-        return None
-    steps = [
+        return []
+    steps = sorted(
         int(m.group(1))
         for name in os.listdir(directory)
         if (m := re.fullmatch(r"step_(\d+)\.pt", name))
-    ]
-    return os.path.join(directory, f"step_{max(steps)}.pt") if steps else None
+    )
+    return [os.path.join(directory, f"step_{step}.pt") for step in steps]
+
+
+def latest_checkpoint(output_dir: str) -> Optional[str]:
+    checkpoints = list_checkpoints(output_dir)
+    return checkpoints[-1] if checkpoints else None
 
 
 class MetricsLogger:
@@ -775,6 +781,11 @@ def train(args: argparse.Namespace) -> Dict[str, object]:
                 path = os.path.join(args.output_dir, "checkpoints", f"step_{step}.pt")
                 save_checkpoint(path, model, optimizer, scheduler, scaler, state)
                 log(f"Saved checkpoint {path}")
+                if args.keep_checkpoints:
+                    for old in list_checkpoints(args.output_dir)[
+                        : -args.keep_checkpoints
+                    ]:
+                        os.remove(old)
             if step >= total_steps:
                 break
         else:
@@ -875,6 +886,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--skip_baseline", action="store_true", help="don't evaluate the base model before training")
     parser.add_argument("--log_every", type=int, default=10, help="log training loss every N steps")
     parser.add_argument("--save_every", type=int, default=0, help="save a resumable checkpoint every N steps; 0 disables")
+    parser.add_argument("--keep_checkpoints", type=int, default=0, help="keep only the N most recent resumable checkpoints; 0 keeps all")
     parser.add_argument("--resume", type=str, default=None, help="checkpoint to resume from, or 'latest' to use the newest one in --output_dir")
     parser.add_argument("--export_merged", action="store_true", help="with LoRA, also save the best adapter merged into a full Whisper checkpoint")
     # fmt: on
