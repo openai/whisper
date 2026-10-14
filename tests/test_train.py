@@ -144,17 +144,62 @@ def test_nonfinite_loss_is_skipped(manifest, tmp_path, monkeypatch):
     assert all(torch.isfinite(v).all() for v in adapter["state_dict"].values())
 
 
-def test_resume_matches_uninterrupted_run(manifest, tmp_path):
-    common = ["--max_steps", "4", "--precision", "fp32", "--device", "cpu", "--skip_baseline"]  # fmt: skip
+@pytest.mark.parametrize(
+    "mode,lr,filename,key",
+    [
+        ("lora", "1e-2", "adapter_final.pt", "state_dict"),
+        ("full", "1e-4", "model_final.pt", "model_state_dict"),
+    ],
+)
+def test_resume_matches_uninterrupted_run(manifest, tmp_path, mode, lr, filename, key):
+    common = ["--finetune", mode, "--lr", lr, "--max_steps", "4", "--precision", "fp32", "--device", "cpu", "--skip_baseline"]  # fmt: skip
     run_training(manifest, tmp_path / "full", *common)
     run_training(manifest, tmp_path / "part", *common, "--save_every", "2")
     os.remove(tmp_path / "part" / "checkpoints" / "step_4.pt")
     run_training(manifest, tmp_path / "part", *common, "--resume", "latest")
 
-    full = torch.load(tmp_path / "full" / "adapter_final.pt", weights_only=True)
-    part = torch.load(tmp_path / "part" / "adapter_final.pt", weights_only=True)
-    for name, value in full["state_dict"].items():
-        assert torch.allclose(value, part["state_dict"][name], atol=1e-6), name
+    full = torch.load(tmp_path / "full" / filename, weights_only=True)
+    part = torch.load(tmp_path / "part" / filename, weights_only=True)
+    for name, value in full[key].items():
+        assert torch.allclose(value, part[key][name], atol=1e-6), name
+
+
+def test_full_finetune(manifest, tmp_path):
+    results = run_training(manifest, tmp_path / "run", "--finetune", "full", "--lr", "1e-4", "--max_steps", "12", "--precision", "fp32", "--device", "cpu")  # fmt: skip
+    assert results["finetune"] == "full"
+    assert results["trainable_percent"] == 100
+    assert results["final"]["loss"] < results["baseline"]["loss"]
+    assert not os.path.exists(tmp_path / "run" / "adapter_final.pt")
+
+    base = whisper.load_model("tiny", device="cpu")
+    tuned = whisper.load_model(str(tmp_path / "run" / "model_best.pt"), device="cpu")
+    assert tuned.dims == base.dims
+    assert not any(hasattr(m, "lora_A") for m in tuned.modules())
+    changed = [
+        not torch.equal(p, base.state_dict()[n]) for n, p in tuned.named_parameters()
+    ]
+    assert any(changed)
+
+
+def test_full_finetune_freeze_encoder(manifest, tmp_path):
+    results = run_training(manifest, tmp_path / "run", "--finetune", "full", "--freeze_encoder", "--lr", "1e-4", "--max_steps", "4", "--precision", "fp32", "--device", "cpu", "--skip_baseline")  # fmt: skip
+    base = whisper.load_model("tiny", device="cpu")
+    tuned = whisper.load_model(str(tmp_path / "run" / "model_final.pt"), device="cpu")
+    for name, p in tuned.encoder.state_dict().items():
+        assert torch.equal(p, base.encoder.state_dict()[name]), name
+    assert not torch.equal(
+        tuned.decoder.token_embedding.weight, base.decoder.token_embedding.weight
+    )
+    n_decoder = sum(p.numel() for p in base.decoder.parameters())
+    assert results["trainable_parameters"] == n_decoder
+
+
+@pytest.mark.parametrize(
+    "flags", [["--freeze_encoder"], ["--finetune", "full", "--export_merged"]]
+)
+def test_invalid_finetune_options(manifest, tmp_path, flags):
+    with pytest.raises(ValueError):
+        run_training(manifest, tmp_path / "run", "--max_steps", "1", "--device", "cpu", *flags)  # fmt: skip
 
 
 def test_precision_auto(monkeypatch):
@@ -195,3 +240,12 @@ def test_fp16_training_on_gpu(manifest, tmp_path):
     assert all(
         p.dtype == torch.float32 for n, p in model.named_parameters() if "lora_" in n
     )
+
+
+@pytest.mark.requires_cuda
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="requires CUDA")
+def test_fp16_full_finetune_on_gpu(manifest, tmp_path):
+    results = run_training(manifest, tmp_path / "run", "--finetune", "full", "--lr", "1e-4", "--max_steps", "8", "--precision", "fp16", "--device", "cuda", "--gradient_checkpointing")  # fmt: skip
+    assert np.isfinite(results["final"]["loss"])
+    assert results["final"]["loss"] < results["baseline"]["loss"]
+    whisper.load_model(str(tmp_path / "run" / "model_best.pt"), device="cuda")
