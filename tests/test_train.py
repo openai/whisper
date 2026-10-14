@@ -10,7 +10,7 @@ import whisper
 from whisper import precision as precision_module
 from whisper.audio import SAMPLE_RATE
 from whisper.lora import load_lora
-from whisper.precision import resolve_precision
+from whisper.precision import bf16_supported, resolve_precision
 from whisper.train import (
     TokenizerCache,
     build_parser,
@@ -250,3 +250,11 @@ def test_fp16_full_finetune_on_gpu(manifest, tmp_path):
     assert np.isfinite(results["final"]["loss"])
     assert results["final"]["loss"] < results["baseline"]["loss"]
     whisper.load_model(str(tmp_path / "run" / "model_best.pt"), device="cuda")
+
+
+@pytest.mark.requires_cuda
+@pytest.mark.skipif(not bf16_supported("cuda"), reason="requires a GPU with bf16")
+def test_bf16_training_on_gpu(manifest, tmp_path):
+    results = run_training(manifest, tmp_path / "run", "--max_steps", "4", "--precision", "bf16", "--device", "cuda")  # fmt: skip
+    assert np.isfinite(results["final"]["loss"])
+    assert 0 <= results["final"]["wer"]

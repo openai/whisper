@@ -17,7 +17,6 @@ are resolved against the directory containing the manifest.
 """
 
 import argparse
-import contextlib
 import csv
 import functools
 import json
@@ -393,13 +392,9 @@ def evaluate(
                 fp16=precision.name == "fp16",
             )
             # fp16 decoding uses Whisper's own fp16 inference path; bf16 decoding
-            # runs the fp32 path under autocast
-            if precision.name == "bf16":
-                autocast = precision.autocast()
-            else:
-                autocast = contextlib.nullcontext()
-            with autocast:
-                results = model.decode(mel[index], options)
+            # runs the fp32 path, since decode() only accepts fp16 or fp32 audio
+            # features and autocast would produce bf16 ones
+            results = model.decode(mel[index], options)
             hypotheses.extend(result.text for result in results)
             references.extend(batch["texts"][i] for i in index)
             languages.extend([language] * len(index))
