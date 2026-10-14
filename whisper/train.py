@@ -1,9 +1,13 @@
 """
-Fine-tune Whisper with LoRA adapters.
+Fine-tune Whisper with LoRA adapters (default) or by updating all of its weights.
 
 Usage:
     whisper-train --model small --train_manifest train.jsonl --val_manifest val.jsonl \
         --language en --output_dir runs/small-lora
+
+    # full fine-tuning; saves regular Whisper checkpoints instead of adapters
+    whisper-train --finetune full --model small --train_manifest train.jsonl \
+        --val_manifest val.jsonl --language en --output_dir runs/small-full
 
 Each line of a JSONL manifest describes one sample:
     {"audio": "clips/0001.wav", "text": "the transcript", "language": "en"}
@@ -42,6 +46,8 @@ from .precision import PRECISIONS, Precision, resolve_precision
 from .tokenizer import LANGUAGES, TO_LANGUAGE_CODE, Tokenizer, get_tokenizer
 
 IGNORE_INDEX = -100
+FINETUNE_MODES = ("lora", "full")
+DEFAULT_LR = {"lora": 5e-4, "full": 1e-5}
 
 
 def log(message: str) -> None:
@@ -465,6 +471,13 @@ def load_checkpoint(path: str, model, optimizer, scheduler, scaler) -> dict:
     return checkpoint["state"]
 
 
+def save_model(model: Whisper, path: str) -> None:
+    """Save the whole model as a regular Whisper checkpoint, loadable by load_model()"""
+    # stored in fp16 like the official checkpoints; load_model() casts it back
+    state_dict = {k: v.detach().half().cpu() for k, v in model.state_dict().items()}
+    torch.save({"dims": asdict(model.dims), "model_state_dict": state_dict}, path)
+
+
 def latest_checkpoint(output_dir: str) -> Optional[str]:
     directory = os.path.join(output_dir, "checkpoints")
     if not os.path.isdir(directory):
@@ -494,6 +507,16 @@ class MetricsLogger:
 def train(args: argparse.Namespace) -> Dict[str, object]:
     from . import load_model
 
+    full = args.finetune == "full"
+    if not full and args.freeze_encoder:
+        raise ValueError(
+            "--freeze_encoder only applies to --finetune full; "
+            "use --lora_apply_to decoder for LoRA"
+        )
+    if full and args.export_merged:
+        raise ValueError("--export_merged only applies to --finetune lora")
+    lr = args.lr if args.lr is not None else DEFAULT_LR[args.finetune]
+
     device = torch.device(args.device)
     if device.type == "cuda" and device.index is not None:
         torch.cuda.set_device(device)
@@ -502,6 +525,7 @@ def train(args: argparse.Namespace) -> Dict[str, object]:
     os.makedirs(os.path.join(args.output_dir, "checkpoints"), exist_ok=True)
     set_seed(args.seed)
     log(f"Precision: {precision.name} (requested: {args.precision}) on {device}")
+    log(f"Fine-tuning: {args.finetune}, learning rate {lr:g}")
 
     model = load_model(args.model, device="cpu", download_root=args.model_dir)
     if not model.is_multilingual and args.language not in (None, "en", "english"):
@@ -520,16 +544,24 @@ def train(args: argparse.Namespace) -> Dict[str, object]:
         raise ValueError("no usable training samples")
     log(f"Samples: {len(train_samples)} train, {len(val_samples)} validation")
 
-    apply_lora(
-        model,
-        r=args.lora_r,
-        alpha=args.lora_alpha,
-        dropout=args.lora_dropout,
-        target_modules=args.lora_targets,
-        apply_to=args.lora_apply_to,
-    )
+    if full:
+        train_encoder = not args.freeze_encoder
+        for p in model.parameters():
+            p.requires_grad = True
+        if not train_encoder:
+            model.encoder.requires_grad_(False)
+    else:
+        apply_lora(
+            model,
+            r=args.lora_r,
+            alpha=args.lora_alpha,
+            dropout=args.lora_dropout,
+            target_modules=args.lora_targets,
+            apply_to=args.lora_apply_to,
+        )
+        train_encoder = "encoder" in model.lora_config["apply_to"]
+    # the parameters stay in fp32 and act as master weights under autocast
     model.to(device)
-    train_encoder = "encoder" in model.lora_config["apply_to"]
     if args.gradient_checkpointing:
         enable_gradient_checkpointing(model)
 
@@ -571,9 +603,7 @@ def train(args: argparse.Namespace) -> Dict[str, object]:
         args.warmup_steps if args.warmup_steps is not None else int(0.05 * total_steps)
     )
 
-    optimizer = torch.optim.AdamW(
-        parameters, lr=args.lr, weight_decay=args.weight_decay
-    )
+    optimizer = torch.optim.AdamW(parameters, lr=lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimizer,
         functools.partial(
@@ -597,12 +627,13 @@ def train(args: argparse.Namespace) -> Dict[str, object]:
 
     run_config = dict(
         vars(args),
+        lr=lr,
         precision_resolved=precision.name,
         device_name=(
             torch.cuda.get_device_name(device) if device.type == "cuda" else "cpu"
         ),
         torch_version=torch.__version__,
-        lora_config=model.lora_config,
+        lora_config=getattr(model, "lora_config", None),
         dims=asdict(model.dims),
         trainable_parameters=n_trainable,
         total_parameters=n_total,
@@ -615,8 +646,16 @@ def train(args: argparse.Namespace) -> Dict[str, object]:
         json.dump(run_config, f, indent=2)
 
     metrics_log = MetricsLogger(args.output_dir)
-    best_path = os.path.join(args.output_dir, "adapter_best.pt")
-    results: Dict[str, object] = dict(precision=precision.name)
+    prefix = "model" if full else "adapter"
+    best_path = os.path.join(args.output_dir, f"{prefix}_best.pt")
+    final_path = os.path.join(args.output_dir, f"{prefix}_final.pt")
+    results: Dict[str, object] = dict(finetune=args.finetune, precision=precision.name)
+
+    def save_weights(path: str) -> None:
+        if full:
+            save_model(model, path)
+        else:
+            save_lora(model, path, base_model=args.model)
 
     def run_eval(step: int, tag: str) -> Optional[dict]:
         if val_loader is None:
@@ -643,11 +682,12 @@ def train(args: argparse.Namespace) -> Dict[str, object]:
         if state["best_wer"] is None or metrics["wer"] < state["best_wer"]:
             state["best_wer"] = metrics["wer"]
             state["best_loss"] = metrics["loss"]
-            save_lora(model, best_path, base_model=args.model)
+            save_weights(best_path)
             log(f"New best WER {100 * metrics['wer']:.2f}%; saved {best_path}")
 
     if state["step"] == 0 and not args.skip_baseline:
-        # LoRA B matrices start at zero, so this is the unmodified base model
+        # nothing has been trained yet (LoRA B matrices start at zero), so this is
+        # the unmodified base model
         results["baseline"] = run_eval(0, "baseline")
 
     if device.type == "cuda":
@@ -745,9 +785,8 @@ def train(args: argparse.Namespace) -> Dict[str, object]:
             continue
         break
 
-    final_path = os.path.join(args.output_dir, "adapter_final.pt")
-    save_lora(model, final_path, base_model=args.model)
-    log(f"Saved final adapter to {final_path}")
+    save_weights(final_path)
+    log(f"Saved final {prefix} to {final_path}")
     final = run_eval(state["step"], "final")
     maybe_save_best(final)
 
@@ -773,12 +812,7 @@ def train(args: argparse.Namespace) -> Dict[str, object]:
         merged = load_model(args.model, device="cpu", download_root=args.model_dir)
         merge_lora(load_lora(merged, adapter, base_model=args.model))
         merged_path = os.path.join(args.output_dir, "merged_model.pt")
-        # stored in fp16 like the official checkpoints; load_model() casts it back
-        state_dict = merged.half().state_dict()
-        torch.save(
-            {"dims": asdict(merged.dims), "model_state_dict": state_dict},
-            merged_path,
-        )
+        save_model(merged, merged_path)
         log(f"Exported merged model ({adapter}) to {merged_path}")
         results["merged_model"] = merged_path
 
@@ -803,15 +837,17 @@ def build_parser() -> argparse.ArgumentParser:
         raise ValueError(f"unsupported language: {name}")
 
     # fmt: off
-    parser = argparse.ArgumentParser(description="Fine-tune Whisper with LoRA", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(description="Fine-tune Whisper with LoRA or full fine-tuning", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--model", default="small", type=valid_model_name, help="name of the Whisper model to fine-tune, or path to a checkpoint")
     parser.add_argument("--model_dir", type=str, default=None, help="the path to save model files; uses ~/.cache/whisper by default")
     parser.add_argument("--train_manifest", type=str, required=True, help="JSONL or CSV file with the training samples")
     parser.add_argument("--val_manifest", type=str, default=None, help="JSONL or CSV file with the validation samples")
-    parser.add_argument("--output_dir", "-o", type=str, required=True, help="directory to save adapters, checkpoints and logs")
+    parser.add_argument("--output_dir", "-o", type=str, required=True, help="directory to save adapters or models, checkpoints and logs")
     parser.add_argument("--language", type=valid_language, default=None, help="language of samples that don't specify one")
     parser.add_argument("--task", type=str, default="transcribe", choices=["transcribe", "translate"], help="whether to train X->X transcription or X->English translation")
 
+    parser.add_argument("--finetune", type=str, default="lora", choices=FINETUNE_MODES, help="lora: train small adapters on a frozen model; full: update all weights (needs much more memory)")
+    parser.add_argument("--freeze_encoder", action="store_true", help="with --finetune full, train only the decoder")
     parser.add_argument("--lora_r", type=int, default=8, help="rank of the LoRA update")
     parser.add_argument("--lora_alpha", type=float, default=16, help="LoRA scaling numerator; the update is scaled by alpha / r")
     parser.add_argument("--lora_dropout", type=float, default=0.05, help="dropout applied to the input of the LoRA layers")
@@ -824,7 +860,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--max_steps", type=int, default=None, help="number of optimizer steps; overrides --epochs")
     parser.add_argument("--batch_size", type=int, default=8, help="number of samples per forward pass")
     parser.add_argument("--grad_accum", type=int, default=1, help="number of batches to accumulate per optimizer step")
-    parser.add_argument("--lr", type=float, default=5e-4, help="peak learning rate")
+    parser.add_argument("--lr", type=float, default=None, help=f"peak learning rate; defaults to {DEFAULT_LR['lora']:g} for LoRA and {DEFAULT_LR['full']:g} for full fine-tuning")
     parser.add_argument("--weight_decay", type=float, default=0.0, help="AdamW weight decay")
     parser.add_argument("--lr_scheduler", type=str, default="linear", choices=["linear", "cosine", "constant"], help="learning rate decay after warmup")
     parser.add_argument("--warmup_steps", type=int, default=None, help="linear warmup steps; defaults to 5%% of the total steps")
@@ -840,7 +876,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--log_every", type=int, default=10, help="log training loss every N steps")
     parser.add_argument("--save_every", type=int, default=0, help="save a resumable checkpoint every N steps; 0 disables")
     parser.add_argument("--resume", type=str, default=None, help="checkpoint to resume from, or 'latest' to use the newest one in --output_dir")
-    parser.add_argument("--export_merged", action="store_true", help="also save the best adapter merged into a full Whisper checkpoint")
+    parser.add_argument("--export_merged", action="store_true", help="with LoRA, also save the best adapter merged into a full Whisper checkpoint")
     # fmt: on
     return parser
 
