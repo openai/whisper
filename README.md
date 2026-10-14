@@ -150,6 +150,36 @@ result = whisper.decode(model, mel, options)
 print(result.text)
 ```
 
+## Fine-tuning
+
+Whisper can be fine-tuned on your own data with the `whisper-train` command. Prepare a JSONL manifest with one sample per line (a CSV file with the same columns also works; relative paths are resolved against the manifest's directory):
+
+```json
+{"audio": "clips/0001.wav", "text": "the transcript", "language": "en"}
+```
+
+Two modes are supported:
+
+- **LoRA** (`--finetune lora`, the default) freezes the model and trains small low-rank adapters, about 0.2–0.4% of the parameters. It needs much less GPU memory and saves a few-MB adapter file.
+- **Full fine-tuning** (`--finetune full`) updates all weights (or only the decoder with `--freeze_encoder`). It needs much more memory and saves a complete model checkpoint.
+
+```bash
+whisper-train --model small --language en \
+    --train_manifest train.jsonl --val_manifest val.jsonl --output_dir runs/small-lora
+
+whisper-train --finetune full --model small --language en \
+    --train_manifest train.jsonl --val_manifest val.jsonl --output_dir runs/small-full
+```
+
+Training reports the word and character error rates on the validation set before and after fine-tuning, and `--precision` selects fp32, fp16 or bf16 (by default bf16 if the GPU supports it, otherwise fp16). To use the results:
+
+```bash
+whisper audio.wav --model small --lora runs/small-lora/adapter_best.pt
+whisper audio.wav --model runs/small-full/model_best.pt
+```
+
+In Python, use `whisper.load_model("small", lora="adapter_best.pt")` for an adapter. Run `whisper-train --help` to view all options.
+
 ## More examples
 
 Please use the [🙌 Show and tell](https://github.com/openai/whisper/discussions/categories/show-and-tell) category in Discussions for sharing more example usages of Whisper and third-party extensions such as web demos, integrations with other tools, ports for different platforms, etc.
