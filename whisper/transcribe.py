@@ -529,6 +529,7 @@ def cli():
     parser.add_argument("audio", nargs="+", type=str, help="audio file(s) to transcribe")
     parser.add_argument("--model", default="turbo", type=valid_model_name, help="name of the Whisper model to use")
     parser.add_argument("--model_dir", type=str, default=None, help="the path to save model files; uses ~/.cache/whisper by default")
+    parser.add_argument("--lora", type=str, default=None, help="path to a LoRA adapter file to apply to the model")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu", help="device to use for PyTorch inference")
     parser.add_argument("--output_dir", "-o", type=str, default=".", help="directory to save the outputs")
     parser.add_argument("--output_format", "-f", type=str, default="all", choices=["txt", "vtt", "srt", "tsv", "json", "jsonl", "all"], help="format of the output file; if not specified, all available formats will be produced")
@@ -569,6 +570,7 @@ def cli():
     args = parser.parse_args().__dict__
     model_name: str = args.pop("model")
     model_dir: str = args.pop("model_dir")
+    lora: Optional[str] = args.pop("lora")
     output_dir: str = args.pop("output_dir")
     output_format: str = args.pop("output_format")
     device: str = args.pop("device")
@@ -592,7 +594,7 @@ def cli():
 
     from . import load_model
 
-    model = load_model(model_name, device=device, download_root=model_dir)
+    model = load_model(model_name, device=device, download_root=model_dir, lora=lora)
 
     writer = get_writer(output_format, output_dir)
     word_options = [
