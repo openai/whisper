@@ -91,6 +91,9 @@ class ResultWriter:
     def __call__(
         self, result: dict, audio_path: str, options: Optional[dict] = None, **kwargs
     ):
+        if not self.output_dir:
+            return
+
         audio_basename = os.path.basename(audio_path)
         audio_basename = os.path.splitext(audio_basename)[0]
         output_path = os.path.join(
