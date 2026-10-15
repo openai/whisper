@@ -163,6 +163,19 @@ Two modes are supported:
 - **LoRA** (`--finetune lora`, the default) freezes the model and trains small low-rank adapters, about 0.2–0.4% of the parameters. It needs much less GPU memory and saves a few-MB adapter file.
 - **Full fine-tuning** (`--finetune full`) updates all weights (or only the decoder with `--freeze_encoder`). It needs much more memory and saves a complete model checkpoint.
 
+The number of trainable parameters in each mode:
+
+|   Model    | LoRA (default) | Full fine-tuning | Full, `--freeze_encoder` |
+|:----------:|:--------------:|:----------------:|:------------------------:|
+|    tiny    | 0.15 M (0.40%) |   37 M (100%)    |       30 M (79%)         |
+|    base    | 0.29 M (0.41%) |   72 M (100%)    |       52 M (72%)         |
+|   small    | 0.88 M (0.37%) |  241 M (100%)    |      154 M (64%)         |
+|   medium   | 2.36 M (0.31%) |  762 M (100%)    |      457 M (60%)         |
+|  large-v3  | 3.93 M (0.26%) | 1542 M (100%)    |      907 M (59%)         |
+|   turbo    | 1.64 M (0.20%) |  807 M (100%)    |      172 M (21%)         |
+
+LoRA adapts the query and value projections with rank 8 by default; `--lora_r` and `--lora_targets all` add capacity (e.g. 17.3 M parameters, 2.27%, for `medium` with rank 16 on all layers).
+
 ```bash
 whisper-train --model small --language en \
     --train_manifest train.jsonl --val_manifest val.jsonl --output_dir runs/small-lora
