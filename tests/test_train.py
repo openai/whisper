@@ -258,3 +258,13 @@ def test_bf16_training_on_gpu(manifest, tmp_path):
     results = run_training(manifest, tmp_path / "run", "--max_steps", "4", "--precision", "bf16", "--device", "cuda")  # fmt: skip
     assert np.isfinite(results["final"]["loss"])
     assert 0 <= results["final"]["wer"]
+
+
+@pytest.mark.requires_cuda
+@pytest.mark.skipif(not bf16_supported("cuda"), reason="requires a GPU with bf16")
+def test_bf16_full_finetune_on_gpu(manifest, tmp_path):
+    results = run_training(manifest, tmp_path / "run", "--finetune", "full", "--lr", "1e-4", "--max_steps", "8", "--precision", "bf16", "--device", "cuda", "--gradient_checkpointing")  # fmt: skip
+    assert np.isfinite(results["final"]["loss"])
+    assert results["final"]["loss"] < results["baseline"]["loss"]
+    assert 0 <= results["final"]["wer"]
+    whisper.load_model(str(tmp_path / "run" / "model_best.pt"), device="cuda")
