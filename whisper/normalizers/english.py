@@ -375,6 +375,11 @@ class EnglishNumberNormalizer:
                 elif current == "point":
                     if next in self.decimals or next_is_numeric:
                         value = str(value or "") + "."
+                    else:
+                        # not a decimal point, e.g. "the point and", "match point minus"
+                        if value is not None:
+                            yield output(value)
+                        yield output(current)
                 else:
                     # should all have been covered at this point
                     raise ValueError(f"Unexpected token: {current}")
