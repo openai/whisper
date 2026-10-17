@@ -46,6 +46,10 @@ def test_number_normalizer(std):
     assert std("fourteen point 4") == "14.4"
     assert std("one point five") == "1.5"
     assert std("two point two five dollars") == "$2.25"
+    assert std("that was the point and then") == "that was the point and then"
+    assert std("match point minus two") == "match point -2"
+    assert std("good point first of all") == "good point 1st of all"
+    assert std("two point and") == "2 point and"
     assert std("two hundred million dollars") == "$200000000"
     assert std("$20.1 million") == "$20100000"
 
