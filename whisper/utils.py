@@ -1,3 +1,4 @@
+import html
 import json
 import os
 import re
@@ -197,10 +198,10 @@ class SubtitlesWriter(ResultWriter):
             for subtitle in iterate_subtitles():
                 subtitle_start = self.format_timestamp(subtitle[0]["start"])
                 subtitle_end = self.format_timestamp(subtitle[-1]["end"])
-                subtitle_text = "".join([word["word"] for word in subtitle])
+                all_words = [self._escape_text(timing["word"]) for timing in subtitle]
+                subtitle_text = "".join(all_words)
                 if highlight_words:
                     last = subtitle_start
-                    all_words = [timing["word"] for timing in subtitle]
                     for i, this_word in enumerate(subtitle):
                         start = self.format_timestamp(this_word["start"])
                         end = self.format_timestamp(this_word["end"])
@@ -225,7 +226,10 @@ class SubtitlesWriter(ResultWriter):
                 segment_start = self.format_timestamp(segment["start"])
                 segment_end = self.format_timestamp(segment["end"])
                 segment_text = segment["text"].strip().replace("-->", "->")
-                yield segment_start, segment_end, segment_text
+                yield segment_start, segment_end, self._escape_text(segment_text)
+
+    def _escape_text(self, text: str) -> str:
+        return text
 
     def format_timestamp(self, seconds: float):
         return format_timestamp(
@@ -239,6 +243,9 @@ class WriteVTT(SubtitlesWriter):
     extension: str = "vtt"
     always_include_hours: bool = False
     decimal_marker: str = "."
+
+    def _escape_text(self, text: str) -> str:
+        return html.escape(text, quote=False)
 
     def write_result(
         self, result: dict, file: TextIO, options: Optional[dict] = None, **kwargs
