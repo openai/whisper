@@ -156,7 +156,9 @@ def transcribe(
                     f"Detected language: {LANGUAGES[decode_options['language']].title()}"
                 )
 
-    language: str = decode_options["language"]
+    # report a language given by name (e.g. "English") as its code (e.g. "en")
+    language: str = decode_options["language"].lower()
+    language = decode_options["language"] = TO_LANGUAGE_CODE.get(language, language)
     task: str = decode_options.get("task", "transcribe")
     tokenizer = get_tokenizer(
         model.is_multilingual,

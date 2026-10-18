@@ -40,3 +40,13 @@ def test_transcribe(model_name: str):
                 timing_checked = True
 
     assert timing_checked
+
+
+@pytest.mark.parametrize("language", ["English", "EN"])
+def test_language_is_reported_as_a_code(language: str):
+    model = whisper.load_model("tiny")
+    audio_path = os.path.join(os.path.dirname(__file__), "jfk.flac")
+
+    result = model.transcribe(audio_path, language=language, temperature=0.0)
+    assert result["language"] == "en"
+    assert "my fellow americans" in result["text"].lower()
