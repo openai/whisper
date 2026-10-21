@@ -544,9 +544,11 @@ class EnglishTextNormalizer:
         s = self.standardize_spellings(s)
 
         # now remove prefix/suffix symbols that are not preceded/followed by numbers
-        s = re.sub(r"[.$¢€£]([^0-9])", r" \1", s)
-        s = re.sub(r"([^0-9])%", r"\1 ", s)
+        s = re.sub(r"[.$¢€£](?![0-9])", " ", s)
+        s = re.sub(r"(?<![0-9])%", " ", s)
 
-        s = re.sub(r"\s+", " ", s)  # replace any successive whitespaces with a space
+        s = re.sub(
+            r"\s+", " ", s
+        ).strip()  # replace any successive whitespaces with a space
 
         return s
