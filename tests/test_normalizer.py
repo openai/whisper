@@ -102,3 +102,23 @@ def test_text_normalizer():
         std("Mr. Park visited Assoc. Prof. Kim Jr.")
         == "mister park visited associate professor kim junior"
     )
+
+    # non-numeric prefix and suffix symbol stripping
+    assert std("cost is $") == "cost is"
+    assert std("cost is 50 $") == "cost is 50"
+    assert std("cost is €") == "cost is"
+    assert std("cost is £") == "cost is"
+    assert std("cost is ¢") == "cost is"
+    assert std("$") == ""
+    assert std("€") == ""
+    assert std("£") == ""
+    assert std("¢") == ""
+    assert std("%") == ""
+    assert std("%%") == ""
+    assert std("% of people") == "of people"
+    assert std("profit is 10 %") == "profit is 10"
+    assert std("$50") == "$50"
+    assert std("50%") == "50%"
+    assert std("$50.25") == "$50.25"
+    assert std("100% satisfied") == "100% satisfied"
+    assert std("paid $20 yesterday") == "paid $20 yesterday"
