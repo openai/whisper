@@ -102,3 +102,40 @@ def test_text_normalizer():
         std("Mr. Park visited Assoc. Prof. Kim Jr.")
         == "mister park visited associate professor kim junior"
     )
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("I can't go", "i can not go"),
+        ("He won't go", "he will not go"),
+        ("Let's leave", "let us leave"),
+        ("Yes ma'am", "yes madam"),
+        ("She's been here", "she has been here"),
+        ("I'd gone home", "i had gone home"),
+        ("He's got it", "he has got it"),
+        ("We're ready", "we are ready"),
+        ("She'll be here", "she will be here"),
+        ("They've left", "they have left"),
+        ("I'm ready", "i am ready"),
+        ("You shouldn't go", "you should not go"),
+        ("He'd leave", "he would leave"),
+    ],
+)
+def test_text_normalizer_apostrophes(text, expected):
+    std = EnglishTextNormalizer()
+    assert std(text) == expected
+    assert std(text.replace("'", "\u2019")) == expected
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("\u2018Hello\u2019", "hello"),
+        ("She said \u2018go\u2019", "she said go"),
+        ("\u2018No,\u2019 she said.", "no she said"),
+        ("\u2018We\u2019re ready,\u2019 she said.", "we are ready she said"),
+    ],
+)
+def test_text_normalizer_curly_quotes(text, expected):
+    assert EnglishTextNormalizer()(text) == expected
