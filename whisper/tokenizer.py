@@ -1,4 +1,5 @@
 import base64
+import codecs
 import os
 import string
 from dataclasses import dataclass, field
@@ -284,27 +285,26 @@ class Tokenizer:
         return self.split_tokens_on_spaces(tokens)
 
     def split_tokens_on_unicode(self, tokens: List[int]):
-        decoded_full = self.decode_with_timestamps(tokens)
-        replacement_char = "\ufffd"
+        decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
 
         words = []
         word_tokens = []
         current_tokens = []
-        unicode_offset = 0
+        decoded = ""
 
-        for token in tokens:
+        for i, token in enumerate(tokens):
             current_tokens.append(token)
-            decoded = self.decode_with_timestamps(current_tokens)
+            decoded += decoder.decode(
+                self.encoding.decode_single_token_bytes(token),
+                # Keep special tokens separate from incomplete preceding characters.
+                final=i == len(tokens) - 1 or tokens[i + 1] >= self.eot,
+            )
 
-            if (
-                replacement_char not in decoded
-                or decoded_full[unicode_offset + decoded.index(replacement_char)]
-                == replacement_char
-            ):
+            if not decoder.getstate()[0]:
                 words.append(decoded)
                 word_tokens.append(current_tokens)
                 current_tokens = []
-                unicode_offset += len(decoded)
+                decoded = ""
 
         return words, word_tokens
 
