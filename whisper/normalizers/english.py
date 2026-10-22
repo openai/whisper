@@ -526,7 +526,7 @@ class EnglishTextNormalizer:
         self.standardize_spellings = EnglishSpellingNormalizer()
 
     def __call__(self, s: str):
-        s = s.lower()
+        s = s.lower().replace("\u2019", "'")
 
         s = re.sub(r"[<\[][^>\]]*[>\]]", "", s)  # remove words between brackets
         s = re.sub(r"\(([^)]+?)\)", "", s)  # remove words between parenthesis
