@@ -82,6 +82,26 @@ def test_number_normalizer(std):
     assert std("ones") == "ones"
 
 
+@pytest.mark.parametrize("std", [EnglishNumberNormalizer(), EnglishTextNormalizer()])
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("one thousand million", "1000000000"),
+        ("twenty thousand million", "20000000000"),
+        ("one thousand two hundred million", "1200000000"),
+        ("1000 million", "1000000000"),
+        ("one million billion", "1000000000000000"),
+        ("one trillion two thousand million", "1002000000000"),
+        ("two thousand millionth", "2000000000th"),
+        ("two thousand millions", "2000000000s"),
+        ("one million two hundred thousand", "1200000"),
+        ("one billion two hundred million thirty thousand", "1200030000"),
+    ],
+)
+def test_increasing_number_multipliers(std, text, expected):
+    assert std(text) == expected
+
+
 def test_spelling_normalizer():
     std = EnglishSpellingNormalizer()
 
