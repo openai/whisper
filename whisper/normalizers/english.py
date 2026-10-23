@@ -298,8 +298,11 @@ class EnglishNumberNormalizer:
                         yield output(value)
                         value = multiplier
                 else:
-                    before = value // 1000 * 1000
-                    residual = value % 1000
+                    # A larger multiplier also applies to accumulated thousands,
+                    # e.g. "one thousand million", while preserving higher groups.
+                    base = max(1000, multiplier)
+                    before = value // base * base
+                    residual = value % base
                     value = before + residual * multiplier
             elif current in self.multipliers_suffixed:
                 multiplier, suffix = self.multipliers_suffixed[current]
@@ -314,8 +317,9 @@ class EnglishNumberNormalizer:
                         yield output(value)
                         yield output(str(multiplier) + suffix)
                 else:  # int
-                    before = value // 1000 * 1000
-                    residual = value % 1000
+                    base = max(1000, multiplier)
+                    before = value // base * base
+                    residual = value % base
                     value = before + residual * multiplier
                     yield output(str(value) + suffix)
                 value = None
