@@ -313,10 +313,23 @@ class Tokenizer:
         words = []
         word_tokens = []
 
-        for subword, subword_tokens in zip(subwords, subword_tokens_list):
+        # Punctuation only stands alone at the end of a space-delimited word, where
+        # merge_punctuations can attach it; "3.5" and "example.com" stay in one word.
+        at_word_end = [True] * len(subwords)
+        for i in range(len(subwords) - 2, -1, -1):
+            following, following_tokens = subwords[i + 1], subword_tokens_list[i + 1]
+            at_word_end[i] = (
+                following_tokens[0] >= self.eot
+                or following.startswith(" ")
+                or (following.strip() in string.punctuation and at_word_end[i + 1])
+            )
+
+        for i, (subword, subword_tokens) in enumerate(
+            zip(subwords, subword_tokens_list)
+        ):
             special = subword_tokens[0] >= self.eot
             with_space = subword.startswith(" ")
-            punctuation = subword.strip() in string.punctuation
+            punctuation = subword.strip() in string.punctuation and at_word_end[i]
             if special or with_space or punctuation or len(words) == 0:
                 words.append(subword)
                 word_tokens.append(subword_tokens)
