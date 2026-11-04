@@ -94,3 +94,35 @@ def test_median_filter_equivalence(shape):
         filtered_gpu = median_filter(x.cuda(), filter_width).cpu()
 
         assert np.allclose(filtered_cpu, filtered_gpu)
+
+
+@pytest.mark.requires_cuda
+@pytest.mark.parametrize("dtype", [torch.float16, torch.float32])
+@pytest.mark.parametrize("filter_width", [3, 7, 13])
+@pytest.mark.parametrize("layout", ["channels_last", "transposed"])
+def test_median_filter_cuda_noncontiguous(dtype, filter_width, layout):
+    from whisper.triton_ops import median_filter_cuda
+
+    torch.manual_seed(0)
+    length = 32 + filter_width - 1
+    if layout == "channels_last":
+        x = torch.randn(2, 3, 4, length, device="cuda", dtype=dtype)
+        x = x.contiguous(memory_format=torch.channels_last)
+    else:
+        x = torch.randn(3, 2, length, device="cuda", dtype=dtype).transpose(0, 1)
+
+    assert not x.is_contiguous()
+    expected = x.cpu().unfold(-1, filter_width, 1).sort()[0][..., filter_width // 2]
+
+    # Give the original kernel's flattened row addressing enough backing
+    # storage even when it ignores the actual strides of a noncontiguous x.
+    rows = x.numel() // x.shape[-1]
+    max_read = (rows - 1) * x.stride(-2) + x.shape[-1] - 1
+    backing = torch.full(
+        (max(x.numel(), max_read + 1),), -1000, device=x.device, dtype=x.dtype
+    )
+    guarded = torch.as_strided(backing, x.shape, x.stride())
+    guarded.copy_(x)
+
+    actual = median_filter_cuda(guarded, filter_width).cpu()
+    torch.testing.assert_close(actual, expected, rtol=0, atol=0)

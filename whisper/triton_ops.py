@@ -105,7 +105,8 @@ def median_kernel(filter_width: int):
 
 def median_filter_cuda(x: torch.Tensor, filter_width: int):
     """Apply a median filter of given width along the last dimension of x"""
-    slices = x.contiguous().unfold(-1, filter_width, 1)
+    x = x.contiguous()
+    slices = x.unfold(-1, filter_width, 1)
     grid = np.prod(slices.shape[:-2])
 
     kernel = median_kernel(filter_width)
