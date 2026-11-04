@@ -105,6 +105,7 @@ def load_model(
     device: Optional[Union[str, torch.device]] = None,
     download_root: str = None,
     in_memory: bool = False,
+    lora: Optional[str] = None,
 ) -> Whisper:
     """
     Load a Whisper ASR model
@@ -120,6 +121,8 @@ def load_model(
         path to download the model files; by default, it uses "~/.cache/whisper"
     in_memory: bool
         whether to preload the model weights into host memory
+    lora: str
+        path to a LoRA adapter file (see `whisper.lora`) to apply to the model
 
     Returns
     -------
@@ -157,5 +160,11 @@ def load_model(
 
     if alignment_heads is not None:
         model.set_alignment_heads(alignment_heads)
+
+    if lora is not None:
+        from .lora import load_lora
+
+        load_lora(model, lora, base_model=name)
+        model.eval()  # disable LoRA dropout for inference
 
     return model.to(device)

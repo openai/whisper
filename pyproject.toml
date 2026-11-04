@@ -33,6 +33,7 @@ dependencies = [
 optional-dependencies.dev = [ "black", "flake8", "isort", "pytest", "scipy" ]
 urls = { Homepage = "https://github.com/openai/whisper" }
 scripts.whisper = "whisper.transcribe:cli"
+scripts.whisper-train = "whisper.train:cli"
 
 [tool.setuptools]
 py-modules = [ "whisper" ]
