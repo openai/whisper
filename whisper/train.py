@@ -574,7 +574,11 @@ def train(args: argparse.Namespace) -> Dict[str, object]:
         f"({100 * n_trainable / n_total:.2f}%)"
     )
 
-    pad_token = tokenizers.get().eot
+    # the EOT token is the same for every language, so this works even when the
+    # languages only come from the manifest
+    pad_token = get_tokenizer(
+        model.is_multilingual, num_languages=model.num_languages
+    ).eot
     loader_args = dict(
         batch_size=args.batch_size,
         num_workers=args.num_workers,

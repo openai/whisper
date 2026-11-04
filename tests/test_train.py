@@ -44,14 +44,14 @@ def manifest(tmp_path):
     return str(tmp_path / "train.jsonl")
 
 
-def run_training(manifest, output_dir, *extra):
+def run_training(manifest, output_dir, *extra, language="en"):
     args = build_parser().parse_args(
         [
             "--model", "tiny",
             "--train_manifest", manifest,
             "--val_manifest", manifest,
             "--output_dir", str(output_dir),
-            "--language", "en",
+            *(["--language", language] if language else []),
             "--batch_size", "2",
             "--lr", "1e-2",
             "--warmup_steps", "0",
@@ -125,6 +125,18 @@ def test_training_reduces_loss(manifest, tmp_path):
     with open(tmp_path / "run" / "metrics.jsonl") as f:
         losses = [r["loss"] for r in map(json.loads, f) if r["type"] == "train"]
     assert all(np.isfinite(losses))
+
+
+def test_per_sample_language_without_language_flag(tmp_path):
+    os.makedirs(tmp_path / "clips")
+    with open(tmp_path / "train.jsonl", "w") as f:
+        for i, (word, language) in enumerate(zip(WORDS, ["en", "fr", "en", "fr"])):
+            write_wav(str(tmp_path / "clips" / f"{i}.wav"), 220 * (i + 1))
+            sample = {"audio": f"clips/{i}.wav", "text": word, "language": language}
+            f.write(json.dumps(sample) + "\n")
+    manifest = str(tmp_path / "train.jsonl")
+    results = run_training(manifest, tmp_path / "run", "--max_steps", "2", "--precision", "fp32", "--device", "cpu", language=None)  # fmt: skip
+    assert np.isfinite(results["final"]["loss"])
 
 
 def test_nonfinite_loss_is_skipped(manifest, tmp_path, monkeypatch):
