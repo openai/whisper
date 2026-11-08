@@ -161,6 +161,12 @@ class EnglishNumberNormalizer:
             ]
         )
         self.literal_words = {"one", "ones"}
+        self.number_starters = self.words.difference(
+            self.preceding_prefixers,
+            self.following_prefixers,
+            self.suffixers,
+            self.specials,
+        )
 
     def process_words(self, words: List[str]) -> Iterator[str]:
         prefix: Optional[str] = None
@@ -185,7 +191,9 @@ class EnglishNumberNormalizer:
         if len(words) == 0:
             return
 
-        for prev, current, next in windowed([None] + words + [None], 3):
+        for prev, current, next, after_next in windowed(
+            [None] + words + [None, None], 4
+        ):
             if skip:
                 skip = False
                 continue
@@ -324,7 +332,18 @@ class EnglishNumberNormalizer:
                 if value is not None:
                     yield output(value)
 
-                if next in self.words or next_is_numeric:
+                next_starts_number = next in self.number_starters or next_is_numeric
+                if next == "point":
+                    next_starts_number = after_next in self.decimals or (
+                        after_next is not None
+                        and re.match(r"^\d+(\.\d+)?$", after_next)
+                    )
+                elif next in {"double", "triple"}:
+                    next_starts_number = (
+                        after_next in self.ones or after_next in self.zeros
+                    )
+
+                if next_starts_number:
                     prefix = self.preceding_prefixers[current]
                 else:
                     yield output(current)
