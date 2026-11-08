@@ -89,6 +89,29 @@ def test_spelling_normalizer():
     assert std("cancelation") == "cancellation"
 
 
+@pytest.mark.parametrize("std", [EnglishNumberNormalizer(), EnglishTextNormalizer()])
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("the positive and negative effects", "the positive and negative effects"),
+        ("the plus and minus signs", "the plus and minus signs"),
+        ("a positive point of view", "a positive point of view"),
+        ("a negative percent change", "a negative percent change"),
+        ("plus dollars for shipping", "plus dollars for shipping"),
+        ("positive double vision", "positive double vision"),
+        ("positive and negative five", "positive and -5"),
+        ("minus point five", "-.5"),
+        ("negative point 5", "-.5"),
+        ("minus double five", "-55"),
+        ("plus triple oh", "+000"),
+        ("positive twenty thousand", "+20000"),
+        ("negative zero", "-0"),
+    ],
+)
+def test_numeric_prefix_requires_a_number(std, text, expected):
+    assert std(text) == expected
+
+
 def test_text_normalizer():
     std = EnglishTextNormalizer()
     assert std("Let's") == "let us"
