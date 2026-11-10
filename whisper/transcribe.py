@@ -1,4 +1,5 @@
 import argparse
+import numbers
 import os
 import traceback
 import warnings
@@ -183,7 +184,7 @@ def transcribe(
 
     def decode_with_fallback(segment: torch.Tensor) -> DecodingResult:
         temperatures = (
-            [temperature] if isinstance(temperature, (int, float)) else temperature
+            [temperature] if isinstance(temperature, numbers.Real) else temperature
         )
         decode_result = None
 

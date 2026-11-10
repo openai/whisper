@@ -1,9 +1,11 @@
 import os
 
+import numpy as np
 import pytest
 import torch
 
 import whisper
+from whisper.model import ModelDimensions, Whisper
 from whisper.tokenizer import get_tokenizer
 
 
@@ -40,3 +42,23 @@ def test_transcribe(model_name: str):
                 timing_checked = True
 
     assert timing_checked
+
+
+@pytest.mark.parametrize("temperature", [np.float32(0.0), np.int64(0)])
+def test_transcribe_numpy_scalar_temperature(temperature):
+    dims = ModelDimensions(
+        n_mels=80,
+        n_audio_ctx=1500,
+        n_audio_state=16,
+        n_audio_head=2,
+        n_audio_layer=1,
+        n_vocab=51865,
+        n_text_ctx=448,
+        n_text_state=16,
+        n_text_head=2,
+        n_text_layer=1,
+    )
+    model = Whisper(dims).eval()
+    audio = np.zeros(16000 * 2, dtype=np.float32)
+    result = model.transcribe(audio, temperature=temperature, fp16=False)
+    assert "segments" in result
