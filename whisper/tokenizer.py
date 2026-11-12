@@ -363,6 +363,24 @@ def get_encoding(name: str = "gpt2", num_languages: int = 99):
     )
 
 
+def _normalize_language(language: str) -> str:
+    """Resolve a language name, ISO code, or locale tag to a Whisper language code."""
+    language = language.lower()
+    if language in LANGUAGES:
+        return language
+    if language in TO_LANGUAGE_CODE:
+        return TO_LANGUAGE_CODE[language]
+
+    # BCP-47 / locale tags such as "en-US" or "zh_CN"
+    primary = language.replace("_", "-").split("-")[0]
+    if primary in LANGUAGES:
+        return primary
+    if primary in TO_LANGUAGE_CODE:
+        return TO_LANGUAGE_CODE[primary]
+
+    raise ValueError(f"Unsupported language: {language}")
+
+
 @lru_cache(maxsize=None)
 def get_tokenizer(
     multilingual: bool,
@@ -372,12 +390,7 @@ def get_tokenizer(
     task: Optional[str] = None,  # Literal["transcribe", "translate", None]
 ) -> Tokenizer:
     if language is not None:
-        language = language.lower()
-        if language not in LANGUAGES:
-            if language in TO_LANGUAGE_CODE:
-                language = TO_LANGUAGE_CODE[language]
-            else:
-                raise ValueError(f"Unsupported language: {language}")
+        language = _normalize_language(language)
 
     if multilingual:
         encoding_name = "multilingual"

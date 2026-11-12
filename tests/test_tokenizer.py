@@ -32,3 +32,34 @@ def test_split_on_unicode():
 
     assert words == [" elle", " est", " l", "'", "\ufffd", "é", "rit", "oire"]
     assert word_tokens == [[8404], [871], [287], [6], [246], [526], [3210], [20378]]
+
+
+@pytest.mark.parametrize(
+    "language, expected",
+    [
+        ("en", "en"),
+        ("EN", "en"),
+        ("english", "en"),
+        ("en-US", "en"),
+        ("en_GB", "en"),
+        ("zh-CN", "zh"),
+        ("zh_Hans", "zh"),
+        ("pt-BR", "pt"),
+        ("ko-KR", "ko"),
+        ("mandarin", "zh"),
+    ],
+)
+def test_language_locale_tags(language, expected):
+    tokenizer = get_tokenizer(multilingual=True, language=language)
+    assert tokenizer.language == expected
+
+
+def test_language_locale_tags_rejected_when_unknown():
+    with pytest.raises(ValueError, match="Unsupported language: xx-us"):
+        get_tokenizer(multilingual=True, language="xx-US")
+
+
+def test_english_only_tokenizer_accepts_locale_tags():
+    # English-only models ignore the language, but a locale tag should not raise.
+    tokenizer = get_tokenizer(multilingual=False, language="en-US")
+    assert tokenizer.language is None
