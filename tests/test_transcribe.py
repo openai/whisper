@@ -1,3 +1,4 @@
+import json
 import os
 
 import numpy as np
@@ -44,8 +45,22 @@ def test_transcribe(model_name: str):
     assert timing_checked
 
 
-@pytest.mark.parametrize("temperature", [np.float32(0.0), np.int64(0)])
-def test_transcribe_numpy_scalar_temperature(temperature):
+@pytest.mark.parametrize(
+    "temperature,logprob_threshold,expected_temperature",
+    [
+        (np.float32(0.0), None, 0.0),
+        (np.int64(0), None, 0.0),
+        ((np.float32(0.0), np.float32(0.2)), None, 0.0),
+        (
+            (np.float32(0.0), np.float32(0.2)),
+            0.0,
+            float(np.float32(0.2)),
+        ),
+    ],
+)
+def test_transcribe_numpy_scalar_temperature(
+    temperature, logprob_threshold, expected_temperature
+):
     dims = ModelDimensions(
         n_mels=80,
         n_audio_ctx=1500,
@@ -58,7 +73,23 @@ def test_transcribe_numpy_scalar_temperature(temperature):
         n_text_head=2,
         n_text_layer=1,
     )
-    model = Whisper(dims).eval()
-    audio = np.zeros(16000 * 2, dtype=np.float32)
-    result = model.transcribe(audio, temperature=temperature, fp16=False)
-    assert "segments" in result
+    audio = np.zeros(1600, dtype=np.float32)
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(0)
+        model = Whisper(dims).eval()
+        result = model.transcribe(
+            audio,
+            temperature=temperature,
+            language="en",
+            without_timestamps=True,
+            sample_len=1,
+            fp16=False,
+            no_speech_threshold=None,
+            logprob_threshold=logprob_threshold,
+            compression_ratio_threshold=None,
+        )
+
+    serialized_result = json.loads(json.dumps(result))
+    assert [s["temperature"] for s in serialized_result["segments"]] == [
+        expected_temperature
+    ]

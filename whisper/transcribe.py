@@ -71,8 +71,9 @@ def transcribe(
         If False, displays minimal details. If None, does not display anything
 
     temperature: Union[float, Tuple[float, ...]]
-        Temperature for sampling. It can be a tuple of temperatures, which will be successively used
-        upon failures according to either `compression_ratio_threshold` or `logprob_threshold`.
+        Temperature for sampling. NumPy real scalars are accepted and normalized to a Python float.
+        It can be a tuple of temperatures, which will be successively used upon failures according
+        to either `compression_ratio_threshold` or `logprob_threshold`.
 
     compression_ratio_threshold: float
         If the gzip compression ratio is above this value, treat as failed
@@ -189,6 +190,7 @@ def transcribe(
         decode_result = None
 
         for t in temperatures:
+            t = float(t)
             kwargs = {**decode_options}
             if t > 0:
                 # disable beam_size and patience when t > 0
