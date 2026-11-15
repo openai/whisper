@@ -75,8 +75,9 @@ def test_transcribe_numpy_scalar_temperature(
     )
     audio = np.zeros(1600, dtype=np.float32)
     with torch.random.fork_rng(devices=[]):
-        torch.manual_seed(0)
+        torch.random.default_generator.manual_seed(0)
         model = Whisper(dims).eval()
+        torch.nn.init.normal_(model.decoder.positional_embedding, std=0.01)
         result = model.transcribe(
             audio,
             temperature=temperature,
