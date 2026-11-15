@@ -1,6 +1,7 @@
 import pytest
 
 from whisper.normalizers import EnglishTextNormalizer
+from whisper.normalizers.basic import remove_symbols_and_diacritics
 from whisper.normalizers.english import (
     EnglishNumberNormalizer,
     EnglishSpellingNormalizer,
@@ -80,6 +81,15 @@ def test_number_normalizer(std):
 
     assert std("one") == "one"
     assert std("ones") == "ones"
+
+
+def test_remove_symbols_and_diacritics():
+    # uppercase letters map to uppercase transliterations, lowercase to lowercase
+    assert remove_symbols_and_diacritics("Þ") == "Th"
+    assert remove_symbols_and_diacritics("þ") == "th"
+    assert remove_symbols_and_diacritics("Þór") == "Thor"
+    assert remove_symbols_and_diacritics("Ð") == "D"
+    assert remove_symbols_and_diacritics("Æ") == "AE"
 
 
 def test_spelling_normalizer():
