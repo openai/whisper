@@ -41,7 +41,7 @@ We used the 231 interviews from [CORAAL (v. 2021.07)](https://oraal.uoregon.edu/
 
 ### CHiME-6
 
-We downloaded the [CHiME-5 dataset](https://spandh.dcs.shef.ac.uk//chime_challenge/CHiME5/download.html) and followed the stage 0 of the [s5_track1 recipe](https://github.com/kaldi-asr/kaldi/tree/master/egs/chime6/s5_track1) to create the CHiME-6 dataset which fixes synchronization. We then used the binaural recordings (`*_P??.wav`) and the corresponding transcripts.
+We downloaded the [CHiME-5 dataset](https://www.chimechallenge.org/challenges/chime5/download) and followed the stage 0 of the [s5_track1 recipe](https://github.com/kaldi-asr/kaldi/tree/master/egs/chime6/s5_track1) to create the CHiME-6 dataset which fixes synchronization. We then used the binaural recordings (`*_P??.wav`) and the corresponding transcripts.
 
 ### AMI-IHM, AMI-SDM1
 
@@ -103,7 +103,7 @@ We used the test splits from each language in [the Multilingual LibriSpeech (MLS
 
 ### Fleurs
 
-We collected audio files and transcripts using the implementation available as [HuggingFace datasets](https://huggingface.co/datasets/google/fleurs/blob/main/fleurs.py). To use as a translation dataset, we matched the numerical utterance IDs to find the corresponding transcript in English.   
+We collected audio files and transcripts using the implementation available as [HuggingFace datasets](https://huggingface.co/datasets/google/fleurs/blob/d7c758a6dceecd54a98cac43404d3d576e721f07/fleurs.py). To use as a translation dataset, we matched the numerical utterance IDs to find the corresponding transcript in English.   
 
 ### VoxPopuli
 
