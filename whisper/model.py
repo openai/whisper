@@ -120,6 +120,9 @@ class MultiHeadAttention(nn.Module):
         k = k.view(*k.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
         v = v.view(*v.shape[:2], self.n_head, -1).permute(0, 2, 1, 3)
 
+        n_kv = k.shape[2]
+        offset = n_kv - n_ctx
+
         if SDPA_AVAILABLE and MultiHeadAttention.use_sdpa:
             if k.shape[0] == 1 and q.shape[0] != 1:
                 # Cross-attention K/V have batch 1 and broadcast against the
@@ -128,15 +131,21 @@ class MultiHeadAttention(nn.Module):
                 # view (no copy) to keep them on the fast path.
                 k = k.expand(q.shape[0], *k.shape[1:])
                 v = v.expand(q.shape[0], *v.shape[1:])
+            is_causal = mask is not None and n_ctx > 1 and offset == 0
+            attn_mask = (
+                mask[offset : offset + n_ctx, :n_kv].to(q.dtype)
+                if mask is not None and n_ctx > 1 and offset > 0
+                else None
+            )
             a = scaled_dot_product_attention(
-                q, k, v, is_causal=mask is not None and n_ctx > 1
+                q, k, v, attn_mask=attn_mask, is_causal=is_causal
             )
             out = a.permute(0, 2, 1, 3).flatten(start_dim=2)
             qk = None
         else:
             qk = (q * scale) @ (k * scale).transpose(-1, -2)
             if mask is not None:
-                qk = qk + mask[:n_ctx, :n_ctx]
+                qk = qk + mask[offset : offset + n_ctx, :n_kv]
             qk = qk.float()
 
             w = F.softmax(qk, dim=-1).to(q.dtype)
