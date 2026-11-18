@@ -664,10 +664,12 @@ class DecodingTask:
         return audio_features
 
     def _detect_language(self, audio_features: Tensor, tokens: Tensor):
-        languages = [self.options.language] * audio_features.shape[0]
+        languages = [self.options.language or "en"] * audio_features.shape[0]
         lang_probs = None
 
-        if self.options.language is None or self.options.task == "lang_id":
+        if (
+            self.model.is_multilingual and self.options.language is None
+        ) or self.options.task == "lang_id":
             lang_tokens, lang_probs = self.model.detect_language(
                 audio_features, self.tokenizer
             )
