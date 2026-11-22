@@ -528,7 +528,9 @@ class EnglishTextNormalizer:
     def __call__(self, s: str):
         s = s.lower()
 
-        s = re.sub(r"[<\[][^>\]]*[>\]]", "", s)  # remove words between brackets
+        s = re.sub(
+            r"<[^>]*>|\[[^\]]*\]", "", s
+        )  # remove words between matching brackets
         s = re.sub(r"\(([^)]+?)\)", "", s)  # remove words between parenthesis
         s = re.sub(self.ignore_patterns, "", s)
         s = re.sub(r"\s+'", "'", s)  # when there's a space before an apostrophe

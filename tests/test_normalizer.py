@@ -1,10 +1,25 @@
 import pytest
 
-from whisper.normalizers import EnglishTextNormalizer
+from whisper.normalizers import BasicTextNormalizer, EnglishTextNormalizer
 from whisper.normalizers.english import (
     EnglishNumberNormalizer,
     EnglishSpellingNormalizer,
 )
+
+
+@pytest.mark.parametrize("normalizer", [BasicTextNormalizer(), EnglishTextNormalizer()])
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("hello [noise > background] again", "hello again"),
+        ("hello <noise ] background> again", "hello again"),
+        ("hello [world> again", "hello world again"),
+        ("hello <world] again", "hello world again"),
+        ("hello [noise] <music> again", "hello again"),
+    ],
+)
+def test_normalizer_matches_bracket_pairs(normalizer, text, expected):
+    assert normalizer(text).strip() == expected
 
 
 @pytest.mark.parametrize("std", [EnglishNumberNormalizer(), EnglishTextNormalizer()])
