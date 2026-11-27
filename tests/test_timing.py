@@ -52,6 +52,13 @@ def test_dtw(N: int, M: int):
     assert np.allclose(trace, dtw_trace)
 
 
+@pytest.mark.parametrize("N, M", [(1, 1), (1, 17), (17, 1)])
+def test_dtw_single_axis(N: int, M: int):
+    x = np.zeros((N, M), dtype=np.float64)
+    expected = np.indices(x.shape).reshape(2, -1)
+    np.testing.assert_array_equal(dtw_cpu(x), expected)
+
+
 @pytest.mark.requires_cuda
 @pytest.mark.parametrize("N, M", sizes)
 def test_dtw_cuda_equivalence(N: int, M: int):
