@@ -79,18 +79,21 @@ def backtrace(trace: np.ndarray):
     return result[::-1, :].T
 
 
-@numba.jit(nopython=True, parallel=True)
+@numba.jit(nopython=True)
 def dtw_cpu(x: np.ndarray):
     N, M = x.shape
-    cost = np.ones((N + 1, M + 1), dtype=np.float32) * np.inf
-    trace = -np.ones((N + 1, M + 1), dtype=np.float32)
+    cost = np.full(M + 1, np.inf, dtype=np.float32)
+    trace = np.empty((N + 1, M + 1), dtype=np.uint8)
 
-    cost[0, 0] = 0
-    for j in range(1, M + 1):
-        for i in range(1, N + 1):
-            c0 = cost[i - 1, j - 1]
-            c1 = cost[i - 1, j]
-            c2 = cost[i, j - 1]
+    cost[0] = 0
+    for i in range(1, N + 1):
+        diagonal = cost[0]
+        cost[0] = np.inf
+        for j in range(1, M + 1):
+            # cost[j] is still in the previous row; cost[j - 1] is in this row.
+            c0 = diagonal
+            c1 = cost[j]
+            c2 = cost[j - 1]
 
             if c0 < c1 and c0 < c2:
                 c, t = c0, 0
@@ -99,7 +102,8 @@ def dtw_cpu(x: np.ndarray):
             else:
                 c, t = c2, 2
 
-            cost[i, j] = x[i - 1, j - 1] + c
+            diagonal = c1
+            cost[j] = x[i - 1, j - 1] + c
             trace[i, j] = t
 
     return backtrace(trace)
